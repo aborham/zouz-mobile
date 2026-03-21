@@ -47,9 +47,15 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       body: Stack(
         children: [
+          // Background Image
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/zouz_gradiants1.png',
+              fit: BoxFit.cover,
+            ),
+          ),
           // Content
           Center(
             child: FadeTransition(
@@ -58,15 +64,15 @@ class _SplashScreenState extends State<SplashScreen>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Image.asset(
-                    'assets/images/zouz_logo_black.png',
+                    'assets/images/zouz_logo_white.png',
                     width: 400, // Adjust size as needed
                   ),
                   Transform.translate(
                     offset: const Offset(0, -160), // Pull the slogan up
                     child: Text(
                       'common.slogan'.tr(),
-                      style: const TextStyle(
-                        color: Color(0xFF1F2937), // Dark gray
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.9),
                         fontSize: 18,
                         fontWeight: FontWeight.w500,
                       ),
@@ -84,8 +90,8 @@ class _SplashScreenState extends State<SplashScreen>
             child: Center(
               child: Text(
                 '© ${DateTime.now().year} Zouz App',
-                style: const TextStyle(
-                  color: Colors.black26,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.5),
                   fontSize: 14,
                 ),
               ),
@@ -94,6 +100,7 @@ class _SplashScreenState extends State<SplashScreen>
         ],
       ),
     );
+
 
   }
 }
