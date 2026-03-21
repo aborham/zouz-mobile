@@ -19,6 +19,7 @@ dependencies:
   go_router: ^17.1.0
   go_sell_sdk_flutter: ^2.4.29
   intl: ^0.20.2
+  lottie: ^3.3.2
   mobile_scanner: ^7.2.0
   permission_handler: ^11.3.1
   qr_flutter: ^4.1.0

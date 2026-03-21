@@ -126,11 +126,14 @@
     "skip": "Skip",
     "next": "Next",
     "get_started": "Get Started",
-    "discover_title": "Your Daily Favorites, Simplified",
-    "discover_desc": "Why pay every day? Buy a package once and enjoy your routine without reaching for your wallet.",
-    "save_title": "Scan the Stand!",
-    "save_desc": "See a Zouz stand on a cafe table? Scan it to see what packages that branch is offering right now.",
-    "claim_title": "Your Unified QR Wallet",
-    "claim_desc": "All your purchased coffee, grooming, and dining bundles stored safely in one unified QR code."
+    "slide1_title": "Simplified",
+    "slide1_subtitle": "Your Daily Favorites",
+    "slide1_desc": "Why pay every day? Buy a package once and enjoy your routine without reaching for your wallet.",
+    "slide2_title": "Scan the Stand!",
+    "slide2_subtitle": "Instant Savings",
+    "slide2_desc": "See a Zouz stand on a cafe table? Scan it to see what packages that branch is offering right now.",
+    "slide3_title": "Unified QR Wallet",
+    "slide3_subtitle": "All-in-one",
+    "slide3_desc": "All your purchased coffee, grooming, and dining bundles stored safely in one unified QR code."
   }
 }
