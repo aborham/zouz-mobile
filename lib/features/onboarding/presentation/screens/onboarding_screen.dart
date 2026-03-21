@@ -1,6 +1,11 @@
+import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lottie/lottie.dart';
+import 'package:zouz_mobile/core/theme/colors.dart';
 import 'package:zouz_mobile/features/onboarding/data/onboarding_repository.dart';
+
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -178,9 +183,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                             const SizedBox(height: 8),
                             
                             // Subtitle (Localized from API - Blue)
-                            if (slide.subtitle != null)
+                            if (slide.subtitle['en'] != null || slide.subtitle['ar'] != null)
                               Text(
-                                slide.subtitle![locale] ?? slide.subtitle!['en'] ?? '',
+                                (slide.subtitle[locale] ?? slide.subtitle['en'] ?? '').toString(),
                                 style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -193,9 +198,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                             const SizedBox(height: 16),
 
                             // Description (Localized from API)
-                            if (slide.description != null)
+                            if (slide.description['en'] != null || slide.description['ar'] != null)
                               Text(
-                                slide.description![locale] ?? slide.description!['en'] ?? '',
+                                (slide.description[locale] ?? slide.description['en'] ?? '').toString(),
                                 style: const TextStyle(
                                   fontSize: 15,
                                   color: AppColors.textSecondary,
@@ -203,6 +208,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                 ),
                                 textAlign: TextAlign.center,
                               ),
+
                           ],
                         ),
                       );

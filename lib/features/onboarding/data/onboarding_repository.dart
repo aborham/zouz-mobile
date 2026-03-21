@@ -40,11 +40,12 @@ class OnboardingRepository {
 
   Future<List<OnboardingSlide>> getSlides() async {
     try {
-      // Use the public onboarding endpoint
-      final response = await _apiClient.dio.get('/api/public/onboarding');
+      // Relative to baseUrl: http://localhost:3000/api/customer/
+      final response = await _apiClient.dio.get('onboarding');
       final List<dynamic> data = response.data;
       return data.map((json) => OnboardingSlide.fromJson(json)).toList();
     } catch (e) {
+
       // Return empty list or handle error appropriately
       rethrow;
     }
