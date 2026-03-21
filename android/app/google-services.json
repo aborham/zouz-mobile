@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "7187295636",
+    "project_id": "zouz-ceca4",
+    "storage_bucket": "zouz-ceca4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:7187295636:android:c90f5f63b2f23aaf017381",
+        "android_client_info": {
+          "package_name": "com.zouz.zouz_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDyDxXbfWrtMPwZXDPLu8hNbOOlRuK262o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
