@@ -29,21 +29,18 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeIn));
 
     _controller.forward();
+  }
 
-    // Navigate based on state after a delay
-    Future.delayed(const Duration(seconds: 3), () {
-      if (!mounted) return;
-      
-      final authState = ref.read(authNotifierProvider);
-      
-      if (!authState.onboardingCompleted) {
-        context.go('/onboarding');
-      } else if (authState.status == AuthStatus.authenticated) {
-        context.go('/home');
-      } else {
-        context.go('/login');
-      }
-    });
+  void _handleNavigation(AuthState authState) {
+    if (!authState.isInitialized) return;
+
+    if (!authState.onboardingCompleted) {
+      context.go('/onboarding');
+    } else if (authState.status == AuthStatus.authenticated) {
+      context.go('/dashboard');
+    } else {
+      context.go('/login');
+    }
   }
 
   @override
@@ -54,6 +51,20 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AuthState>(authNotifierProvider, (previous, next) {
+      if (next.isInitialized) {
+        _handleNavigation(next);
+      }
+    });
+
+    // Check once in build in case it initialized before listener attached
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final state = ref.read(authNotifierProvider);
+      if (state.isInitialized) {
+        _handleNavigation(state);
+      }
+    });
+
     return Scaffold(
       body: Stack(
         children: [

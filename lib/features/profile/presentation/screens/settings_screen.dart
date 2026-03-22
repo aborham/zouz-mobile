@@ -109,7 +109,7 @@ class SettingsScreen extends ConsumerWidget {
               trailing: Switch(
                 value: true,
                 onChanged: (v) => _showComingSoon(context),
-                activeColor: AppColors.primary,
+                activeThumbColor: AppColors.primary,
               ),
               onTap: () {},
               iconColor: const Color(0xFFFF6B00),

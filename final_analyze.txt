@@ -1,0 +1,5 @@
+Analyzing zouz-mobile...                                        
+
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/profile/presentation/screens/profile_screen.dart:58:52 • deprecated_member_use
+
+1 issue found. (ran in 2.3s)

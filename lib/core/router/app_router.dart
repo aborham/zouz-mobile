@@ -25,7 +25,7 @@ final GoRouter appRouter = GoRouter(
     GoRoute(path: '/otp', builder: (context, state) => const OtpScreen()),
     GoRoute(path: '/complete-profile', builder: (context, state) => const CompleteProfileScreen()),
     GoRoute(
-      path: '/home',
+      path: '/dashboard',
       builder: (context, state) => const MainNavigationScreen(),
     ),
     GoRoute(

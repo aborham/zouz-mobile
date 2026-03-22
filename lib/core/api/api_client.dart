@@ -10,6 +10,14 @@ class AppLocale extends Notifier<String> {
 
 final appLocaleProvider = NotifierProvider<AppLocale, String>(AppLocale.new);
 
+class AuthTokenNotifier extends Notifier<String?> {
+  @override
+  String? build() => null;
+  void updateToken(String? value) => state = value;
+}
+
+final authTokenProvider = NotifierProvider<AuthTokenNotifier, String?>(AuthTokenNotifier.new);
+
 class ApiClient {
   final Dio _dio;
   final Ref _ref;
@@ -27,10 +35,17 @@ class ApiClient {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
-          // Add language header from current locale provider
+          // Add language header
           final currentLocale = _ref.read(appLocaleProvider);
           options.headers['Accept-Language'] = currentLocale;
           options.headers['x-language'] = currentLocale;
+
+          // Add auth header if token exists
+          final token = _ref.read(authTokenProvider);
+          if (token != null) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
+          
           return handler.next(options);
         },
       ),

@@ -1,48 +1,50 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:go_router/go_router.dart';
 import 'package:zouz_mobile/core/widgets/error_state_widget.dart';
 
 import 'package:zouz_mobile/core/theme/colors.dart';
 import 'package:zouz_mobile/core/utils/image_utils.dart';
-import 'package:zouz_mobile/features/marketplace/providers/marketplace_provider.dart';
-import 'package:zouz_mobile/features/marketplace/models/marketplace_data.dart';
+import 'package:zouz_mobile/features/dashboard/providers/home_provider.dart';
+import 'package:zouz_mobile/features/dashboard/models/home_data.dart';
 
 class HomeDashboardScreen extends ConsumerWidget {
   const HomeDashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final marketplaceState = ref.watch(marketplaceProvider);
+    final homeState = ref.watch(homeDataProvider);
 
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: marketplaceState.when(
+        child: homeState.when(
           data: (data) => RefreshIndicator(
-            onRefresh: () => ref.refresh(marketplaceProvider.future),
+            onRefresh: () => ref.refresh(homeDataProvider.future),
             child: CustomScrollView(
               physics: const BouncingScrollPhysics(),
               slivers: [
-                _buildHeader(context),
+                _buildHeader(context, data.user),
                 _buildSearchAndFilter(context),
-                _buildCategories(context, ref, data.categories),
-                _buildFeaturedSection(context, data.featured),
-                _buildPromoSection(context, data.promo),
-                _buildTrendingSection(context, data.trending),
+                if (data.activePackages.isNotEmpty)
+                  _buildActivePackages(context, data.activePackages),
+                _buildTrendingProviders(context, data.trendingProviders),
+                _buildTrendingSection(context, data.trendingPackages),
               ],
             ),
           ),
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (err, stack) => ErrorStateWidget(
-            onRetry: () => ref.refresh(marketplaceProvider.future),
+            onRetry: () => ref.refresh(homeDataProvider.future),
+            subtitle: err.toString(),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, HomeUser user) {
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       sliver: SliverToBoxAdapter(
@@ -54,9 +56,11 @@ class HomeDashboardScreen extends ConsumerWidget {
                 CircleAvatar(
                   radius: 24,
                   backgroundColor: AppColors.surface,
-                  backgroundImage: const NetworkImage(
-                    'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
-                  ),
+                  backgroundImage: user.avatarUrl != null
+                      ? NetworkImage(ImageUtils.getFullUrl(user.avatarUrl!)!)
+                      : const NetworkImage(
+                          'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
+                        ),
                 ),
                 const SizedBox(width: 12),
                 Column(
@@ -69,9 +73,9 @@ class HomeDashboardScreen extends ConsumerWidget {
                         fontSize: 14,
                       ),
                     ),
-                    const Text(
-                      'Ahmed', // Replace with real user name from authProvider if available
-                      style: TextStyle(
+                    Text(
+                      user.name ?? 'profile.customer_name'.tr(),
+                      style: const TextStyle(
                         color: AppColors.textPrimary,
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -148,62 +152,7 @@ class HomeDashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildCategories(
-    BuildContext context,
-    WidgetRef ref,
-    List<String> categories,
-  ) {
-    final selectedCategory = ref.watch(selectedCategoryProvider);
-    final allCategories = ['All', ...categories];
-
-    return SliverPadding(
-      padding: const EdgeInsets.only(top: 24, bottom: 8),
-      sliver: SliverToBoxAdapter(
-        child: SizedBox(
-          height: 40,
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            scrollDirection: Axis.horizontal,
-            itemCount: allCategories.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemBuilder: (context, index) {
-              final cat = allCategories[index];
-              final isSelected = selectedCategory == cat;
-              return GestureDetector(
-                onTap: () => ref
-                    .read(selectedCategoryProvider.notifier)
-                    .setCategory(cat),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  decoration: BoxDecoration(
-                    color: isSelected ? AppColors.primary : AppColors.surface,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    cat,
-                    style: TextStyle(
-                      color: isSelected
-                          ? Colors.white
-                          : AppColors.textSecondary,
-                      fontWeight: isSelected
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFeaturedSection(
-    BuildContext context,
-    List<MarketplacePackage> featured,
-  ) {
+  Widget _buildActivePackages(BuildContext context, List<ActivePackage> packages) {
     return SliverPadding(
       padding: const EdgeInsets.only(top: 32),
       sliver: SliverToBoxAdapter(
@@ -215,7 +164,7 @@ class HomeDashboardScreen extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'dashboard.featured_packages'.tr(),
+                    'dashboard.active_packages'.tr(),
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -234,70 +183,188 @@ class HomeDashboardScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             SizedBox(
-              height: 200,
+              height: 260,
               child: ListView.separated(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 scrollDirection: Axis.horizontal,
-                itemCount: featured.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 20),
+                itemCount: packages.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 16),
                 itemBuilder: (context, index) {
-                  final pkg = featured[index];
-                  return Container(
-                    width: 280,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(24),
-                      image: DecorationImage(
-                        image: NetworkImage(
-                          ImageUtils.getFullUrl(pkg.imageUrl) ??
-                              'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?q=80&w=800&auto=format&fit=crop',
-                        ),
-                        fit: BoxFit.cover,
-                        colorFilter: ColorFilter.mode(
-                          Colors.black.withValues(alpha: 0.3),
-                          BlendMode.darken,
-                        ),
-                      ),
-                    ),
-                    child: Padding(
+                  final pkg = packages[index];
+                  final expiryDate = pkg.expiresAt != null 
+                    ? DateFormat('MMM dd').format(pkg.expiresAt!) 
+                    : '-';
+                  
+                  final locale = context.locale.languageCode;
+                  final packageName = pkg.packageName[locale] ?? pkg.packageName['en'] ?? '';
+                  final providerName = pkg.providerName[locale] ?? pkg.providerName['en'] ?? '';
+
+                  return GestureDetector(
+                    onTap: () => context.push('/purchase-details', extra: pkg.toMap()),
+                    child: Container(
+                      width: 320,
                       padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(color: AppColors.surface, width: 1.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.04),
+                            blurRadius: 15,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          if (pkg.badgeText != null)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                pkg.badgeText!,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
+                          // Header Row
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withValues(alpha: 0.1),
+                                  shape: BoxShape.circle,
                                 ),
+                                child: const Icon(Icons.inventory_2_outlined, color: AppColors.primary, size: 20),
                               ),
-                            ),
-                          const SizedBox(height: 8),
+                              const Spacer(),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    providerName,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  Container(
+                                    margin: const EdgeInsets.only(top: 4),
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      'purchases.status.active'.tr(),
+                                      style: const TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                height: 48,
+                                width: 48,
+                                decoration: BoxDecoration(
+                                  color: Colors.amber.withValues(alpha: 0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: pkg.providerLogo != null && pkg.providerLogo!.isNotEmpty
+                                    ? ClipOval(
+                                        child: Image.network(
+                                          ImageUtils.getFullUrl(pkg.providerLogo!)!,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) => 
+                                              const Icon(Icons.business, color: Colors.amber),
+                                        ),
+                                      )
+                                    : const Icon(Icons.business, color: Colors.amber),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          // Package Title
                           Text(
-                            pkg.name,
+                            packageName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 22,
+                              color: AppColors.textPrimary,
                             ),
                           ),
-                          Text(
-                            pkg.businessName,
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.8),
-                              fontSize: 12,
-                            ),
+                          const SizedBox(height: 20),
+                          // Data Cards Row
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.surface.withValues(alpha: 0.5),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Text(
+                                        'dashboard.valid_until'.tr(),
+                                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            expiryDate,
+                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          const Icon(Icons.calendar_today_outlined, size: 14, color: AppColors.textSecondary),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.surface.withValues(alpha: 0.5),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Text(
+                                        'dashboard.usage'.tr(),
+                                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            '${pkg.initialQuantity! - pkg.remainingQuantity}',
+                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.primary),
+                                          ),
+                                          Text(
+                                            ' / ${pkg.initialQuantity}',
+                                            style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14, color: AppColors.textSecondary),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(4),
+                                        child: LinearProgressIndicator(
+                                          value: pkg.progress,
+                                          minHeight: 4,
+                                          backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                                          valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -312,61 +379,72 @@ class HomeDashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildPromoSection(BuildContext context, MarketplacePromo promo) {
+  Widget _buildTrendingProviders(BuildContext context, List<TrendingProvider> providers) {
     return SliverPadding(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.only(top: 32),
       sliver: SliverToBoxAdapter(
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [AppColors.secondary, AppColors.primary],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      promo.title,
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      promo.subtitle,
-                      style: TextStyle(
-                        color: AppColors.textPrimary.withValues(alpha: 0.7),
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    ElevatedButton(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.textPrimary,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        minimumSize: const Size(100, 36),
-                      ),
-                      child: Text(promo.cta),
-                    ),
-                  ],
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
+                'dashboard.trending_providers'.tr(),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
                 ),
               ),
-              const Icon(Icons.stars, size: 60, color: Colors.white54),
-            ],
-          ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 100,
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                scrollDirection: Axis.horizontal,
+                itemCount: providers.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 20),
+                itemBuilder: (context, index) {
+                  final provider = providers[index];
+                  final locale = context.locale.languageCode;
+                  final providerName = provider.name[locale] ?? provider.name['en'] ?? '';
+
+                  return Column(
+                    children: [
+                      Container(
+                        height: 64,
+                        width: 64,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.2), width: 2),
+                        ),
+                        child: ClipOval(
+                          child: provider.logoUrl != null
+                              ? Image.network(
+                                  ImageUtils.getFullUrl(provider.logoUrl!)!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => 
+                                      const Icon(Icons.store, color: AppColors.primary),
+                                )
+                              : const Icon(Icons.store, color: AppColors.primary),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        providerName,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -374,10 +452,10 @@ class HomeDashboardScreen extends ConsumerWidget {
 
   Widget _buildTrendingSection(
     BuildContext context,
-    List<MarketplacePackage> trending,
+    List<TrendingPackage> packages,
   ) {
     return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
       sliver: SliverToBoxAdapter(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -400,9 +478,13 @@ class HomeDashboardScreen extends ConsumerWidget {
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
               ),
-              itemCount: trending.length,
+              itemCount: packages.length,
               itemBuilder: (context, index) {
-                final pkg = trending[index];
+                final pkg = packages[index];
+                final locale = context.locale.languageCode;
+                final packageName = pkg.name[locale] ?? pkg.name['en'] ?? '';
+                final providerName = pkg.providerName[locale] ?? pkg.providerName['en'] ?? '';
+
                 return Container(
                   decoration: BoxDecoration(
                     color: AppColors.surface,
@@ -412,21 +494,19 @@ class HomeDashboardScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(20),
-                            ),
-                            image: DecorationImage(
-                              image: NetworkImage(
-                                ImageUtils.getFullUrl(pkg.imageUrl) ??
-                                    'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=800&auto=format&fit=crop',
-                              ),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
+                        child: ClipRRect(
+                          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                           child: Stack(
+                            fit: StackFit.expand,
                             children: [
+                              Image.network(
+                                ImageUtils.getFullUrl(pkg.imageUrl ?? '') ?? '',
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => Image.network(
+                                  'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=800&auto=format&fit=crop',
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
                               Positioned(
                                 top: 8,
                                 right: 8,
@@ -448,7 +528,7 @@ class HomeDashboardScreen extends ConsumerWidget {
                                       ),
                                       const SizedBox(width: 2),
                                       Text(
-                                        pkg.rating.toString(),
+                                        (pkg.rating ?? 4.5).toString(),
                                         style: const TextStyle(
                                           fontSize: 10,
                                           fontWeight: FontWeight.bold,
@@ -468,7 +548,7 @@ class HomeDashboardScreen extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              pkg.name,
+                              packageName,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
@@ -477,7 +557,7 @@ class HomeDashboardScreen extends ConsumerWidget {
                               ),
                             ),
                             Text(
-                              pkg.businessName,
+                              providerName,
                               style: const TextStyle(
                                 color: AppColors.textSecondary,
                                 fontSize: 10,
@@ -488,7 +568,7 @@ class HomeDashboardScreen extends ConsumerWidget {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  '${pkg.price} SAR',
+                                  '${pkg.price} ${'dashboard.currency'.tr()}',
                                   style: const TextStyle(
                                     color: AppColors.primary,
                                     fontWeight: FontWeight.bold,

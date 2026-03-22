@@ -5,7 +5,6 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:intl/intl.dart';
 import '../../providers/auth_provider.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/widgets/zouz_logo.dart';
@@ -119,6 +118,7 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
         });
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
       );
@@ -160,6 +160,8 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
         avatarUrl = await ref.read(authNotifierProvider.notifier).uploadAvatar(_imageFile!);
         if (avatarUrl == null) return; // Error handled in notifier
       }
+      
+      if (!mounted) return;
 
       ref.read(authNotifierProvider.notifier).completeProfile(
             name: _nameController.text,
@@ -176,7 +178,7 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
 
     ref.listen<AuthState>(authNotifierProvider, (previous, next) {
       if (next.status == AuthStatus.authenticated) {
-        context.go('/home');
+        context.go('/dashboard');
       } else if (next.status == AuthStatus.error && next.errorMessage != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -224,7 +226,7 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: AppColors.surface,
-                          border: Border.all(color: AppColors.primary.withOpacity(0.2), width: 3),
+                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.2), width: 3),
                         ),
                         child: ClipOval(
                           child: _imageFile != null

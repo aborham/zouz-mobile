@@ -1,0 +1,6 @@
+Analyzing zouz-mobile...                                        
+
+  error • The function 'StateProvider' isn't defined • lib/core/api/api_client.dart:13:27 • undefined_function
+warning • The value of the field '_apiClient' isn't used • lib/features/auth/providers/auth_provider.dart:65:18 • unused_field
+
+2 issues found. (ran in 2.3s)

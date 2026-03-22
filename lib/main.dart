@@ -7,9 +7,13 @@ import 'core/router/app_router.dart';
 import 'core/services/push_notification_service.dart';
 import 'core/api/api_client.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+import 'features/auth/providers/auth_provider.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await EasyLocalization.ensureInitialized();
+  final sharedPrefs = await SharedPreferences.getInstance();
 
   try {
     await Firebase.initializeApp();
@@ -24,6 +28,9 @@ void main() async {
 
   runApp(
     ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(sharedPrefs),
+      ],
       child: EasyLocalization(
         supportedLocales: const [Locale('en'), Locale('ar')],
         path: 'assets/translations',

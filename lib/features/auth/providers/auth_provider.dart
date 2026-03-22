@@ -1,11 +1,16 @@
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../repositories/auth_repository.dart';
 import '../../../core/api/api_client.dart';
 
 final secureStorageProvider = Provider<FlutterSecureStorage>((ref) {
   return const FlutterSecureStorage();
+});
+
+final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
+  throw UnimplementedError('SharedPreferences must be initialized in main()');
 });
 
 enum AuthStatus {
@@ -24,6 +29,7 @@ class AuthState {
   final String? userId;
   final String? errorMessage;
   final bool onboardingCompleted;
+  final bool isInitialized;
 
   AuthState({
     this.status = AuthStatus.initial,
@@ -31,6 +37,7 @@ class AuthState {
     this.userId,
     this.errorMessage,
     this.onboardingCompleted = false,
+    this.isInitialized = false,
   });
 
   AuthState copyWith({
@@ -39,6 +46,7 @@ class AuthState {
     String? userId,
     String? errorMessage,
     bool? onboardingCompleted,
+    bool? isInitialized,
   }) {
     return AuthState(
       status: status ?? this.status,
@@ -46,6 +54,7 @@ class AuthState {
       userId: userId ?? this.userId,
       errorMessage: errorMessage ?? this.errorMessage,
       onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
+      isInitialized: isInitialized ?? this.isInitialized,
     );
   }
 }
@@ -53,40 +62,48 @@ class AuthState {
 class AuthNotifier extends Notifier<AuthState> {
   late AuthRepository _repository;
   late FlutterSecureStorage _storage;
-  late ApiClient _apiClient;
+  late SharedPreferences _prefs;
 
   @override
   AuthState build() {
     _repository = ref.watch(authRepositoryProvider);
     _storage = ref.watch(secureStorageProvider);
-    _apiClient = ref.watch(apiClientProvider);
+    _prefs = ref.watch(sharedPreferencesProvider);
 
-    _checkInitialAuth();
+    // Trigger async initialization but return initial state
+    Future.microtask(() => _checkInitialAuth());
     return AuthState();
   }
 
   Future<void> _checkInitialAuth() async {
-    final token = await _storage.read(key: 'jwt_token');
-    final onboarding = await _storage.read(key: 'onboarding_completed');
-    
-    final isOnboardingDone = onboarding == 'true';
-    
-    if (token != null) {
-      _apiClient.setAuthToken(token);
-      state = state.copyWith(
-        status: AuthStatus.authenticated,
-        onboardingCompleted: isOnboardingDone,
-      );
-    } else {
+    try {
+      final token = await _storage.read(key: 'jwt_token');
+      final isOnboardingDone = _prefs.getBool('onboarding_completed') ?? false;
+      
+      if (token != null) {
+        ref.read(authTokenProvider.notifier).updateToken(token);
+        state = state.copyWith(
+          status: AuthStatus.authenticated,
+          onboardingCompleted: isOnboardingDone,
+          isInitialized: true,
+        );
+      } else {
+        state = state.copyWith(
+          status: AuthStatus.unauthenticated,
+          onboardingCompleted: isOnboardingDone,
+          isInitialized: true,
+        );
+      }
+    } catch (e) {
       state = state.copyWith(
         status: AuthStatus.unauthenticated,
-        onboardingCompleted: isOnboardingDone,
+        isInitialized: true,
       );
     }
   }
 
   Future<void> completeOnboarding() async {
-    await _storage.write(key: 'onboarding_completed', value: 'true');
+    await _prefs.setBool('onboarding_completed', true);
     state = state.copyWith(onboardingCompleted: true);
   }
 
@@ -116,7 +133,7 @@ class AuthNotifier extends Notifier<AuthState> {
 
       if (token != null) {
         await _storage.write(key: 'jwt_token', value: token);
-        _apiClient.setAuthToken(token);
+        ref.read(authTokenProvider.notifier).updateToken(token);
         
         final needsProfile = response['needsProfile'] == true;
         final userId = response['customer']['id'];
@@ -177,8 +194,8 @@ class AuthNotifier extends Notifier<AuthState> {
 
   Future<void> logout() async {
     await _storage.delete(key: 'jwt_token');
-    _apiClient.clearAuthToken();
-    state = AuthState(status: AuthStatus.unauthenticated);
+    ref.read(authTokenProvider.notifier).updateToken(null);
+    state = AuthState(status: AuthStatus.unauthenticated, isInitialized: true, onboardingCompleted: true);
   }
 }
 

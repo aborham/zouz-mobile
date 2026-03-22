@@ -43,8 +43,6 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
             behavior: SnackBarBehavior.floating,
           ),
         );
-      } else if (next.status == AuthStatus.authenticated) {
-        context.go('/home');
       }
     });
 

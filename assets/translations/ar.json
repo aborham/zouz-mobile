@@ -40,9 +40,18 @@
     "explore_coming_soon": "ميزة الاستكشاف قادمة قريباً!",
     "greet_user": "صباح الخير،",
     "search_placeholder": "ابحث عن باقات أو متاجر",
-    "featured_packages": "باقات مختارة",
-    "see_all": "شاهد الكل",
-    "trending_now": "الأكثر تداولاً"
+    "featured_packages": "باقات مميزة",
+    "see_all": "الكل",
+    "trending_now": "الأكثر تداولاً",
+    "active_packages": "باقات نشطة",
+    "recent_stores": "المتاجر الأخيرة",
+    "remaining_items": "متبقي {} {}",
+    "expires_soon": "ينتهي قريباً",
+    "trending_providers": "متاجر رائجة",
+    "usage": "الاستخدام",
+    "valid_until": "صالحة حتى",
+    "redeem_now": "استخدم الآن",
+    "details": "التفاصيل"
   },
   "common": {
     "error": "حدث خطأ. يرجى المحاولة مرة أخرى.",
@@ -119,7 +128,17 @@
     "payment_time": "وقت الدفع",
     "copy": "نسخ",
     "got_it": "فهمت",
-    "vat_included": "شاملة ضريبة القيمة المضافة ١٥٪"
+    "vat_included": "شاملة ضريبة القيمة المضافة ١٥٪",
+    "back_to_list": "العودة لباقاتي",
+    "qr_title": "رمز QR للاستبدال",
+    "qr_instruction": "اعرض هذا الرمز للكاشير للاستبدال",
+    "package_details": "تفاصيل الباقة",
+    "type": "النوع",
+    "purchase_date": "تاريخ الشراء",
+    "no_redemptions": "لا توجد عمليات استبدال بعد",
+    "history_instruction": "اعرض رمز QR لبدء استخدام هذه الباقة",
+    "usages_remaining": "استخدامات متبقية",
+    "from": "من"
   },
   "packages": {
     "description": "الوصف",

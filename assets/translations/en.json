@@ -40,7 +40,16 @@
     "search_placeholder": "Search for packages or shops",
     "featured_packages": "Featured Packages",
     "see_all": "See all",
-    "trending_now": "Trending Now"
+    "trending_now": "Trending Now",
+    "active_packages": "Active Packages",
+    "recent_stores": "Recent Stores",
+    "remaining_items": "{} {} left",
+    "expires_soon": "Expires Soon",
+    "trending_providers": "Trending Stores",
+    "usage": "Usage",
+    "valid_until": "Valid until",
+    "redeem_now": "Redeem Now",
+    "details": "Details"
   },
   "common": {
     "error": "An error occurred. Please try again.",
@@ -117,7 +126,17 @@
     "payment_time": "Payment Time",
     "copy": "Copy",
     "got_it": "Got it",
-    "vat_included": "VAT 15% included"
+    "vat_included": "VAT 15% Included",
+    "back_to_list": "Back to my packages",
+    "qr_title": "QR Code for redemption",
+    "qr_instruction": "Show this code to the cashier for redemption",
+    "package_details": "Package Details",
+    "type": "Type",
+    "purchase_date": "Purchase Date",
+    "no_redemptions": "No redemptions yet",
+    "history_instruction": "Show QR code to start using this package",
+    "usages_remaining": "usages remaining",
+    "from": "from"
   },
   "packages": {
     "description": "Description",
