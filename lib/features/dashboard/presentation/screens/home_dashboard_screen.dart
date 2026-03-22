@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:zouz_mobile/core/widgets/error_state_widget.dart';
 
 import 'package:zouz_mobile/core/theme/colors.dart';
 import 'package:zouz_mobile/core/utils/image_utils.dart';
@@ -33,7 +34,9 @@ class HomeDashboardScreen extends ConsumerWidget {
             ),
           ),
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, stack) => Center(child: Text('Error: $err')),
+          error: (err, stack) => ErrorStateWidget(
+            onRetry: () => ref.refresh(marketplaceProvider.future),
+          ),
         ),
       ),
     );

@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/otp_screen.dart';
+import '../../features/auth/presentation/screens/complete_profile_screen.dart';
 import '../../features/dashboard/presentation/screens/main_navigation_screen.dart';
 import '../../features/scanner/presentation/screens/qr_scanner_screen.dart';
 import '../../features/scanner/presentation/screens/menu_screen.dart';
@@ -21,8 +22,8 @@ final GoRouter appRouter = GoRouter(
     GoRoute(path: '/splash', builder: (context, state) => const SplashScreen()),
     GoRoute(path: '/onboarding', builder: (context, state) => const OnboardingScreen()),
     GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
-
     GoRoute(path: '/otp', builder: (context, state) => const OtpScreen()),
+    GoRoute(path: '/complete-profile', builder: (context, state) => const CompleteProfileScreen()),
     GoRoute(
       path: '/home',
       builder: (context, state) => const MainNavigationScreen(),

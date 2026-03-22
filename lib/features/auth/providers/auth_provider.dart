@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../repositories/auth_repository.dart';
@@ -12,6 +13,7 @@ enum AuthStatus {
   loading,
   unauthenticated,
   otpSent,
+  needsProfile,
   authenticated,
   error,
 }
@@ -19,23 +21,31 @@ enum AuthStatus {
 class AuthState {
   final AuthStatus status;
   final String? phoneNumber;
+  final String? userId;
   final String? errorMessage;
+  final bool onboardingCompleted;
 
   AuthState({
     this.status = AuthStatus.initial,
     this.phoneNumber,
+    this.userId,
     this.errorMessage,
+    this.onboardingCompleted = false,
   });
 
   AuthState copyWith({
     AuthStatus? status,
     String? phoneNumber,
+    String? userId,
     String? errorMessage,
+    bool? onboardingCompleted,
   }) {
     return AuthState(
       status: status ?? this.status,
       phoneNumber: phoneNumber ?? this.phoneNumber,
+      userId: userId ?? this.userId,
       errorMessage: errorMessage ?? this.errorMessage,
+      onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
     );
   }
 }
@@ -57,12 +67,27 @@ class AuthNotifier extends Notifier<AuthState> {
 
   Future<void> _checkInitialAuth() async {
     final token = await _storage.read(key: 'jwt_token');
+    final onboarding = await _storage.read(key: 'onboarding_completed');
+    
+    final isOnboardingDone = onboarding == 'true';
+    
     if (token != null) {
       _apiClient.setAuthToken(token);
-      state = state.copyWith(status: AuthStatus.authenticated);
+      state = state.copyWith(
+        status: AuthStatus.authenticated,
+        onboardingCompleted: isOnboardingDone,
+      );
     } else {
-      state = state.copyWith(status: AuthStatus.unauthenticated);
+      state = state.copyWith(
+        status: AuthStatus.unauthenticated,
+        onboardingCompleted: isOnboardingDone,
+      );
     }
+  }
+
+  Future<void> completeOnboarding() async {
+    await _storage.write(key: 'onboarding_completed', value: 'true');
+    state = state.copyWith(onboardingCompleted: true);
   }
 
   Future<void> requestOtp(String phoneNumber) async {
@@ -92,10 +117,56 @@ class AuthNotifier extends Notifier<AuthState> {
       if (token != null) {
         await _storage.write(key: 'jwt_token', value: token);
         _apiClient.setAuthToken(token);
-        state = state.copyWith(status: AuthStatus.authenticated);
+        
+        final needsProfile = response['needsProfile'] == true;
+        final userId = response['customer']['id'];
+
+        if (needsProfile) {
+          state = state.copyWith(
+            status: AuthStatus.needsProfile,
+            userId: userId,
+          );
+        } else {
+          state = state.copyWith(status: AuthStatus.authenticated);
+        }
       } else {
         throw Exception('Token not found in response');
       }
+    } catch (e) {
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: e.toString(),
+      );
+    }
+  }
+
+  Future<String?> uploadAvatar(File file) async {
+    try {
+      return await _repository.uploadAvatar(file);
+    } catch (e) {
+      state = state.copyWith(status: AuthStatus.error, errorMessage: e.toString());
+      return null;
+    }
+  }
+
+  Future<void> completeProfile({
+    required String name,
+    required String email,
+    String? dateOfBirth,
+    String? avatarUrl,
+  }) async {
+    if (state.userId == null) return;
+    
+    state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
+    try {
+      await _repository.completeProfile(
+        userId: state.userId!,
+        name: name,
+        email: email,
+        dateOfBirth: dateOfBirth,
+        avatarUrl: avatarUrl,
+      );
+      state = state.copyWith(status: AuthStatus.authenticated);
     } catch (e) {
       state = state.copyWith(
         status: AuthStatus.error,

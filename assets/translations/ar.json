@@ -1,14 +1,33 @@
 {
   "auth": {
-    "login_title": "أهلاً بك مجدداً",
-    "login_subtitle": "تسجيل الدخول لبوابة العملاء",
+    "login_title": "أهلاً بك في زووز",
+    "login_subtitle": "أدخل رقم جوالك للمتابعة",
     "phone_number": "رقم الجوال",
-    "phone_hint": "مثال: 501234567",
-    "send_otp": "إرسال رمز التحقق",
-    "verify_otp": "تأكيد الرمز",
+    "phone_hint": "5XX XXX XXXX",
+    "send_otp": "إرسال الرمز",
+    "verify_otp": "تأكيد",
     "otp_title": "أدخل رمز التحقق",
-    "otp_subtitle": "أرسلنا رمزاً من 6 أرقام لهاتفك",
-    "resend_code": "إعادة إرسال الرمز"
+    "otp_subtitle": "تم إرسال رمز التحقق المكون من 6 أرقام إلى رقم هاتفك المحمول.",
+    "resend_timer": "إعادة الإرسال خلال {}",
+    "didnt_receive": "لم تستلم الرمز؟ إرسال مرة أخرى",
+    "resend_code": "إعادة إرسال الرمز",
+    "verify": "تأكيد",
+    "complete_profile_title": "أكمل ملفك الشخصي",
+    "complete_profile_subtitle": "فقط بعض التفاصيل للبدء",
+    "name_label": "الاسم الكامل",
+    "name_hint": "أدخل اسمك الكامل",
+    "email_label": "البريد الإلكتروني",
+    "email_hint": "أدخل بريدك الإلكتروني",
+    "dob_label": "تاريخ الميلاد",
+    "dob_hint": "اختر تاريخ ميلادك",
+    "avatar_label": "الصورة الشخصية",
+    "permission_title": "مطلوب إذن",
+    "permission_camera_msg": "نحتاج للوصول إلى الكاميرا لالتقاط صورتك الشخصية.",
+    "permission_gallery_msg": "نحتاج للوصول إلى المعرض لاختيار صورتك الشخصية.",
+    "permission_enable": "تمكين",
+    "permission_cancel": "ليس الآن",
+    "finish": "إنهاء",
+    "terms_consent": "من خلال المتابعة ، فإنك توافق على شروط الخدمة وسياسة الخصوصية الخاصة بنا"
   },
   "dashboard": {
     "currency": "ر.س",
@@ -32,7 +51,9 @@
     "retry": "إعادة المحاولة",
     "close": "إغلاق",
     "coming_soon": "هذه الميزة ستتوفر قريباً!",
-    "slogan": "استخدامك.. مضاعف."
+    "slogan": "استخدامك.. مضاعف.",
+    "error_title": "حدث خطأ ما",
+    "error_subtitle": "واجهنا مشكلة في تحميل البيانات. يرجى المحاولة مرة أخرى."
   },
   "profile": {
     "title": "حسابي",

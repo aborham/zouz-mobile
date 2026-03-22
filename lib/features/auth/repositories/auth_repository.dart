@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import '../../../core/api/api_client.dart';
@@ -39,6 +40,46 @@ class AuthRepository {
       return response.data; // Should contain success, token, customer
     } on DioException catch (e) {
       throw Exception(e.response?.data['error'] ?? 'Invalid OTP code');
+    }
+  }
+
+  Future<String> uploadAvatar(File file) async {
+    try {
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(file.path),
+      });
+
+      final response = await _apiClient.dio.post(
+        '/profile/avatar',
+        data: formData,
+      );
+
+      return response.data['avatarUrl'];
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['error'] ?? 'Failed to upload avatar');
+    }
+  }
+
+  Future<void> completeProfile({
+    required String userId,
+    required String name,
+    required String email,
+    String? dateOfBirth,
+    String? avatarUrl,
+  }) async {
+    try {
+      await _apiClient.dio.post(
+        '/profile/complete',
+        data: {
+          'userId': userId,
+          'name': name,
+          'email': email,
+          'dateOfBirth': dateOfBirth,
+          'avatarUrl': avatarUrl,
+        },
+      );
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['error'] ?? 'Failed to update profile');
     }
   }
 }

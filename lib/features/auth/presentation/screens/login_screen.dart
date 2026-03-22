@@ -1,12 +1,11 @@
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zouz_mobile/features/auth/providers/auth_provider.dart';
 import 'package:zouz_mobile/core/theme/colors.dart';
-import 'package:zouz_mobile/core/widgets/glass_card.dart';
-import '../../../../core/widgets/zouz_logo.dart';
+import 'package:zouz_mobile/core/widgets/zouz_logo.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -15,40 +14,46 @@ class LoginScreen extends ConsumerStatefulWidget {
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen>
-    with SingleTickerProviderStateMixin {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _phoneController = TextEditingController();
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
+  final _formKey = GlobalKey<FormState>();
+  bool _isInputValid = false;
 
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1000),
-    );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
-    );
-    _slideAnimation =
-        Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero).animate(
-          CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
-        );
-    _animationController.forward();
+    _phoneController.addListener(_validateInput);
+  }
+
+  void _validateInput() {
+    final text = _phoneController.text;
+    final isValid = RegExp(r'^5\d{8}$').hasMatch(text);
+    if (_isInputValid != isValid) {
+      setState(() {
+        _isInputValid = isValid;
+      });
+    }
   }
 
   @override
   void dispose() {
     _phoneController.dispose();
-    _animationController.dispose();
     super.dispose();
+  }
+
+  void _toggleLanguage() {
+    final currentLocale = context.locale;
+    if (currentLocale.languageCode == 'en') {
+      context.setLocale(const Locale('ar'));
+    } else {
+      context.setLocale(const Locale('en'));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
+    final isRtl = context.locale.languageCode == 'ar';
 
     ref.listen<AuthState>(authNotifierProvider, (previous, next) {
       if (next.status == AuthStatus.error && next.errorMessage != null) {
@@ -57,148 +62,170 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             content: Text(next.errorMessage!),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         );
       } else if (next.status == AuthStatus.otpSent) {
         context.push('/otp');
-      } else if (next.status == AuthStatus.authenticated) {
-        context.go('/home');
       }
     });
 
     return Scaffold(
-      body: Stack(
-        children: [
-          // Background Elements
-          Container(
-            color: AppColors.background,
-          ),
-          Positioned(
-            top: -50,
-            right: -50,
-            child: Container(
-              width: 250,
-              height: 250,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.primary.withValues(alpha: 0.05),
-              ),
-            ),
-          ),
-          // Scrollable Content
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-              child: FadeTransition(
-                opacity: _fadeAnimation,
-                child: SlideTransition(
-                  position: _slideAnimation,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const SizedBox(height: 48),
-                      const Center(child: ZouzLogo(size: 100, color: AppColors.primary)),
-                      const SizedBox(height: 40),
-                      Text(
-                        'auth.login_title'.tr(),
-                        style: const TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.textPrimary,
-                        ),
-
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'auth.login_subtitle'.tr(),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          color: AppColors.textSecondary,
-                        ),
-
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 48),
-                      GlassCard(
-                        padding: const EdgeInsets.all(32),
-                        opacity: 0.04,
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Header with Language Toggle
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TextButton(
+                    onPressed: _toggleLanguage,
+                    child: Text(
+                      isRtl ? 'English' : 'العربية',
+                      style: const TextStyle(
                         color: AppColors.primary,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Text(
-                              'auth.phone_number'.tr(),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            TextField(
-                              controller: _phoneController,
-                              keyboardType: TextInputType.phone,
-                              textDirection: ui.TextDirection.ltr,
-                              style: const TextStyle(fontWeight: FontWeight.w600),
-                              decoration: InputDecoration(
-                                hintText: 'auth.phone_hint'.tr(),
-                                prefixIcon: const Icon(Icons.phone_iphone_rounded, color: AppColors.primary),
-                                fillColor: Colors.white.withValues(alpha: 0.8),
-                              ),
-                            ),
-                            const SizedBox(height: 32),
-                            ElevatedButton(
-                              onPressed: authState.status == AuthStatus.loading
-                                  ? null
-                                  : () {
-                                      if (_phoneController.text.isNotEmpty) {
-                                        ref
-                                            .read(authNotifierProvider.notifier)
-                                            .requestOtp(_phoneController.text);
-                                      }
-                                    },
-                              child: authState.status == AuthStatus.loading
-                                  ? const SizedBox(
-                                      height: 24,
-                                      width: 24,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 3,
-                                        color: Colors.white,
-                                      ),
-                                    )
-                                  : Text('auth.send_otp'.tr()),
-                            ),
-                          ],
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const Icon(Icons.arrow_forward_rounded, color: Colors.black54),
+                ],
+              ),
+              const Spacer(flex: 1),
+              // Logo
+              const Center(
+                child: ZouzLogo(size: 80, color: AppColors.primary),
+              ),
+              const SizedBox(height: 40),
+              // Greeting
+              Text(
+                'auth.login_title'.tr(),
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.textPrimary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'auth.login_subtitle'.tr(),
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 48),
+              // Phone Input Area
+              Form(
+                key: _formKey,
+                child: Container(
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF7F8FA),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      const SizedBox(width: 16),
+                      // Saudi Flag & Code
+                      const Text(
+                        '🇸🇦',
+                        style: TextStyle(fontSize: 24),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        '+966',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
                         ),
                       ),
-                      const SizedBox(height: 32),
-                      Text.rich(
-                        TextSpan(
-                          text: 'By continuing, you agree to our ',
-                          style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
-                          children: [
-                            TextSpan(
-                              text: 'Terms',
-                              style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
-                            ),
-                            TextSpan(text: ' and '),
-                            TextSpan(
-                              text: 'Privacy Policy',
-                              style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
-                            ),
+                      const VerticalDivider(
+                        indent: 16,
+                        endIndent: 16,
+                        width: 32,
+                        thickness: 1,
+                        color: Colors.black12,
+                      ),
+                      // Input
+                      Expanded(
+                        child: TextFormField(
+                          controller: _phoneController,
+                          keyboardType: TextInputType.phone,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
+                          ),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(9),
                           ],
+                          decoration: InputDecoration(
+                            hintText: 'auth.phone_hint'.tr(),
+                            hintStyle: const TextStyle(
+                              color: Colors.black26,
+                              letterSpacing: 1.2,
+                              fontSize: 16,
+                            ),
+                            border: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            contentPadding: EdgeInsets.zero,
+                          ),
                         ),
-                        textAlign: TextAlign.center,
                       ),
                     ],
                   ),
                 ),
               ),
-            ),
+              const Spacer(flex: 3),
+              // Submit Button
+              ElevatedButton(
+                onPressed: (authState.status == AuthStatus.loading || !_isInputValid)
+                    ? null
+                    : () {
+                        ref.read(authNotifierProvider.notifier).requestOtp(_phoneController.text);
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(56),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 0,
+                  disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.5),
+                ),
+                child: authState.status == AuthStatus.loading
+                    ? const SizedBox(
+                        height: 24,
+                        width: 24,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                    : Text(
+                        'auth.send_otp'.tr(),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+              ),
+              const SizedBox(height: 16),
+              // Terms Footer
+              Text(
+                'auth.terms_consent'.tr(),
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

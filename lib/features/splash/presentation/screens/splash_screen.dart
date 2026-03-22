@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:easy_localization/easy_localization.dart';
+import '../../../auth/providers/auth_provider.dart';
 
-class SplashScreen extends StatefulWidget {
-
-
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
+class _SplashScreenState extends ConsumerState<SplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
@@ -30,10 +30,18 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller.forward();
 
-    // Navigate to home/login after a delay
+    // Navigate based on state after a delay
     Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) {
-        context.go('/onboarding'); // We start with login as per current flow
+      if (!mounted) return;
+      
+      final authState = ref.read(authNotifierProvider);
+      
+      if (!authState.onboardingCompleted) {
+        context.go('/onboarding');
+      } else if (authState.status == AuthStatus.authenticated) {
+        context.go('/home');
+      } else {
+        context.go('/login');
       }
     });
   }

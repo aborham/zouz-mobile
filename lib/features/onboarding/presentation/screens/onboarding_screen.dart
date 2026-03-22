@@ -3,6 +3,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lottie/lottie.dart';
+import '../../../auth/providers/auth_provider.dart';
 import 'package:zouz_mobile/core/theme/colors.dart';
 import 'package:zouz_mobile/features/onboarding/data/onboarding_repository.dart';
 
@@ -21,12 +22,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   void _onNext(int totalPages) {
     if (_currentPage < totalPages - 1) {
-
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
     } else {
+      ref.read(authNotifierProvider.notifier).completeOnboarding();
       context.go('/login');
     }
   }

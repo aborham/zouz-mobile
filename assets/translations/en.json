@@ -1,14 +1,33 @@
 {
   "auth": {
-    "login_title": "Welcome Back",
-    "login_subtitle": "Login to your Customer Portal",
+    "login_title": "Welcome to Zouz",
+    "login_subtitle": "Enter your phone number to continue",
     "phone_number": "Phone Number",
-    "phone_hint": "e.g., 501234567",
-    "send_otp": "Send OTP",
-    "verify_otp": "Verify OTP",
+    "phone_hint": "5XX XXX XXXX",
+    "send_otp": "Send Code",
+    "verify_otp": "Verify",
     "otp_title": "Enter Verification Code",
-    "otp_subtitle": "We sent a 6-digit code to your phone",
-    "resend_code": "Resend Code"
+    "otp_subtitle": "A 6-digit code has been sent to your phone number.",
+    "resend_timer": "Resend in {}",
+    "didnt_receive": "Didn't receive code? Resend Code",
+    "resend_code": "Resend Code",
+    "verify": "Verify",
+    "complete_profile_title": "Complete Your Profile",
+    "complete_profile_subtitle": "Just a few more details to get started",
+    "name_label": "Full Name",
+    "name_hint": "Enter your full name",
+    "email_label": "Email Address",
+    "email_hint": "Enter your email address",
+    "dob_label": "Date of Birth",
+    "dob_hint": "Select your birth date",
+    "avatar_label": "Profile Picture",
+    "finish": "Finish",
+    "permission_title": "Permission Required",
+    "permission_camera_msg": "We need camera access to take your profile picture.",
+    "permission_gallery_msg": "We need gallery access to choose your profile picture.",
+    "permission_enable": "Enable",
+    "permission_cancel": "Not now",
+    "terms_consent": "By continuing, you agree to our Terms of Service and Privacy Policy"
   },
   "dashboard": {
     "currency": "SAR",
@@ -30,7 +49,9 @@
     "retry": "Retry",
     "close": "Close",
     "coming_soon": "Feature coming soon!",
-    "slogan": "Double your use."
+    "slogan": "Double your use.",
+    "error_title": "Something went wrong",
+    "error_subtitle": "We're having trouble loading this page. Please try again later."
   },
   "profile": {
     "title": "Profile",
