@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:zouz_mobile/core/theme/colors.dart';
 import '../../providers/navigation_provider.dart';
 import 'home_dashboard_screen.dart';
-import 'explore_screen.dart';
+import '../../../marketplace/presentation/screens/marketplace_explore_screen.dart';
 import '../../../purchases/presentation/screens/purchases_screen.dart';
 import '../../../profile/presentation/screens/profile_screen.dart';
 
@@ -27,7 +27,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
         index: currentIndex,
         children: [
           const HomeDashboardScreen(),
-          const ExploreScreen(),
+          const MarketplaceExploreScreen(),
           PurchasesScreen(),
           const ProfileScreen(),
         ],

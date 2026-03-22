@@ -1,12 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
+import 'package:zouz_mobile/core/config/app_config.dart';
 
 // Since the menu endpoint is public, we can use a standard Dio instance
 // or reuse the ApiClient but it hits `/api/menu` instead of `/api/customer`.
 final menuDioProvider = Provider<Dio>((ref) {
   final dio = Dio(
     BaseOptions(
-      baseUrl: 'http://localhost:3000/api', // Adjust in production
+      baseUrl: AppConfig.apiBaseUrl, // Centrally managed
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
     ),

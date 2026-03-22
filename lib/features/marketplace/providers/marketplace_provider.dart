@@ -8,13 +8,41 @@ final marketplaceProvider = FutureProvider<MarketplaceData>((ref) async {
   return MarketplaceData.fromJson(response.data);
 });
 
-class SelectedCategory extends Notifier<String> {
+// Using Notifiers for v3 compatibility and best practices
+class MarketplaceSearchNotifier extends Notifier<String> {
   @override
-  String build() => 'All';
-
-  void setCategory(String value) => state = value;
+  String build() => '';
+  void setQuery(String query) => state = query;
+  void clear() => state = '';
 }
 
-final selectedCategoryProvider = NotifierProvider<SelectedCategory, String>(
-  SelectedCategory.new,
+final marketplaceSearchProvider = NotifierProvider<MarketplaceSearchNotifier, String>(
+  MarketplaceSearchNotifier.new,
 );
+
+class MarketplaceCategoryNotifier extends Notifier<String?> {
+  @override
+  String? build() => null;
+  void setCategory(String? category) => state = category;
+}
+
+final marketplaceCategoryProvider = NotifierProvider<MarketplaceCategoryNotifier, String?>(
+  MarketplaceCategoryNotifier.new,
+);
+
+final exploreDataProvider = FutureProvider<MarketplaceExploreData>((ref) async {
+  final apiClient = ref.watch(apiClientProvider).dio;
+  final query = ref.watch(marketplaceSearchProvider);
+  final category = ref.watch(marketplaceCategoryProvider);
+
+  final Map<String, dynamic> queryParams = {};
+  if (query.isNotEmpty) queryParams['q'] = query;
+  if (category != null && category != 'All') queryParams['category'] = category;
+
+  final response = await apiClient.get(
+    'explore',
+    queryParameters: queryParams,
+  );
+  
+  return MarketplaceExploreData.fromJson(response.data);
+});

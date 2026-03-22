@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:zouz_mobile/core/config/app_config.dart';
 
 class AppLocale extends Notifier<String> {
   @override
@@ -23,8 +24,7 @@ class ApiClient {
   final Ref _ref;
 
   ApiClient(this._dio, this._ref) {
-    _dio.options.baseUrl =
-        'http://localhost:3000/api/customer/'; // Update with proper staging/production URL
+    _dio.options.baseUrl = '${AppConfig.customerApiBaseUrl}/';
     _dio.options.connectTimeout = const Duration(seconds: 10);
     _dio.options.receiveTimeout = const Duration(seconds: 10);
     _dio.options.headers = {

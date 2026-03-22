@@ -9,6 +9,7 @@ import '../../features/packages/presentation/screens/package_detail_screen.dart'
 import '../../features/checkout/presentation/screens/checkout_screen.dart';
 import '../../features/purchases/presentation/screens/purchase_details_screen.dart';
 import '../../features/profile/presentation/screens/settings_screen.dart';
+import '../../features/cart/presentation/screens/cart_screen.dart';
 
 import '../../features/splash/presentation/screens/splash_screen.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
@@ -41,6 +42,15 @@ final GoRouter appRouter = GoRouter(
       },
     ),
     GoRoute(
+      path: '/scan/:tenantSlug',
+      builder: (context, state) {
+        final tenantSlug = state.pathParameters['tenantSlug']!;
+        final standId = state.uri.queryParameters['standId'];
+        // Reusing MenuScreen for scan results
+        return MenuScreen(tenantSlug: tenantSlug, standId: standId);
+      },
+    ),
+    GoRoute(
       path: '/package',
       builder: (context, state) {
         final package = state.extra as Map<String, dynamic>;
@@ -48,10 +58,18 @@ final GoRouter appRouter = GoRouter(
       },
     ),
     GoRoute(
+      path: '/cart',
+      builder: (context, state) => const CartScreen(),
+    ),
+    GoRoute(
       path: '/checkout',
       builder: (context, state) {
-        final package = state.extra as Map<String, dynamic>;
-        return CheckoutScreen(package: package);
+        final extra = state.extra as Map<String, dynamic>;
+        return CheckoutScreen(
+          package: extra['package'],
+          items: extra['items'] != null ? List<Map<String, dynamic>>.from(extra['items']) : null,
+          fromCart: extra['fromCart'] ?? false,
+        );
       },
     ),
     GoRoute(

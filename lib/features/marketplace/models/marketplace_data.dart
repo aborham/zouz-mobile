@@ -1,7 +1,7 @@
 class MarketplacePackage {
   final String id;
-  final String name;
-  final String description;
+  final Map<String, String> name;
+  final Map<String, String>? description;
   final num price;
   final num? originalPrice;
   final String? imageUrl;
@@ -10,12 +10,12 @@ class MarketplacePackage {
   final String? badgeText;
   final String businessName;
   final String? businessLogo;
-  final String category;
+  final String? category;
 
   MarketplacePackage({
     required this.id,
     required this.name,
-    required this.description,
+    this.description,
     required this.price,
     this.originalPrice,
     this.imageUrl,
@@ -24,7 +24,7 @@ class MarketplacePackage {
     this.badgeText,
     required this.businessName,
     this.businessLogo,
-    required this.category,
+    this.category,
   });
 
   factory MarketplacePackage.fromJson(Map<String, dynamic> json) {
@@ -35,41 +35,26 @@ class MarketplacePackage {
       return defaultValue;
     }
 
+    Map<String, String> parseLocalized(dynamic value) {
+      if (value == null) return {'en': ''};
+      if (value is String) return {'en': value};
+      if (value is Map) return Map<String, String>.from(value);
+      return {'en': ''};
+    }
+
     return MarketplacePackage(
       id: json['id'],
-      name: json['name'] ?? '',
-      description: json['description'] ?? '',
+      name: parseLocalized(json['name']),
+      description: json['description'] != null ? parseLocalized(json['description']) : null,
       price: parseNum(json['price']),
-      originalPrice: json['originalPrice'] != null
-          ? parseNum(json['originalPrice'])
-          : null,
+      originalPrice: json['originalPrice'] != null ? parseNum(json['originalPrice']) : null,
       imageUrl: json['imageUrl'],
       type: json['type'] ?? 'QUANTITY',
       rating: parseNum(json['rating'] ?? 4.5).toDouble(),
       badgeText: json['badgeText'],
       businessName: json['businessName'] ?? '',
       businessLogo: json['businessLogo'],
-      category: json['category'] ?? '',
-    );
-  }
-}
-
-class MarketplacePromo {
-  final String title;
-  final String subtitle;
-  final String cta;
-
-  MarketplacePromo({
-    required this.title,
-    required this.subtitle,
-    required this.cta,
-  });
-
-  factory MarketplacePromo.fromJson(Map<String, dynamic> json) {
-    return MarketplacePromo(
-      title: json['title'] ?? '',
-      subtitle: json['subtitle'] ?? '',
-      cta: json['cta'] ?? '',
+      category: json['category'] is String ? json['category'] : (json['category'] is Map ? (json['category']['en'] ?? '') : ''),
     );
   }
 }
@@ -77,30 +62,95 @@ class MarketplacePromo {
 class MarketplaceData {
   final List<MarketplacePackage> featured;
   final List<MarketplacePackage> trending;
-  final List<String> categories;
-  final MarketplacePromo promo;
 
-  MarketplaceData({
-    required this.featured,
-    required this.trending,
-    required this.categories,
-    required this.promo,
-  });
+  MarketplaceData({required this.featured, required this.trending});
 
   factory MarketplaceData.fromJson(Map<String, dynamic> json) {
     return MarketplaceData(
-      featured:
-          (json['featured'] as List?)
+      featured: (json['featured'] as List?)
               ?.map((e) => MarketplacePackage.fromJson(e))
               .toList() ??
           [],
-      trending:
-          (json['trending'] as List?)
+      trending: (json['trending'] as List?)
               ?.map((e) => MarketplacePackage.fromJson(e))
               .toList() ??
           [],
-      categories: (json['categories'] as List?)?.cast<String>() ?? [],
-      promo: MarketplacePromo.fromJson(json['promo'] ?? {}),
+    );
+  }
+}
+
+class ExploreCategory {
+  final String id;
+  final Map<String, String> name;
+
+  ExploreCategory({required this.id, required this.name});
+
+  factory ExploreCategory.fromJson(Map<String, dynamic> json) {
+    return ExploreCategory(
+      id: json['id'],
+      name: Map<String, String>.from(json['name']),
+    );
+  }
+}
+
+class MarketplaceBusiness {
+  final String id;
+  final String slug;
+  final Map<String, String> name;
+  final String? logoUrl;
+  final String? coverImageUrl;
+  final Map<String, String>? category;
+  final Map<String, String>? description;
+  final double rating;
+
+  MarketplaceBusiness({
+    required this.id,
+    required this.slug,
+    required this.name,
+    this.logoUrl,
+    this.coverImageUrl,
+    this.category,
+    this.description,
+    required this.rating,
+  });
+
+  factory MarketplaceBusiness.fromJson(Map<String, dynamic> json) {
+    Map<String, String> parseLocalized(dynamic value) {
+      if (value == null) return {};
+      if (value is String) return {'en': value};
+      if (value is Map) return Map<String, String>.from(value);
+      return {};
+    }
+
+    return MarketplaceBusiness(
+      id: json['id'],
+      slug: json['slug'] ?? '',
+      name: parseLocalized(json['name']),
+      logoUrl: json['logoUrl'],
+      coverImageUrl: json['coverImageUrl'],
+      category: json['category'] != null ? parseLocalized(json['category']) : null,
+      description: json['description'] != null ? parseLocalized(json['description']) : null,
+      rating: (json['rating'] ?? 4.5).toDouble(),
+    );
+  }
+}
+
+class MarketplaceExploreData {
+  final List<ExploreCategory> categories;
+  final List<MarketplaceBusiness> businesses;
+
+  MarketplaceExploreData({required this.categories, required this.businesses});
+
+  factory MarketplaceExploreData.fromJson(Map<String, dynamic> json) {
+    return MarketplaceExploreData(
+      categories: (json['categories'] as List?)
+              ?.map((e) => ExploreCategory.fromJson(e))
+              .toList() ??
+          [],
+      businesses: (json['businesses'] as List?)
+              ?.map((e) => MarketplaceBusiness.fromJson(e))
+              .toList() ??
+          [],
     );
   }
 }

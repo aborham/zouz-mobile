@@ -6,11 +6,19 @@ import 'package:zouz_mobile/core/theme/colors.dart';
 import 'package:go_sell_sdk_flutter/go_sell_sdk_flutter.dart';
 import 'package:go_sell_sdk_flutter/model/models.dart';
 import '../../repositories/checkout_repository.dart';
+import '../../../cart/providers/cart_provider.dart';
 
 class CheckoutScreen extends ConsumerStatefulWidget {
-  final Map<String, dynamic> package;
+  final Map<String, dynamic>? package;
+  final List<Map<String, dynamic>>? items;
+  final bool fromCart;
 
-  const CheckoutScreen({super.key, required this.package});
+  const CheckoutScreen({
+    super.key,
+    this.package,
+    this.items,
+    this.fromCart = false,
+  });
 
   @override
   ConsumerState<CheckoutScreen> createState() => _CheckoutScreenState();
@@ -28,10 +36,6 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     return '';
   }
 
-  late Map<dynamic, dynamic> defaultColors;
-  late Map<dynamic, dynamic> defaultLightColors;
-  late Map<dynamic, dynamic> defaultDarkColors;
-
   @override
   void initState() {
     super.initState();
@@ -39,12 +43,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   }
 
   void _configureTapSDK() {
-    // Start Tap Payments SDK
     GoSellSdkFlutter.configureApp(
-      productionSecretKey:
-          'sk_test_PLACEHOLDER', // Use environment variables for keys
+      productionSecretKey: 'sk_test_PLACEHOLDER',
       sandBoxSecretKey: 'sk_test_PLACEHOLDER',
-
       bundleId: 'com.zouz.customer',
       lang: context.locale.languageCode,
     );
@@ -104,33 +105,58 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     setState(() => _isProcessingPayment = true);
 
     try {
-      // 1. Create Order on Backend
       final repository = ref.read(checkoutRepositoryProvider);
-      final response = await repository.createOrder(
-        widget.package['id'],
-        1,
-        widget.package['standId'],
-      );
+      
+      // 1. Prepare items for backend
+      List<Map<String, dynamic>> orderItems = [];
+      double subtotal = 0;
 
+      if (widget.fromCart && widget.items != null) {
+        orderItems = widget.items!;
+        for (var item in orderItems) {
+          subtotal += (double.tryParse(item['price']?.toString() ?? '0') ?? 0.0) * (double.tryParse(item['quantity']?.toString() ?? '1') ?? 1.0);
+        }
+      } else if (widget.package != null) {
+        orderItems = [
+          {
+            'packageId': widget.package!['id'],
+            'quantity': 1,
+            'standId': widget.package!['standId'],
+          }
+        ];
+        subtotal = double.tryParse(widget.package!['price']?.toString() ?? '0') ?? 0.0;
+      } else {
+        throw Exception('No items to checkout');
+      }
+
+      final totalAmount = subtotal + (subtotal * 0.15);
+
+      // 2. Create Order on Backend
+      final response = await repository.createOrder(orderItems);
       final orderId = response['orderId'];
-      final price = widget.package['price'] ?? 0;
-      final totalAmount = price + (price * 0.15); // Add 15% VAT
 
       if (!mounted) return;
 
-      // 2. Initialize Session
+      // 3. Initialize Session
       _initializeTapSession(totalAmount.toStringAsFixed(2));
 
-      // 3. Start Payment SDK and handle response map
+      // 4. Start Payment SDK
       final result = await GoSellSdkFlutter.startPaymentSDK;
 
       if (!mounted) return;
-
       setState(() => _isProcessingPayment = false);
 
       if (result != null && result is Map) {
         final sdkResult = result['sdk_result'];
         if (sdkResult == 'SUCCESS') {
+          final tapChargeId = result['charge_id'] ?? 'MOCK_CHARGE_ID';
+          await repository.confirmOrder(orderId, tapChargeId);
+          
+          if (widget.fromCart) {
+            ref.read(cartProvider.notifier).clear();
+          }
+
+          if (!mounted) return;
           _showSuccess(orderId);
           return;
         } else if (sdkResult == 'SDK_ERROR' || sdkResult == 'FAILED') {
@@ -141,7 +167,6 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           return;
         }
       }
-
       _showError('Unknown Payment Status');
     } catch (e) {
       if (!mounted) return;
@@ -160,8 +185,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         actions: [
           TextButton(
             onPressed: () {
-              context.pop(); // dismiss dialog
-              context.go('/home'); // go to home or purchases
+              context.pop(); 
+              context.go('/dashboard');
             },
             child: Text('checkout.return_home'.tr()),
           ),
@@ -182,10 +207,43 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   @override
   Widget build(BuildContext context) {
     final locale = context.locale.languageCode;
-    final name = _getLocalizedValue(widget.package['name'], locale);
-    final price = widget.package['price'] ?? 0;
-    final tax = price * 0.15; // Assuming 15% tax
-    final total = price + tax;
+    
+    double subtotal = 0;
+    List<Widget> itemWidgets = [];
+
+    if (widget.fromCart && widget.items != null) {
+      for (var item in widget.items!) {
+        final price = double.tryParse(item['price']?.toString() ?? '0') ?? 0.0;
+        final qty = int.tryParse(item['quantity']?.toString() ?? '1') ?? 1;
+        subtotal += price * qty;
+        
+        itemWidgets.add(Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('${item['packageName']} (x$qty)', style: const TextStyle(fontWeight: FontWeight.w600)),
+              Text('${(price * qty).toStringAsFixed(2)} ${'dashboard.currency'.tr()}'),
+            ],
+          ),
+        ));
+      }
+    } else if (widget.package != null) {
+      final name = _getLocalizedValue(widget.package!['name'], locale);
+      final price = double.tryParse(widget.package!['price']?.toString() ?? '0') ?? 0.0;
+      subtotal = price;
+      
+      itemWidgets.add(Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
+          Text('${price.toStringAsFixed(2)} ${'dashboard.currency'.tr()}'),
+        ],
+      ));
+    }
+
+    final tax = subtotal * 0.15;
+    final total = subtotal + tax;
 
     return Scaffold(
       appBar: AppBar(title: Text('checkout.title'.tr()), centerTitle: true),
@@ -194,17 +252,16 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Order Summary
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
                   ),
                 ],
               ),
@@ -213,57 +270,29 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 children: [
                   Text(
                     'checkout.summary'.tr(),
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        name,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      Text('$price ${'dashboard.currency'.tr()}'),
-                    ],
-                  ),
+                  const SizedBox(height: 20),
+                  ...itemWidgets,
                   const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 12),
+                    padding: EdgeInsets.symmetric(vertical: 16),
                     child: Divider(),
                   ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'checkout.vat'.tr(),
-                        style: const TextStyle(color: AppColors.textSecondary),
-                      ),
-                      Text(
-                        '${tax.toStringAsFixed(2)} ${'dashboard.currency'.tr()}',
-                        style: const TextStyle(color: AppColors.textSecondary),
-                      ),
+                      Text('checkout.vat'.tr(), style: const TextStyle(color: AppColors.textSecondary)),
+                      Text('${tax.toStringAsFixed(2)} ${'dashboard.currency'.tr()}'),
                     ],
                   ),
                   const SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'checkout.total'.tr(),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
-                      ),
+                      Text('checkout.total'.tr(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                       Text(
                         '${total.toStringAsFixed(2)} ${'dashboard.currency'.tr()}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                          color: AppColors.primary,
-                        ),
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: AppColors.primary),
                       ),
                     ],
                   ),
@@ -271,52 +300,38 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               ),
             ),
             const SizedBox(height: 32),
-
-            // Payment Methods Placeholder
-            Text(
-              'checkout.payment_method'.tr(),
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
+            Text('checkout.payment_method'.tr(), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                border: Border.all(color: AppColors.primary),
-                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.primary, width: 2),
+                borderRadius: BorderRadius.circular(16),
                 color: AppColors.primary.withValues(alpha: 0.05),
               ),
               child: Row(
                 children: [
                   const Icon(Icons.credit_card, color: AppColors.primary),
-                  const SizedBox(width: 12),
-                  Text(
-                    'checkout.card'.tr(),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
-                    ),
-                  ),
+                  const SizedBox(width: 16),
+                  Text('checkout.card'.tr(), style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
                   const Spacer(),
                   const Icon(Icons.check_circle, color: AppColors.primary),
                 ],
               ),
             ),
-
             const SizedBox(height: 48),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
+            SizedBox(
               height: 56,
               child: ElevatedButton(
                 onPressed: _isProcessingPayment ? null : _processPayment,
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 8,
+                  shadowColor: AppColors.primary.withValues(alpha: 0.3),
+                ),
                 child: _isProcessingPayment
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : Text(
-                        'checkout.pay_button'.tr(
-                          args: [
-                            '${total.toStringAsFixed(2)} ${'dashboard.currency'.tr()}',
-                          ],
-                        ),
-                      ),
+                    : Text('checkout.pay_button'.tr(args: ['${total.toStringAsFixed(2)} ${'dashboard.currency'.tr()}'])),
               ),
             ),
           ],

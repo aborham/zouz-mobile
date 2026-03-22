@@ -1,0 +1,456 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'package:go_router/go_router.dart';
+import 'package:zouz_mobile/core/theme/colors.dart';
+import 'package:zouz_mobile/core/utils/image_utils.dart';
+import 'package:zouz_mobile/features/cart/providers/cart_provider.dart';
+import 'package:zouz_mobile/features/scanner/providers/menu_provider.dart';
+
+class CartScreen extends ConsumerStatefulWidget {
+  const CartScreen({super.key});
+
+  @override
+  ConsumerState<CartScreen> createState() => _CartScreenState();
+}
+
+class _CartScreenState extends ConsumerState<CartScreen> {
+  String selectedPaymentMethod = 'apple_pay'; // Mock state for Apple Pay selected
+
+  @override
+  Widget build(BuildContext context) {
+    final cart = ref.watch(cartProvider);
+    final locale = context.locale.languageCode;
+    final menuState = ref.watch(menuNotifierProvider);
+    final tenant = menuState.tenant;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F7),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: Text(
+          'cart.title'.tr(), // Verbatim "سلتي"
+          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        actions: [
+          TextButton(
+            onPressed: () {
+              ref.read(cartProvider.notifier).clear();
+              context.pop();
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text(
+                'cart.clear'.tr(), // Verbatim "مسح السلة"
+                style: const TextStyle(
+                  color: AppColors.error,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+                maxLines: 1,
+              ),
+            ),
+          ),
+        ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(color: Colors.grey[200], height: 1),
+        ),
+      ),
+      body: cart.items.isEmpty
+          ? _buildEmptyState(context)
+          : SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 24),
+                    // Shop Header/Section Header
+                    if (tenant != null) _buildTenantHeader(tenant, locale, cart),
+                    const SizedBox(height: 16),
+                    // Item List
+                    _buildCartItemList(cart, locale),
+                    const SizedBox(height: 32),
+                    // Summary Section
+                    _buildSummarySection(cart),
+                    const SizedBox(height: 32),
+                    // Payment Method Section
+                    _buildPaymentSection(),
+                    const SizedBox(height: 120), // Space for bottom button
+                  ],
+                ),
+              ),
+            ),
+      bottomSheet: cart.items.isEmpty ? null : _buildMainActionButton(context),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.shopping_cart_outlined, size: 80, color: Colors.grey[200]),
+          const SizedBox(height: 24),
+          Text(
+            'cart.empty_title'.tr(),
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 32),
+          ElevatedButton(
+            onPressed: () => context.pop(),
+            child: Text('cart.browse_packages'.tr()),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTenantHeader(Map<String, dynamic> tenant, String locale, CartState cart) {
+    return Row(
+      children: [
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _getLocalizedValue(tenant['name'], locale),
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              Text(
+                'cart.items_count'.tr(args: [cart.totalItems.toString()]), // Verbatim "X عناصر"
+                style: TextStyle(color: Colors.grey[500], fontSize: 13),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 16),
+        Container(
+          width: 50,
+          height: 50,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            color: Color(0xFFFFE8E0), // Peach-colored background
+          ),
+          child: Center(
+            child: tenant['logoUrl'] != null
+                ? CircleAvatar(
+                    radius: 25,
+                    backgroundImage: NetworkImage(ImageUtils.getFullUrl(tenant['logoUrl'])!),
+                    backgroundColor: Colors.transparent,
+                  )
+                : const Icon(Icons.coffee_maker, color: Color(0xFF6B4226)), // Coffee machine style icon
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCartItemList(CartState cart, String locale) {
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: cart.items.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 24),
+      itemBuilder: (context, index) {
+        final item = cart.items[index];
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 15,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              // Quantity Counter on the Left
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F5F7),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  children: [
+                    IconButton(
+                      onPressed: () => ref.read(cartProvider.notifier).updateQuantity(item.packageId, item.quantity - 1),
+                      icon: const Icon(Icons.remove, size: 18, color: Colors.black54),
+                      constraints: const BoxConstraints(),
+                      padding: const EdgeInsets.all(8),
+                    ),
+                    Text(
+                      '${item.quantity}',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    IconButton(
+                      onPressed: () => ref.read(cartProvider.notifier).updateQuantity(item.packageId, item.quantity + 1),
+                      icon: const Icon(Icons.add, size: 18, color: Colors.black54),
+                      constraints: const BoxConstraints(),
+                      padding: const EdgeInsets.all(8),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              // Center Descriptive Text
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      item.packageName,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      textAlign: TextAlign.right,
+                      overflow: TextOverflow.visible,
+                    ),
+                    if (item.packageDescription != null && item.packageDescription!.isNotEmpty)
+                      Text(
+                        item.packageDescription!,
+                        style: TextStyle(color: Colors.grey[500], fontSize: 13),
+                        textAlign: TextAlign.right,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    Text(
+                      '${item.price} ${'dashboard.currency'.tr()}',
+                      style: const TextStyle(
+                        color: Color(0xFF224AFB), // Blue price text
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              // Circular Icon Container on the Right
+              Container(
+                width: 55,
+                height: 55,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Color(0xFFFFE8E0),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(27.5),
+                  child: item.imageUrl != null
+                      ? Image.network(ImageUtils.getFullUrl(item.imageUrl)!, fit: BoxFit.cover)
+                      : const Icon(Icons.local_cafe, color: Color(0xFF224AFB)), // Placeholder icon
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSummarySection(CartState cart) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9F9F9),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'checkout.summary'.tr(), // Verbatim "ملخص الطلب"
+            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+          ),
+          const SizedBox(height: 20),
+          _buildSummaryRow('cart.subtotal'.tr(), '${cart.totalPrice} ${'dashboard.currency'.tr()}'),
+          const SizedBox(height: 12),
+          Text(
+            'cart.prices_include_vat'.tr(), // Verbatim "الأسعار تشمل ضريبة القيمة المضافة"
+            style: TextStyle(color: Colors.grey[500], fontSize: 12, fontStyle: FontStyle.italic),
+          ),
+          const SizedBox(height: 16),
+          const Divider(height: 1, color: Color(0xFFEEEEEE)),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'cart.total'.tr(),
+                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+              ),
+              Text(
+                '${cart.totalPrice} ${'dashboard.currency'.tr()}',
+                style: const TextStyle(
+                  color: Color(0xFF224AFB),
+                  fontWeight: FontWeight.w900,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryRow(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+        Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+      ],
+    );
+  }
+
+  Widget _buildPaymentSection() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9F9F9),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'checkout.payment_method'.tr(), // Verbatim "طريقة الدفع"
+            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+          ),
+          const SizedBox(height: 16),
+          _buildPaymentTile(
+            id: 'card',
+            label: 'checkout.card'.tr(), // Verbatim "بطاقة مدى / ائتمانية"
+            assetImage: 'assets/images/payment_methods.png',
+            isSelected: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentTile({
+    required String id,
+    required String label,
+    required bool isSelected,
+    String? assetImage,
+    IconData? icon,
+  }) {
+    return InkWell(
+      onTap: () => setState(() => selectedPaymentMethod = id),
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey[200]!, width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            if (icon != null) ...[
+              Icon(icon, color: Colors.black, size: 24),
+              const SizedBox(width: 16),
+            ],
+            if (assetImage == null && icon == null)
+              const Icon(Icons.credit_card, color: Colors.black, size: 24),
+            if (assetImage != null && icon == null)
+              const Icon(Icons.credit_card, color: Colors.black, size: 24),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  if (assetImage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Image.asset(
+                        assetImage,
+                        height: 20,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            // Selection Checkmark (per screenshot)
+            Container(
+              width: 24,
+              height: 24,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.black,
+              ),
+              child: const Icon(Icons.check, size: 16, color: Colors.white),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+
+  Widget _buildMainActionButton(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+      color: Colors.white,
+      child: SizedBox(
+        width: double.infinity,
+        height: 60,
+        child: ElevatedButton(
+          onPressed: () {
+            // Success action
+            context.push('/checkout', extra: {'fromCart': true});
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF224AFB),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+            elevation: 0,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'checkout.checkout'.tr(), // Verbatim "متابعة للدفع"
+                style: const TextStyle(fontSize: 17, color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(width: 8),
+              const Icon(Icons.arrow_forward, color: Colors.white, size: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _getLocalizedValue(dynamic field, String locale) {
+    if (field == null) return '';
+    if (field is String) return field;
+    if (field is Map) {
+      return field[locale] ?? field['en'] ?? '';
+    }
+    return '';
+  }
+}

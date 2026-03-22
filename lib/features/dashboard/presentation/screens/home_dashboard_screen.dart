@@ -183,7 +183,7 @@ class HomeDashboardScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             SizedBox(
-              height: 260,
+              height: 280,
               child: ListView.separated(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 scrollDirection: Axis.horizontal,

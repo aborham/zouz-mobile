@@ -51,7 +51,8 @@
     "usage": "الاستخدام",
     "valid_until": "صالحة حتى",
     "redeem_now": "استخدم الآن",
-    "details": "التفاصيل"
+    "details": "التفاصيل",
+    "scan_stand": "امسح الستاند!"
   },
   "common": {
     "error": "حدث خطأ. يرجى المحاولة مرة أخرى.",
@@ -161,7 +162,31 @@
     "return_home": "العودة للرئيسية",
     "error_prefix": "خطأ في الدفع: {}",
     "cancelled": "تم إلغاء العملية",
-    "failed": "فشلت عملية الدفع"
+    "failed": "فشلت عملية الدفع",
+    "pay_now": "ادفع الآن",
+    "payment_method_package": "اختر باقتك للدفع",
+    "remaining_balance": "الرصيد: {} متبقية",
+    "after_order": "بعد الطلب: {}",
+    "cash_card": "دفع نقدي / بطاقة",
+    "confirm_payment": "تأكيد الدفع"
+  },
+  "cart": {
+    "title": "سلة التسوق",
+    "empty_title": "سلة التسوق فارغة",
+    "empty_description": "عد للخلف واستكشف بعض الباقات الرائعة!",
+    "browse_packages": "تصفح الباقات",
+    "subtotal": "المجموع الفرعي",
+    "vat": "ضريبة القيمة المضافة (15%)",
+    "total": "الإجمالي",
+    "prices_include_vat": "الأسعار تشمل ضريبة القيمة المضافة",
+    "checkout": "متابعة للدفع",
+    "added_success": "تمت الإضافة للسلة!",
+    "view": "عرض",
+    "add_to_cart": "إضافة",
+    "buy_now": "شراء الآن",
+    "clear": "مسح السلة",
+    "view_cart": "عرض السلة",
+    "items_count": "{} عناصر"
   },
   "onboarding": {
     "title": "الترحيب",

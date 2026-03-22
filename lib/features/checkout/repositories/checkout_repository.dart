@@ -8,22 +8,36 @@ class CheckoutRepository {
   CheckoutRepository(this._dio);
 
   Future<Map<String, dynamic>> createOrder(
-    String packageId,
-    int quantity,
-    String? standId,
+    List<Map<String, dynamic>> items,
   ) async {
     try {
       final response = await _dio.post(
-        '/customer/orders/create',
+        '/orders/create',
         data: {
-          'items': [
-            {'packageId': packageId, 'quantity': quantity, 'standId': standId},
-          ],
+          'items': items,
         },
       );
       return Map<String, dynamic>.from(response.data);
     } on DioException catch (e) {
       throw Exception(e.response?.data['error'] ?? 'Failed to create order');
+    }
+  }
+
+  Future<Map<String, dynamic>> confirmOrder(
+    String orderId,
+    String tapChargeId,
+  ) async {
+    try {
+      final response = await _dio.post(
+        '/orders/confirm',
+        data: {
+          'orderId': orderId,
+          'tapChargeId': tapChargeId,
+        },
+      );
+      return Map<String, dynamic>.from(response.data);
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['error'] ?? 'Failed to confirm order');
     }
   }
 }

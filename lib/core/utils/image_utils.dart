@@ -1,8 +1,8 @@
+import '../config/app_config.dart';
+
 class ImageUtils {
   // Base URL for the backend server
-  // In development, localhost might not work on devices, so we use the common IP for emulators/simulators
-  // For production, this should come from a config or environment variable
-  static const String _serverBaseUrl = 'http://localhost:3000';
+  static const String _serverBaseUrl = AppConfig.baseUrl;
 
   /// Resolves a full URL for an image.
   /// If [path] is relative (starts with /), it prepends the server base URL.
