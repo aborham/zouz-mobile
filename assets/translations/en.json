@@ -59,7 +59,10 @@
     "brand_name": "INDIGO VELVET",
     "good_morning": "Good morning",
     "good_afternoon": "Good afternoon",
-    "good_evening": "Good evening"
+    "good_evening": "Good evening",
+    "visits": "Visits",
+    "items": "Items",
+    "scanner": "Scan"
   },
   "common": {
     "error": "An error occurred. Please try again.",
@@ -112,6 +115,8 @@
     "purchased": "Purchased",
     "remaining": "Remaining",
     "expires": "Expires",
+    "expires_tomorrow": "Expires tomorrow",
+    "expires_in_days": "Expires in {} days",
     "redeem": "Redeem",
     "redeem_title": "Redeem {}",
     "redeem_instruction": "Show this QR code to the cashier to redeem your item.",

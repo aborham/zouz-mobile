@@ -21,6 +21,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
     final currentIndex = ref.watch(navigationProvider);
 
     return Scaffold(
+      extendBody: true, // Allows body to flow behind the notched bar
       body: IndexedStack(
         index: currentIndex,
         children: const [
@@ -29,20 +30,45 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
           ProfileScreen(),
         ],
       ),
-      bottomNavigationBar: Container(
+      floatingActionButton: Container(
+        height: 68,
+        width: 68,
         decoration: BoxDecoration(
-          color: Colors.white,
+          shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
+              color: AppColors.primary.withValues(alpha: 0.3),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: FloatingActionButton(
+          onPressed: () => ref.read(navigationProvider.notifier).setIndex(1),
+          backgroundColor: AppColors.primary,
+          elevation: 0, // Handled by container for better control
+          shape: const CircleBorder(),
+          child: const Icon(Icons.qr_code_scanner, color: Colors.white, size: 32),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 25,
               offset: const Offset(0, -5),
             ),
           ],
         ),
-        child: SafeArea(
+        child: BottomAppBar(
+          shape: const CircularNotchedRectangle(),
+          notchMargin: 10,
+          color: Colors.white,
+          elevation: 0, // Elevation handled by custom shadow
           child: SizedBox(
-            height: 72,
+            height: 64,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -52,12 +78,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
                   Icons.home,
                   'dashboard.home'.tr().toUpperCase(),
                 ),
-                _buildNavItem(
-                  1,
-                  Icons.qr_code_scanner_outlined,
-                  Icons.qr_code_scanner,
-                  'dashboard.scanner'.tr().toUpperCase(),
-                ),
+                const SizedBox(width: 50), // Optimized spacer for the 68px FAB
                 _buildNavItem(
                   2,
                   Icons.person_outline,
@@ -85,17 +106,10 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: isSelected ? AppColors.primary.withValues(alpha: 0.08) : Colors.transparent,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(
-              isSelected ? activeIcon : icon,
-              color: isSelected ? AppColors.primary : AppColors.textSecondary,
-              size: 24,
-            ),
+          Icon(
+            isSelected ? activeIcon : icon,
+            color: isSelected ? AppColors.primary : AppColors.textSecondary,
+            size: 24,
           ),
           const SizedBox(height: 4),
           Text(
