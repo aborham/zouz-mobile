@@ -3,8 +3,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zouz_mobile/core/theme/colors.dart';
-import 'package:go_sell_sdk_flutter/go_sell_sdk_flutter.dart';
-import 'package:go_sell_sdk_flutter/model/models.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 import '../../repositories/checkout_repository.dart';
 import '../../../cart/providers/cart_provider.dart';
 
@@ -26,96 +25,78 @@ class CheckoutScreen extends ConsumerStatefulWidget {
 
 class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   bool _isProcessingPayment = false;
-
-  String _getLocalizedValue(dynamic field, String locale) {
-    if (field == null) return '';
-    if (field is String) return field;
-    if (field is Map) {
-      return field[locale] ?? field['en'] ?? '';
-    }
-    return '';
-  }
+  bool _isNavigatingToStatus = false;
+  String? _checkoutUrl;
+  late final WebViewController _webViewController;
 
   @override
   void initState() {
     super.initState();
-    _configureTapSDK();
+    _initWebViewController();
   }
 
-  void _configureTapSDK() {
-    GoSellSdkFlutter.configureApp(
-      productionSecretKey: 'sk_test_PLACEHOLDER',
-      sandBoxSecretKey: 'sk_test_PLACEHOLDER',
-      bundleId: 'com.zouz.customer',
-      lang: context.locale.languageCode,
-    );
+  void _initWebViewController() {
+    _webViewController = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageStarted: (String url) {
+            debugPrint('Page started loading: $url');
+          },
+          onPageFinished: (String url) {
+            debugPrint('Page finished loading: $url');
+            _handleRedirect(url);
+          },
+          onUrlChange: (UrlChange change) {
+            if (change.url != null) {
+              _handleRedirect(change.url!);
+            }
+          },
+        ),
+      );
   }
 
-  void _initializeTapSession(String amountStr) {
-    GoSellSdkFlutter.sessionConfigurations(
-      trxMode: TransactionMode.PURCHASE,
-      paymentItems: [],
-      paymentMetaData: const {},
-      taxes: [],
-      shippings: [],
-      customer: Customer(
-        customerId: "",
-        email: "customer@example.com",
-        isdNumber: "966",
-        number: "500000000",
-        firstName: "Test",
-        middleName: "",
-        lastName: "User",
-        metaData: '{"test": "test"}',
-      ),
-      transactionCurrency: "SAR",
-      amount: double.tryParse(amountStr) ?? 0.0,
-      applePayMerchantID: "merchant.applePayMerchantID",
-      allowsToSaveSameCardMoreThanOnce: false,
-      isUserAllowedToSaveCard: true,
-      isRequires3DSecure: true,
-      receipt: Receipt(true, false),
-      authorizeAction: AuthorizeAction(
-        type: AuthorizeActionType.VOID,
-        timeInHours: 168,
-      ),
-      destinations: null,
-      merchantID: "",
-      allowedCadTypes: CardType.ALL,
-      postURL: "https://tap.company",
-      paymentDescription: "Payment for Zouz",
-      paymentStatementDescriptor: "Zouz package payment",
-      paymentType: PaymentType.ALL,
-      allowsToEditCardHolderName: false,
-      cardHolderName: "Test User",
-      paymentReference: Reference(
-        acquirer: "acquirer",
-        gateway: "gateway",
-        payment: "payment",
-        track: "track",
-        transaction: "trans_910101",
-        order: "order_262625",
-      ),
-      appearanceMode: SDKAppearanceMode.fullscreen,
-      sdkMode: SDKMode.Sandbox,
-    );
+  void _handleRedirect(String url) {
+    if (_isNavigatingToStatus) return;
+
+    if (url.contains('/checkout/success')) {
+      _isNavigatingToStatus = true;
+      ref.read(cartProvider.notifier).clear();
+      final uri = Uri.parse(url);
+      final orderId = uri.queryParameters['orderId'];
+      context.goNamed('payment-success', queryParameters: {'orderId': orderId ?? ''});
+    } else if (url.contains('/checkout/failed')) {
+      _isNavigatingToStatus = true;
+      final uri = Uri.parse(url);
+      final reason = uri.queryParameters['reason'];
+      
+      // Reset state 
+      setState(() {
+        _isProcessingPayment = false;
+        _checkoutUrl = null;
+      });
+      
+      context.goNamed(
+        'payment-failure', 
+        queryParameters: {'reason': reason ?? ''},
+        extra: {
+          'package': widget.package,
+          'items': widget.items,
+        },
+      );
+    }
   }
 
-  Future<void> _processPayment() async {
+  Future<void> _processCheckout() async {
     setState(() => _isProcessingPayment = true);
 
     try {
       final repository = ref.read(checkoutRepositoryProvider);
       
-      // 1. Prepare items for backend
       List<Map<String, dynamic>> orderItems = [];
-      double subtotal = 0;
 
       if (widget.fromCart && widget.items != null) {
         orderItems = widget.items!;
-        for (var item in orderItems) {
-          subtotal += (double.tryParse(item['price']?.toString() ?? '0') ?? 0.0) * (double.tryParse(item['quantity']?.toString() ?? '1') ?? 1.0);
-        }
       } else if (widget.package != null) {
         orderItems = [
           {
@@ -124,50 +105,28 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             'standId': widget.package!['standId'],
           }
         ];
-        subtotal = double.tryParse(widget.package!['price']?.toString() ?? '0') ?? 0.0;
       } else {
-        throw Exception('No items to checkout');
+        throw Exception('checkout.no_items'.tr());
       }
 
-      final totalAmount = subtotal + (subtotal * 0.15);
-
-      // 2. Create Order on Backend
-      final response = await repository.createOrder(orderItems);
-      final orderId = response['orderId'];
+      // 1. Create Order
+      final createResponse = await repository.createOrder(orderItems);
+      final orderId = createResponse['orderId'];
 
       if (!mounted) return;
 
-      // 3. Initialize Session
-      _initializeTapSession(totalAmount.toStringAsFixed(2));
+      // 2. Process Order (Initiate Tap Payment)
+      final processResponse = await repository.processOrder(orderId);
+      final redirectUrl = processResponse['redirectUrl'];
 
-      // 4. Start Payment SDK
-      final result = await GoSellSdkFlutter.startPaymentSDK;
-
-      if (!mounted) return;
-      setState(() => _isProcessingPayment = false);
-
-      if (result != null && result is Map) {
-        final sdkResult = result['sdk_result'];
-        if (sdkResult == 'SUCCESS') {
-          final tapChargeId = result['charge_id'] ?? 'MOCK_CHARGE_ID';
-          await repository.confirmOrder(orderId, tapChargeId);
-          
-          if (widget.fromCart) {
-            ref.read(cartProvider.notifier).clear();
-          }
-
-          if (!mounted) return;
-          _showSuccess(orderId);
-          return;
-        } else if (sdkResult == 'SDK_ERROR' || sdkResult == 'FAILED') {
-          _showError(result['sdk_error_message'] ?? 'checkout.failed'.tr());
-          return;
-        } else if (sdkResult == 'CANCELLED') {
-          _showError('checkout.cancelled'.tr());
-          return;
-        }
+      if (redirectUrl != null && redirectUrl.isNotEmpty) {
+        setState(() {
+          _checkoutUrl = redirectUrl;
+        });
+        _webViewController.loadRequest(Uri.parse(redirectUrl));
+      } else {
+        throw Exception('checkout.no_redirect'.tr());
       }
-      _showError('Unknown Payment Status');
     } catch (e) {
       if (!mounted) return;
       setState(() => _isProcessingPayment = false);
@@ -175,39 +134,36 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     }
   }
 
-  void _showSuccess(String orderId) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text('checkout.success_title'.tr()),
-        content: Text('checkout.success_msg'.tr(args: [orderId])),
-        actions: [
-          TextButton(
-            onPressed: () {
-              context.pop(); 
-              context.go('/dashboard');
-            },
-            child: Text('checkout.return_home'.tr()),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('checkout.error_prefix'.tr(args: [message])),
         backgroundColor: AppColors.error,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_checkoutUrl != null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text('checkout.payment_title'.tr()),
+          leading: IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: () => setState(() {
+              _checkoutUrl = null;
+              _isProcessingPayment = false;
+            }),
+          ),
+        ),
+        body: WebViewWidget(controller: _webViewController),
+      );
+    }
+
     final locale = context.locale.languageCode;
-    
     double subtotal = 0;
     List<Widget> itemWidgets = [];
 
@@ -229,7 +185,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         ));
       }
     } else if (widget.package != null) {
-      final name = _getLocalizedValue(widget.package!['name'], locale);
+      final name = widget.package!['name'] is Map 
+        ? widget.package!['name'][locale] ?? widget.package!['name']['en'] ?? ''
+        : widget.package!['name']?.toString() ?? '';
       final price = double.tryParse(widget.package!['price']?.toString() ?? '0') ?? 0.0;
       subtotal = price;
       
@@ -242,11 +200,18 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       ));
     }
 
-    final tax = subtotal * 0.15;
-    final total = subtotal + tax;
+    final total = subtotal;
+    final tax = total - (total / 1.15);
 
     return Scaffold(
-      appBar: AppBar(title: Text('checkout.title'.tr()), centerTitle: true),
+      backgroundColor: const Color(0xFFF5F5F7),
+      appBar: AppBar(
+        title: Text('checkout.title'.tr()),
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        foregroundColor: Colors.black,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -270,7 +235,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 children: [
                   Text(
                     'checkout.summary'.tr(),
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
                   ),
                   const SizedBox(height: 20),
                   ...itemWidgets,
@@ -281,7 +246,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('checkout.vat'.tr(), style: const TextStyle(color: AppColors.textSecondary)),
+                      Text('checkout.vat'.tr(), style: const TextStyle(color: Colors.grey)),
                       Text('${tax.toStringAsFixed(2)} ${'dashboard.currency'.tr()}'),
                     ],
                   ),
@@ -289,10 +254,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('checkout.total'.tr(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                      Text('checkout.total'.tr(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
                       Text(
                         '${total.toStringAsFixed(2)} ${'dashboard.currency'.tr()}',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: AppColors.primary),
+                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Color(0xFF224AFB)),
                       ),
                     ],
                   ),
@@ -300,39 +265,49 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               ),
             ),
             const SizedBox(height: 32),
-            Text('checkout.payment_method'.tr(), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text('checkout.payment_method'.tr(), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                border: Border.all(color: AppColors.primary, width: 2),
-                borderRadius: BorderRadius.circular(16),
-                color: AppColors.primary.withValues(alpha: 0.05),
+                border: Border.all(color: const Color(0xFF224AFB), width: 1.5),
+                borderRadius: BorderRadius.circular(20),
+                color: Colors.white,
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.credit_card, color: AppColors.primary),
+                  const Icon(Icons.credit_card, color: Colors.black),
                   const SizedBox(width: 16),
-                  Text('checkout.card'.tr(), style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
+                  Text('checkout.card'.tr(), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
                   const Spacer(),
-                  const Icon(Icons.check_circle, color: AppColors.primary),
+                  const Icon(Icons.check_circle, color: Color(0xFF224AFB)),
                 ],
               ),
             ),
             const SizedBox(height: 48),
             SizedBox(
-              height: 56,
+              height: 60,
               child: ElevatedButton(
-                onPressed: _isProcessingPayment ? null : _processPayment,
+                onPressed: _isProcessingPayment ? null : _processCheckout,
                 style: ElevatedButton.styleFrom(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  elevation: 8,
-                  shadowColor: AppColors.primary.withValues(alpha: 0.3),
+                  backgroundColor: const Color(0xFF224AFB),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  elevation: 0,
                 ),
                 child: _isProcessingPayment
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : Text('checkout.pay_button'.tr(args: ['${total.toStringAsFixed(2)} ${'dashboard.currency'.tr()}'])),
+                    : Text(
+                        'checkout.pay_button'.tr(args: ['${total.toStringAsFixed(2)} ${'dashboard.currency'.tr()}']),
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
               ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'checkout.security_hint'.tr(),
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.grey, fontSize: 12),
             ),
           ],
         ),

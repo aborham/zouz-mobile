@@ -10,6 +10,8 @@ import '../../features/checkout/presentation/screens/checkout_screen.dart';
 import '../../features/purchases/presentation/screens/purchase_details_screen.dart';
 import '../../features/profile/presentation/screens/settings_screen.dart';
 import '../../features/cart/presentation/screens/cart_screen.dart';
+import '../../features/checkout/presentation/screens/payment_success_screen.dart';
+import '../../features/checkout/presentation/screens/payment_failure_screen.dart';
 
 import '../../features/splash/presentation/screens/splash_screen.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
@@ -82,6 +84,27 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/settings',
       builder: (context, state) => const SettingsScreen(),
+    ),
+    GoRoute(
+      path: '/payment-success',
+      name: 'payment-success',
+      builder: (context, state) {
+        final orderId = state.uri.queryParameters['orderId']!;
+        return PaymentSuccessScreen(orderId: orderId);
+      },
+    ),
+    GoRoute(
+      path: '/payment-failure',
+      name: 'payment-failure',
+      builder: (context, state) {
+        final reason = state.uri.queryParameters['reason'];
+        final extra = state.extra as Map<String, dynamic>?;
+        return PaymentFailureScreen(
+          reason: reason,
+          package: extra?['package'],
+          items: extra?['items'],
+        );
+      },
     ),
   ],
 );

@@ -76,9 +76,6 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                     const SizedBox(height: 32),
                     // Summary Section
                     _buildSummarySection(cart),
-                    const SizedBox(height: 32),
-                    // Payment Method Section
-                    _buildPaymentSection(),
                     const SizedBox(height: 120), // Space for bottom button
                   ],
                 ),
@@ -310,109 +307,10 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     );
   }
 
-  Widget _buildPaymentSection() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF9F9F9),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'checkout.payment_method'.tr(), // Verbatim "طريقة الدفع"
-            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
-          ),
-          const SizedBox(height: 16),
-          _buildPaymentTile(
-            id: 'card',
-            label: 'checkout.card'.tr(), // Verbatim "بطاقة مدى / ائتمانية"
-            assetImage: 'assets/images/payment_methods.png',
-            isSelected: true,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPaymentTile({
-    required String id,
-    required String label,
-    required bool isSelected,
-    String? assetImage,
-    IconData? icon,
-  }) {
-    return InkWell(
-      onTap: () => setState(() => selectedPaymentMethod = id),
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 8),
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey[200]!, width: 1.5),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.02),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            if (icon != null) ...[
-              Icon(icon, color: Colors.black, size: 24),
-              const SizedBox(width: 16),
-            ],
-            if (assetImage == null && icon == null)
-              const Icon(Icons.credit_card, color: Colors.black, size: 24),
-            if (assetImage != null && icon == null)
-              const Icon(Icons.credit_card, color: Colors.black, size: 24),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  if (assetImage != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Image.asset(
-                        assetImage,
-                        height: 20,
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            // Selection Checkmark (per screenshot)
-            Container(
-              width: 24,
-              height: 24,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.black,
-              ),
-              child: const Icon(Icons.check, size: 16, color: Colors.white),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
 
   Widget _buildMainActionButton(BuildContext context) {
+    final cart = ref.read(cartProvider);
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
       color: Colors.white,
@@ -421,8 +319,10 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         height: 60,
         child: ElevatedButton(
           onPressed: () {
-            // Success action
-            context.push('/checkout', extra: {'fromCart': true});
+            context.push('/checkout', extra: {
+              'fromCart': true,
+              'items': cart.items.map((e) => e.toMap()).toList(),
+            });
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF224AFB),
@@ -433,7 +333,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                'checkout.checkout'.tr(), // Verbatim "متابعة للدفع"
+                'cart.checkout'.tr(), // Verbatim "متابعة للدفع"
                 style: const TextStyle(fontSize: 17, color: Colors.white, fontWeight: FontWeight.bold),
               ),
               const SizedBox(width: 8),

@@ -8,6 +8,7 @@ import 'package:zouz_mobile/core/theme/colors.dart';
 import 'package:zouz_mobile/core/utils/image_utils.dart';
 import 'package:zouz_mobile/features/dashboard/providers/home_provider.dart';
 import 'package:zouz_mobile/features/dashboard/models/home_data.dart';
+import 'package:zouz_mobile/features/cart/providers/cart_provider.dart';
 
 class HomeDashboardScreen extends ConsumerWidget {
   const HomeDashboardScreen({super.key});
@@ -25,7 +26,7 @@ class HomeDashboardScreen extends ConsumerWidget {
             child: CustomScrollView(
               physics: const BouncingScrollPhysics(),
               slivers: [
-                _buildHeader(context, data.user),
+                _buildHeader(context, ref, data.user),
                 _buildSearchAndFilter(context),
                 if (data.activePackages.isNotEmpty)
                   _buildActivePackages(context, data.activePackages),
@@ -44,7 +45,8 @@ class HomeDashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context, HomeUser user) {
+  Widget _buildHeader(BuildContext context, WidgetRef ref, HomeUser user) {
+    final cartCount = ref.watch(cartProvider.select((s) => s.totalItems));
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       sliver: SliverToBoxAdapter(
@@ -85,16 +87,55 @@ class HomeDashboardScreen extends ConsumerWidget {
                 ),
               ],
             ),
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: IconButton(
-                icon: const Icon(Icons.notifications_outlined),
-                onPressed: () {},
-                color: AppColors.textPrimary,
-              ),
+            Row(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Stack(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.shopping_cart_outlined),
+                        onPressed: () => context.push('/cart'),
+                        color: AppColors.textPrimary,
+                      ),
+                      if (cartCount > 0)
+                        Positioned(
+                          right: 8,
+                          top: 8,
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
+                            ),
+                            constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                            child: Text(
+                              cartCount.toString(),
+                              style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.notifications_outlined),
+                    onPressed: () {},
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
             ),
           ],
         ),

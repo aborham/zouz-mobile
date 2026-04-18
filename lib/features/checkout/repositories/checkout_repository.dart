@@ -40,6 +40,20 @@ class CheckoutRepository {
       throw Exception(e.response?.data['error'] ?? 'Failed to confirm order');
     }
   }
+
+  Future<Map<String, dynamic>> processOrder(String orderId) async {
+    try {
+      final response = await _dio.post(
+        '/payment/process-order',
+        data: {
+          'orderId': orderId,
+        },
+      );
+      return Map<String, dynamic>.from(response.data);
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['error'] ?? 'Failed to process payment');
+    }
+  }
 }
 
 final checkoutRepositoryProvider = Provider<CheckoutRepository>((ref) {
