@@ -50,7 +50,16 @@
     "valid_until": "Valid until",
     "redeem_now": "Redeem Now",
     "details": "Details",
-    "scan_stand": "Scan the Stand!"
+    "scan_stand": "Scan the Stand!",
+    "active_routine": "Your Active Routine",
+    "routine_subtitle": "Ready to start your daily routine?",
+    "quick_action": "Quick Action",
+    "quick_action_desc": "Scan any merchant code to instantly redeem your active credits.",
+    "tap_to_redeem": "Tap to Redeem",
+    "brand_name": "INDIGO VELVET",
+    "good_morning": "Good morning",
+    "good_afternoon": "Good afternoon",
+    "good_evening": "Good evening"
   },
   "common": {
     "error": "An error occurred. Please try again.",

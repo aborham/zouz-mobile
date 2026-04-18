@@ -52,7 +52,16 @@
     "valid_until": "صالحة حتى",
     "redeem_now": "استخدم الآن",
     "details": "التفاصيل",
-    "scan_stand": "امسح الستاند!"
+    "scan_stand": "امسح الستاند!",
+    "active_routine": "روتينك النشط",
+    "routine_subtitle": "هل أنت مستعد لبدء روتينك اليومي؟",
+    "quick_action": "إجراء سريع",
+    "quick_action_desc": "امسح أي كود لتفعيل نقاطك النشطة فوراً.",
+    "tap_to_redeem": "اضغط للتفعيل",
+    "brand_name": "إنديغو فيلفيت",
+    "good_morning": "صباح الخير",
+    "good_afternoon": "طاب مساؤك",
+    "good_evening": "مساء الخير"
   },
   "common": {
     "error": "حدث خطأ. يرجى المحاولة مرة أخرى.",

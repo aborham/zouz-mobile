@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:go_router/go_router.dart';
 import 'package:zouz_mobile/core/theme/colors.dart';
 import '../../providers/navigation_provider.dart';
 import 'home_dashboard_screen.dart';
-import '../../../marketplace/presentation/screens/marketplace_explore_screen.dart';
-import '../../../purchases/presentation/screens/purchases_screen.dart';
+import '../../../scanner/presentation/screens/qr_scanner_screen.dart';
 import '../../../profile/presentation/screens/profile_screen.dart';
 
 class MainNavigationScreen extends ConsumerStatefulWidget {
@@ -25,58 +23,52 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
     return Scaffold(
       body: IndexedStack(
         index: currentIndex,
-        children: [
-          const HomeDashboardScreen(),
-          const MarketplaceExploreScreen(),
-          PurchasesScreen(),
-          const ProfileScreen(),
+        children: const [
+          HomeDashboardScreen(),
+          QrScannerScreen(),
+          ProfileScreen(),
         ],
       ),
-      bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 8,
-        child: SizedBox(
-          height: 64,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavItem(
-                0,
-                Icons.home_outlined,
-                Icons.home,
-                'dashboard.home'.tr(),
-              ),
-              _buildNavItem(
-                1,
-                Icons.explore_outlined,
-                Icons.explore,
-                'dashboard.explore'.tr(),
-              ),
-              const SizedBox(width: 48), // Space for FAB
-              _buildNavItem(
-                2,
-                Icons.inventory_2_outlined,
-                Icons.inventory_2,
-                'dashboard.my_packages'.tr(),
-              ),
-              _buildNavItem(
-                3,
-                Icons.person_outline,
-                Icons.person,
-                'profile.title'.tr(),
-              ),
-            ],
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -5),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: SizedBox(
+            height: 72,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(
+                  0,
+                  Icons.home_outlined,
+                  Icons.home,
+                  'dashboard.home'.tr().toUpperCase(),
+                ),
+                _buildNavItem(
+                  1,
+                  Icons.qr_code_scanner_outlined,
+                  Icons.qr_code_scanner,
+                  'dashboard.scanner'.tr().toUpperCase(),
+                ),
+                _buildNavItem(
+                  2,
+                  Icons.person_outline,
+                  Icons.person,
+                  'profile.title'.tr().toUpperCase(),
+                ),
+              ],
+            ),
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/scanner'),
-        backgroundColor: AppColors.primary,
-        elevation: 4,
-        shape: const CircleBorder(),
-        child: const Icon(Icons.qr_code_scanner, color: Colors.white, size: 28),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
 
@@ -93,16 +85,26 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            isSelected ? activeIcon : icon,
-            color: isSelected ? AppColors.primary : AppColors.textSecondary,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: isSelected ? AppColors.primary.withValues(alpha: 0.08) : Colors.transparent,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(
+              isSelected ? activeIcon : icon,
+              color: isSelected ? AppColors.primary : AppColors.textSecondary,
+              size: 24,
+            ),
           ),
+          const SizedBox(height: 4),
           Text(
             label,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: 10,
               color: isSelected ? AppColors.primary : AppColors.textSecondary,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+              letterSpacing: 0.5,
             ),
           ),
         ],
@@ -110,3 +112,4 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
     );
   }
 }
+
