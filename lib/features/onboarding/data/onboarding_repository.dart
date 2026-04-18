@@ -40,7 +40,7 @@ class OnboardingRepository {
 
   Future<List<OnboardingSlide>> getSlides() async {
     try {
-      // Relative to baseUrl: http://192.168.1.15:3000/api/customer/
+      // Relative to baseUrl: http://192.168.1.8:3000/api/customer/
       final response = await _apiClient.dio.get('onboarding');
       final List<dynamic> data = response.data;
       return data.map((json) => OnboardingSlide.fromJson(json)).toList();
