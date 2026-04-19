@@ -4,16 +4,18 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:go_router/go_router.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:zouz_mobile/features/dashboard/providers/navigation_provider.dart';
 import 'package:zouz_mobile/core/theme/colors.dart';
 
-class QrScannerScreen extends StatefulWidget {
+class QrScannerScreen extends ConsumerStatefulWidget {
   const QrScannerScreen({super.key});
 
   @override
-  State<QrScannerScreen> createState() => _QrScannerScreenState();
+  ConsumerState<QrScannerScreen> createState() => _QrScannerScreenState();
 }
 
-class _QrScannerScreenState extends State<QrScannerScreen>
+class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
     with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   MobileScannerController cameraController = MobileScannerController(
     autoStart: false,
@@ -31,7 +33,14 @@ class _QrScannerScreenState extends State<QrScannerScreen>
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
-    _checkPermission();
+    
+    // Initial check but don't start camera unless we are at index 1
+    // The listener below will handle the logic
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (ref.read(navigationProvider) == 1) {
+        _checkPermission();
+      }
+    });
   }
 
   @override
@@ -45,9 +54,16 @@ class _QrScannerScreenState extends State<QrScannerScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      Future.delayed(const Duration(milliseconds: 800), () {
-        if (mounted) _checkPermission();
-      });
+      final currentIndex = ref.read(navigationProvider);
+      if (currentIndex == 1) {
+        Future.delayed(const Duration(milliseconds: 800), () {
+          if (mounted) _checkPermission();
+        });
+      }
+    } else if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
+      if (cameraController.value.isRunning) {
+        cameraController.stop();
+      }
     }
   }
 
@@ -102,9 +118,11 @@ class _QrScannerScreenState extends State<QrScannerScreen>
         if (tenantSlug != null && tenantSlug.isNotEmpty) {
           final query = standId != null ? '?standId=$standId' : '';
           context.push('/menu/$tenantSlug$query').then((_) {
-            if (mounted) {
+            if (mounted && ref.read(navigationProvider) == 1) {
               setState(() => _isProcessing = false);
               cameraController.start();
+            } else if (mounted) {
+              setState(() => _isProcessing = false);
             }
           });
         } else {
@@ -118,6 +136,19 @@ class _QrScannerScreenState extends State<QrScannerScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Listen to tab changes to start/stop camera
+    ref.listen(navigationProvider, (previous, next) {
+      if (next == 1 && previous != 1) {
+        // Switched TO Scanner tab
+        _checkPermission();
+      } else if (next != 1 && previous == 1) {
+        // Switched AWAY FROM Scanner tab
+        if (cameraController.value.isRunning) {
+          cameraController.stop();
+        }
+      }
+    });
+
     final bool isGranted = _cameraPermissionStatus.isGranted || _cameraPermissionStatus.isProvisional;
 
     return Scaffold(
