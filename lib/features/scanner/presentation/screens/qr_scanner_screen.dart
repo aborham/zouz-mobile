@@ -24,6 +24,8 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
   bool _isProcessing = false;
   PermissionStatus _cameraPermissionStatus = PermissionStatus.denied;
   late AnimationController _animationController;
+  bool _showSuccess = false;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -93,45 +95,74 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
   }
 
   void _onDetect(BarcodeCapture capture) {
-    if (_isProcessing) return;
+    if (_isProcessing || _showSuccess || _errorMessage != null) return;
     final List<Barcode> barcodes = capture.barcodes;
     if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
       final code = barcodes.first.rawValue!;
-      setState(() => _isProcessing = true);
       
-      // Visual feedback: Subtle haptic if possible, or just immediate logic
       try {
         final uri = Uri.parse(code);
         String? tenantSlug;
         String? standId;
 
-        if (uri.pathSegments.contains('menu')) {
+        // Validation logic for Zouz QR codes
+        final bool isZouzMenu = uri.pathSegments.contains('menu');
+        final bool isZouzDirect = uri.host == 'zouz.app' || uri.host == 'dev.zouzapp.com';
+        
+        if (isZouzMenu) {
           final index = uri.pathSegments.indexOf('menu');
           if (index + 1 < uri.pathSegments.length) {
             tenantSlug = uri.pathSegments[index + 1];
           }
           standId = uri.queryParameters['standId'];
-        } else {
-          tenantSlug = code;
+        } else if (isZouzDirect) {
+          tenantSlug = uri.pathSegments.isNotEmpty ? uri.pathSegments.first : null;
         }
 
         if (tenantSlug != null && tenantSlug.isNotEmpty) {
+          setState(() {
+            _isProcessing = true;
+            _showSuccess = true;
+          });
+          cameraController.stop();
+
           final query = standId != null ? '?standId=$standId' : '';
-          context.push('/menu/$tenantSlug$query').then((_) {
-            if (mounted && ref.read(navigationProvider) == 1) {
-              setState(() => _isProcessing = false);
-              cameraController.start();
-            } else if (mounted) {
-              setState(() => _isProcessing = false);
-            }
+          
+          // Show success feedback for a moment before navigating
+          Future.delayed(const Duration(milliseconds: 1500), () {
+            if (!mounted) return;
+            context.push('/menu/$tenantSlug$query').then((_) {
+              if (mounted) {
+                setState(() {
+                  _isProcessing = false;
+                  _showSuccess = false;
+                });
+                if (ref.read(navigationProvider) == 1) {
+                  cameraController.start();
+                }
+              }
+            });
           });
         } else {
-          setState(() => _isProcessing = false);
+          _handleInvalidQr();
         }
       } catch (e) {
-        setState(() => _isProcessing = false);
+        _handleInvalidQr();
       }
     }
+  }
+
+  void _handleInvalidQr() {
+    setState(() {
+      _errorMessage = 'scanner.invalid_qr_subtitle'.tr();
+    });
+    
+    // Auto-hide error after 3 seconds
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() => _errorMessage = null);
+      }
+    });
   }
 
   @override
@@ -217,14 +248,107 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
           ),
 
           // 4. Floating Guidance Card
-          if (isGranted)
+          if (isGranted && !_showSuccess && _errorMessage == null)
             Positioned(
               bottom: MediaQuery.of(context).padding.bottom + 100, // Adjusted for notch bottom bar
               left: 24,
               right: 24,
               child: _buildGuidanceCard(),
             ),
+
+          // 5. Success Overlay
+          if (_showSuccess)
+            _buildSuccessOverlay(),
+
+          // 6. Error Overlay
+          if (_errorMessage != null)
+            _buildErrorOverlay(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSuccessOverlay() {
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black.withValues(alpha: 0.6),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.check_rounded, color: Colors.green, size: 64),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'scanner.success_msg'.tr(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorOverlay() {
+    return Positioned(
+      bottom: MediaQuery.of(context).padding.bottom + 100,
+      left: 24,
+      right: 24,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            decoration: BoxDecoration(
+              color: Colors.red.withValues(alpha: 0.8),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white, size: 32),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'scanner.invalid_qr_title'.tr(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _errorMessage!,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.9),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -308,44 +432,144 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
   }
 
   Widget _buildPermissionPlaceholder() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
+    final bool isDenied = _cameraPermissionStatus.isPermanentlyDenied;
+    
+    return Container(
+      color: Colors.white,
+      width: double.infinity,
+      child: SingleChildScrollView(
+        padding: EdgeInsets.only(
+          top: MediaQuery.of(context).padding.top + 40,
+          left: 24,
+          right: 24,
+          bottom: 40,
+        ),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.camera_alt_outlined, size: 64, color: Colors.white38),
-            const SizedBox(height: 24),
-            Text(
-              'scanner.permission_required'.tr(),
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 16, color: Colors.white),
+            // 1. Illustration Area
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 200,
+                  height: 200,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.05),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                Container(
+                  width: 140,
+                  height: 140,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(32),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.qr_code_2_rounded,
+                    color: AppColors.primary,
+                    size: 80,
+                  ),
+                ),
+                Positioned(
+                  bottom: 20,
+                  right: 20,
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.3),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(Icons.camera_alt, color: Colors.white, size: 24),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 32),
-            if (_cameraPermissionStatus.isPermanentlyDenied)
-              Column(
-                children: [
-                  ElevatedButton(
-                    onPressed: () => openAppSettings(),
-                    child: Text('scanner.open_settings'.tr()),
-                  ),
-                  TextButton(
-                    onPressed: _checkPermission,
-                    child: Text('scanner.check_status'.tr(), style: const TextStyle(color: Colors.white70)),
-                  ),
-                ],
-              )
-            else
-              ElevatedButton(
-                onPressed: _requestPermission,
+            const SizedBox(height: 48),
+            
+            // 2. Text Content
+            Text(
+              'scanner.premium_permission_title'.tr(),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w900,
+                color: AppColors.textPrimary,
+                height: 1.2,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'scanner.premium_permission_subtitle'.tr(),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 15,
+                color: AppColors.textSecondary.withValues(alpha: 0.7),
+                height: 1.5,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 40),
+            
+            // 3. Feature Cards
+            PermissionFeaturesCard(
+              icon: Icons.privacy_tip_rounded,
+              title: 'scanner.privacy_focused'.tr(),
+              description: 'scanner.privacy_desc'.tr(),
+            ),
+            const SizedBox(height: 16),
+            PermissionFeaturesCard(
+              icon: Icons.bolt_rounded,
+              title: 'scanner.instant_setup'.tr(),
+              description: 'scanner.instant_desc'.tr(),
+            ),
+            const SizedBox(height: 60),
+            
+            // 4. Action Buttons
+            SizedBox(
+              width: double.infinity,
+              height: 64,
+              child: ElevatedButton(
+                onPressed: isDenied ? () => openAppSettings() : _requestPermission,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  shadowColor: AppColors.primary.withValues(alpha: 0.4),
                 ),
-                child: Text('scanner.grant_permission'.tr()),
+                child: Text(
+                  isDenied ? 'scanner.open_settings'.tr() : 'scanner.grant_permission'.tr(),
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                ),
               ),
+            ),
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: () => context.pop(),
+              child: Text(
+                'scanner.maybe_later'.tr(),
+                style: const TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
+              ),
+            ),
           ],
         ),
       ),
