@@ -54,7 +54,7 @@ class PaymentFailureScreen extends StatelessWidget {
               height: 120,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.red.withOpacity(0.2), width: 8),
+                border: Border.all(color: Colors.red.withValues(alpha: 0.2), width: 8),
               ),
               child: Container(
                 margin: const EdgeInsets.all(8),
@@ -100,9 +100,9 @@ class PaymentFailureScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.03),
+                color: Colors.red.withValues(alpha: 0.03),
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.red.withOpacity(0.1)),
+                border: Border.all(color: Colors.red.withValues(alpha: 0.1)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

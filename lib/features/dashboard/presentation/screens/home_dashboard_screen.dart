@@ -7,6 +7,7 @@ import 'package:zouz_mobile/core/theme/colors.dart';
 import 'package:zouz_mobile/core/utils/image_utils.dart';
 import '../../providers/home_provider.dart';
 import '../../models/home_data.dart';
+import '../../../cart/providers/cart_provider.dart';
 
 class HomeDashboardScreen extends ConsumerWidget {
   const HomeDashboardScreen({super.key});
@@ -43,6 +44,7 @@ class HomeDashboardScreen extends ConsumerWidget {
 
   Widget _buildHeader(BuildContext context, WidgetRef ref, HomeUser user) {
     final hour = DateTime.now().hour;
+    final cartState = ref.watch(cartProvider);
     String greetingKey;
     if (hour < 12) {
       greetingKey = 'dashboard.good_morning';
@@ -87,28 +89,70 @@ class HomeDashboardScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(width: 8),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: IconButton(
-                icon: const Icon(Icons.notifications_outlined, size: 20),
-                onPressed: () {},
-                color: AppColors.textPrimary,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-              ),
+            Row(
+              children: [
+                _buildHeaderIconButton(
+                  icon: Icons.shopping_cart_outlined,
+                  onPressed: () => context.push('/cart'),
+                  badgeCount: cartState.totalItems,
+                ),
+                const SizedBox(width: 8),
+                _buildHeaderIconButton(
+                  icon: Icons.notifications_outlined,
+                  onPressed: () {},
+                ),
+              ],
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildHeaderIconButton({
+    required IconData icon,
+    required VoidCallback onPressed,
+    int badgeCount = 0,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          IconButton(
+            icon: Icon(icon, size: 20),
+            onPressed: onPressed,
+            color: AppColors.textPrimary,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+          ),
+          if (badgeCount > 0)
+            Positioned(
+              top: 8,
+              right: 8,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: const BoxDecoration(
+                  color: AppColors.error,
+                  shape: BoxShape.circle,
+                ),
+                constraints: const BoxConstraints(
+                  minWidth: 8,
+                  minHeight: 8,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -269,16 +313,6 @@ class HomeDashboardScreen extends ConsumerWidget {
                 final pkg = packages[index];
                 final locale = context.locale.languageCode;
                 final packageName = pkg.packageName[locale] ?? pkg.packageName['en'] ?? '';
-                final providerName = pkg.providerName[locale] ?? pkg.providerName['en'] ?? '';
-
-                // Calculate days remaining if available
-                String subtitle = providerName;
-                if (pkg.expiresAt != null) {
-                  final days = pkg.expiresAt!.difference(DateTime.now()).inDays;
-                  if (days >= 0) {
-                     subtitle += " • $days days left";
-                  }
-                }
 
                 return GestureDetector(
                   onTap: () => context.push('/purchase-details', extra: pkg.toMap()),

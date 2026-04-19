@@ -101,7 +101,7 @@ class _PaymentSuccessScreenState extends ConsumerState<PaymentSuccessScreen> {
             height: 120,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.green.withOpacity(0.2), width: 8),
+              border: Border.all(color: Colors.green.withValues(alpha: 0.2), width: 8),
             ),
             child: Container(
               margin: const EdgeInsets.all(8),
@@ -132,7 +132,7 @@ class _PaymentSuccessScreenState extends ConsumerState<PaymentSuccessScreen> {
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 ),
