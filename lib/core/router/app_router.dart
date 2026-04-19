@@ -7,8 +7,13 @@ import '../../features/scanner/presentation/screens/qr_scanner_screen.dart';
 import '../../features/scanner/presentation/screens/menu_screen.dart';
 import '../../features/packages/presentation/screens/package_detail_screen.dart';
 import '../../features/checkout/presentation/screens/checkout_screen.dart';
-import '../../features/purchases/presentation/screens/purchase_details_screen.dart';
-import '../../features/profile/presentation/screens/settings_screen.dart';
+import '../../features/profile/presentation/screens/account_screen.dart';
+import '../../features/profile/presentation/screens/personal_info_screen.dart';
+import '../../features/profile/presentation/screens/payment_methods_screen.dart';
+import '../../features/profile/presentation/screens/support_screen.dart';
+import '../../features/profile/presentation/screens/notifications_settings_screen.dart';
+import '../../features/profile/presentation/screens/security_privacy_screen.dart';
+import '../../features/profile/presentation/screens/language_screen.dart';
 import '../../features/cart/presentation/screens/cart_screen.dart';
 import '../../features/checkout/presentation/screens/payment_success_screen.dart';
 import '../../features/checkout/presentation/screens/payment_failure_screen.dart';
@@ -75,15 +80,32 @@ final GoRouter appRouter = GoRouter(
       },
     ),
     GoRoute(
-      path: '/purchase-details',
-      builder: (context, state) {
-        final package = state.extra as Map<String, dynamic>;
-        return PurchaseDetailScreen(package: package);
-      },
+      path: '/settings',
+      builder: (context, state) => const AccountScreen(),
     ),
     GoRoute(
-      path: '/settings',
-      builder: (context, state) => const SettingsScreen(),
+      path: '/profile/personal-info',
+      builder: (context, state) => const PersonalInfoScreen(),
+    ),
+    GoRoute(
+      path: '/profile/payment-methods',
+      builder: (context, state) => const PaymentMethodsScreen(),
+    ),
+    GoRoute(
+      path: '/profile/support',
+      builder: (context, state) => const SupportScreen(),
+    ),
+    GoRoute(
+      path: '/profile/notifications',
+      builder: (context, state) => const NotificationsSettingsScreen(),
+    ),
+    GoRoute(
+      path: '/profile/security-privacy',
+      builder: (context, state) => const SecurityPrivacyScreen(),
+    ),
+    GoRoute(
+      path: '/profile/language',
+      builder: (context, state) => const LanguageScreen(),
     ),
     GoRoute(
       path: '/payment-success',

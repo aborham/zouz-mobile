@@ -5,7 +5,7 @@ import 'package:zouz_mobile/core/theme/colors.dart';
 import '../../providers/navigation_provider.dart';
 import 'home_dashboard_screen.dart';
 import '../../../scanner/presentation/screens/qr_scanner_screen.dart';
-import '../../../profile/presentation/screens/profile_screen.dart';
+import '../../../profile/presentation/screens/account_screen.dart';
 
 class MainNavigationScreen extends ConsumerStatefulWidget {
   const MainNavigationScreen({super.key});
@@ -27,7 +27,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
         children: const [
           HomeDashboardScreen(),
           QrScannerScreen(),
-          ProfileScreen(),
+          AccountScreen(),
         ],
       ),
       floatingActionButton: Container(
