@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zouz_mobile/core/theme/colors.dart';
+import '../../providers/profile_provider.dart';
 
-class PaymentMethodsScreen extends StatelessWidget {
+
+class PaymentMethodsScreen extends ConsumerWidget {
   const PaymentMethodsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final paymentMethodsAsync = ref.watch(paymentMethodsProvider);
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -50,25 +54,54 @@ class PaymentMethodsScreen extends StatelessWidget {
             const SizedBox(height: 32),
             
             // Payment Methods List
-            _buildWalletCard(
-              icon: Icons.apple,
-              title: "Apple Pay",
-              subtitle: 'payment.default_quick'.tr(),
-              isActive: true,
-            ),
-            const SizedBox(height: 16),
-            _buildCardItem(
-              iconPath: "assets/images/payment/visa.png", // Assuming paths
-              title: "Visa •••• 4242",
-              subtitle: 'payment.expires'.tr(args: ["12/26"]),
-              type: Icons.credit_card,
-            ),
-            const SizedBox(height: 16),
-            _buildCardItem(
-              iconPath: "assets/images/payment/mastercard.png",
-              title: "Mastercard •••• 8812",
-              subtitle: 'payment.expires'.tr(args: ["08/25"]),
-              type: Icons.credit_card,
+            paymentMethodsAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, stack) => Center(
+                child: Text('payment.error'.tr(), style: const TextStyle(color: Colors.red)),
+              ),
+              data: (methods) {
+                if (methods.isEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24.0),
+                    child: Center(
+                      child: Text(
+                        'payment.empty_methods'.tr(),
+                        style: const TextStyle(color: AppColors.textSecondary),
+                      ),
+                    ),
+                  );
+                }
+
+                return Column(
+                  children: methods.map((method) {
+                    if (method.type == 'WALLET') {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12.0),
+                        child: _buildWalletCard(
+                          icon: method.provider == 'APPLE_PAY' ? Icons.apple : Icons.account_balance_wallet,
+                          title: method.provider == 'APPLE_PAY' ? "Apple Pay" : method.provider,
+                          subtitle: 'payment.default_quick'.tr(),
+                          isActive: method.isDefault,
+                        ),
+                      );
+                    } else {
+                      final title = "${method.brand ?? 'Card'} •••• ${method.last4 ?? '****'}";
+                      final subtitle = 'payment.expires'.tr(namedArgs: {
+                        "date": "${method.expiryMonth?.toString().padLeft(2, '0')}/${method.expiryYear?.toString().substring(2)}"
+                      });
+                      
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12.0),
+                        child: _buildCardItem(
+                          title: title,
+                          subtitle: subtitle,
+                          type: Icons.credit_card,
+                        ),
+                      );
+                    }
+                  }).toList(),
+                );
+              },
             ),
             
             const SizedBox(height: 32),
@@ -139,18 +172,37 @@ class PaymentMethodsScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(30),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
-            decoration: const BoxDecoration(
-              color: Colors.black12,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF2B2B2B), Color(0xFF000000)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-            child: Icon(icon, color: Colors.black, size: 28),
+            child: Icon(icon, color: Colors.white, size: 24),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -199,7 +251,6 @@ class PaymentMethodsScreen extends StatelessWidget {
   }
 
   Widget _buildCardItem({
-    String? iconPath,
     required String title,
     required String subtitle,
     required IconData type,
@@ -208,8 +259,15 @@ class PaymentMethodsScreen extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: const Color(0xFFF3F4F6)),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -217,10 +275,11 @@ class PaymentMethodsScreen extends StatelessWidget {
             width: 56,
             height: 40,
             decoration: BoxDecoration(
-              color: const Color(0xFFF9FAFB),
+              color: const Color(0xFFF8F9FA),
               borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
             ),
-            child: const Icon(Icons.credit_card, color: Colors.black54),
+            child: const Icon(Icons.credit_card, color: AppColors.primary, size: 24),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -258,15 +317,16 @@ class PaymentMethodsScreen extends StatelessWidget {
     required Color color,
   }) {
     return Container(
-      height: 160,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(32),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, color: color, size: 32),
           const SizedBox(height: 16),

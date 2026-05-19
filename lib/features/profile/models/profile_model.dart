@@ -1,5 +1,5 @@
 class UserProfile {
-  final String id;
+  final String? id;
   final String? name;
   final String? email;
   final String? phoneNumber;
@@ -9,7 +9,7 @@ class UserProfile {
   final int activePackagesCount;
 
   UserProfile({
-    required this.id,
+    this.id,
     this.name,
     this.email,
     this.phoneNumber,
@@ -21,7 +21,7 @@ class UserProfile {
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(
-      id: json['id'],
+      id: json['id']?.toString(), // Safely convert to string if exists
       name: json['name'],
       email: json['email'],
       phoneNumber: json['phoneNumber'],

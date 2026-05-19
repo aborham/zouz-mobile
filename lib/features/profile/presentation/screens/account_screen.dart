@@ -26,7 +26,7 @@ class AccountScreen extends ConsumerWidget {
           ),
         ),
         title: Text(
-          'dashboard.brand_name'.tr(),
+          'dashboard.account'.tr(),
           style: const TextStyle(
             color: AppColors.primary,
             fontWeight: FontWeight.w900,
@@ -42,193 +42,213 @@ class AccountScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: profileAsync.when(
-        data: (profile) => RefreshIndicator(
-          onRefresh: () async => ref.refresh(profileProvider.future),
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              children: [
-                const SizedBox(height: 20),
-                // Profile Section
-                Center(
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: AppColors.primary.withValues(alpha: 0.1),
-                            width: 8,
+      body: SafeArea(
+        child: profileAsync.when(
+          data: (profile) => RefreshIndicator(
+            onRefresh: () async => ref.refresh(profileProvider.future),
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                children: [
+                  const SizedBox(height: 20),
+                  // Profile Section
+                  Center(
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Container(
+                          width: 120,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: AppColors.primary.withValues(alpha: 0.1),
+                              width: 8,
+                            ),
                           ),
                         ),
-                      ),
-                      Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: AppColors.primary,
-                            width: 2,
+                        Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: AppColors.primary,
+                              width: 2,
+                            ),
+                            image: profile.avatarUrl != null
+                                ? DecorationImage(
+                                    image: NetworkImage(
+                                      ImageUtils.getFullUrl(profile.avatarUrl)!,
+                                    ),
+                                    fit: BoxFit.cover,
+                                  )
+                                : null,
                           ),
-                          image: profile.avatarUrl != null
-                              ? DecorationImage(
-                                  image: NetworkImage(
-                                    ImageUtils.getFullUrl(profile.avatarUrl)!,
-                                  ),
-                                  fit: BoxFit.cover,
+                          child: profile.avatarUrl == null
+                              ? const Icon(
+                                  Icons.person,
+                                  size: 50,
+                                  color: AppColors.textSecondary,
                                 )
                               : null,
                         ),
-                        child: profile.avatarUrl == null
-                            ? const Icon(
-                                Icons.person,
-                                size: 50,
-                                color: AppColors.textSecondary,
-                              )
-                            : null,
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Container(
-                          height: 36,
-                          width: 36,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.1),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.edit,
-                            color: Colors.white,
-                            size: 18,
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            height: 36,
+                            width: 36,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.1),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.edit,
+                              color: Colors.white,
+                              size: 18,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  profile.name ?? 'profile.customer_name'.tr(),
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
-                    letterSpacing: -0.5,
+                  const SizedBox(height: 16),
+                  Text(
+                    profile.name ?? 'profile.customer_name'.tr(),
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                      letterSpacing: -0.5,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  profile.phoneNumber ?? '',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w500,
+                  const SizedBox(height: 4),
+                  Text(
+                    profile.phoneNumber ?? '',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 32),
-                
-                // Menu Items
-                _buildMenuItem(
-                  context,
-                  icon: Icons.person_outline,
-                  title: 'profile.personal_info'.tr(),
-                  onTap: () => context.push('/profile/personal-info'),
-                  iconColor: Colors.blue,
-                ),
-                _buildMenuItem(
-                  context,
-                  icon: Icons.shopping_bag_outlined,
-                  title: 'profile.order_history'.tr(),
-                  onTap: () => context.push('/purchase-details'),
-                  iconColor: Colors.blue,
-                ),
-                _buildMenuItem(
-                  context,
-                  icon: Icons.notifications_none,
-                  title: 'profile.notifications'.tr(),
-                  onTap: () => context.push('/profile/notifications'),
-                  iconColor: Colors.blue,
-                  trailing: Switch(
-                    value: true,
-                    onChanged: (val) {},
-                    activeTrackColor: AppColors.primary,
+                  const SizedBox(height: 32),
+                  
+                  // Menu Items
+                  _buildMenuItem(
+                    context,
+                    icon: Icons.person_outline,
+                    title: 'profile.personal_info'.tr(),
+                    onTap: () => context.push('/profile/personal-info'),
+                    iconColor: Colors.blue,
                   ),
-                ),
-                _buildMenuItem(
-                  context,
-                  icon: Icons.security_outlined,
-                  title: 'profile.security_privacy'.tr(),
-                  onTap: () => context.push('/profile/security-privacy'),
-                  iconColor: Colors.blue,
-                ),
-                _buildMenuItem(
-                  context,
-                  icon: Icons.credit_card_outlined,
-                  title: 'profile.payment_methods'.tr(),
-                  onTap: () => context.push('/profile/payment-methods'),
-                  iconColor: Colors.blue,
-                ),
-                _buildMenuItem(
-                  context,
-                  icon: Icons.language_outlined,
-                  title: 'profile.language'.tr(),
-                  onTap: () => context.push('/profile/language'),
-                  iconColor: Colors.blue,
-                  trailingText: context.locale.languageCode == 'ar' ? 'العربية' : 'English',
-                ),
-                _buildMenuItem(
-                  context,
-                  icon: Icons.support_agent_outlined,
-                  title: 'profile.contact_us'.tr(),
-                  onTap: () => context.push('/profile/support'),
-                  iconColor: Colors.blue,
-                ),
-                
-                const SizedBox(height: 32),
-                
-                // Logout Button
-                Container(
-                  width: double.infinity,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    color: AppColors.error.withValues(alpha: 0.1),
+                  _buildMenuItem(
+                    context,
+                    icon: Icons.shopping_bag_outlined,
+                    title: 'profile.order_history'.tr(),
+                    onTap: () => context.push('/purchases'),
+                    iconColor: Colors.blue,
                   ),
-                  child: TextButton.icon(
-                    onPressed: () => _showLogoutDialog(context, ref),
-                    icon: const Icon(Icons.logout, color: AppColors.error),
-                    label: Text(
-                      'profile.logout'.tr(),
-                      style: const TextStyle(
-                        color: AppColors.error,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                  _buildMenuItem(
+                    context,
+                    icon: Icons.notifications_none,
+                    title: 'profile.notifications'.tr(),
+                    onTap: () => context.push('/profile/notifications'),
+                    iconColor: Colors.blue,
+                    trailing: Switch(
+                      value: true,
+                      onChanged: (val) {},
+                      activeTrackColor: AppColors.primary,
+                    ),
+                  ),
+                  _buildMenuItem(
+                    context,
+                    icon: Icons.security_outlined,
+                    title: 'profile.security_privacy'.tr(),
+                    onTap: () => context.push('/profile/security-privacy'),
+                    iconColor: Colors.blue,
+                  ),
+                  _buildMenuItem(
+                    context,
+                    icon: Icons.credit_card_outlined,
+                    title: 'profile.payment_methods'.tr(),
+                    onTap: () => context.push('/profile/payment-methods'),
+                    iconColor: Colors.blue,
+                  ),
+                  _buildMenuItem(
+                    context,
+                    icon: Icons.language_outlined,
+                    title: 'profile.language'.tr(),
+                    onTap: () => context.push('/profile/language'),
+                    iconColor: Colors.blue,
+                    trailingText: context.locale.languageCode == 'ar' ? 'العربية' : 'English',
+                  ),
+                  _buildMenuItem(
+                    context,
+                    icon: Icons.support_agent_outlined,
+                    title: 'profile.contact_us'.tr(),
+                    onTap: () => context.push('/profile/support'),
+                    iconColor: Colors.blue,
+                  ),
+                  
+                  const SizedBox(height: 32),
+                  
+                  // Logout Button
+                  Container(
+                    width: double.infinity,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      color: AppColors.error.withValues(alpha: 0.1),
+                    ),
+                    child: TextButton.icon(
+                      onPressed: () => _showLogoutDialog(context, ref),
+                      icon: const Icon(Icons.logout, color: AppColors.error),
+                      label: Text(
+                        'profile.logout'.tr(),
+                        style: const TextStyle(
+                          color: AppColors.error,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 100), // Space for bottom nav
-              ],
+                  const SizedBox(height: 100), // Space for bottom nav
+                ],
+              ),
             ),
           ),
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, stack) {
+            debugPrint('Error loading profile: $err');
+            debugPrint('Stack trace: $stack');
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                  const SizedBox(height: 16),
+                  Text('common.error'.tr()),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => ref.refresh(profileProvider.future),
+                    child: Text('common.retry'.tr()),
+                  ),
+                ],
+              ),
+            );
+          },
         ),
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(child: Text('common.error'.tr())),
       ),
     );
   }

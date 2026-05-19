@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:zouz_mobile/core/widgets/error_state_widget.dart';
 import 'package:zouz_mobile/core/theme/colors.dart';
 import 'package:zouz_mobile/core/utils/image_utils.dart';
+import 'package:zouz_mobile/features/purchases/presentation/widgets/purchase_summary_cards.dart';
 import '../../providers/home_provider.dart';
 import '../../models/home_data.dart';
 import '../../../cart/providers/cart_provider.dart';
@@ -26,7 +27,15 @@ class HomeDashboardScreen extends ConsumerWidget {
               physics: const BouncingScrollPhysics(),
               slivers: [
                 _buildHeader(context, ref, data.user),
-                _buildQuickAction(context),
+                const SliverPadding(
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                  sliver: SliverToBoxAdapter(
+                    child: PurchaseSummaryCards(
+                      totalSpent: 185,
+                      totalSavings: 65,
+                    ),
+                  ),
+                ),
                 _buildActiveRoutine(context, data.activePackages),
                 const SliverToBoxAdapter(child: SizedBox(height: 32)),
               ],
@@ -157,114 +166,6 @@ class HomeDashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildQuickAction(BuildContext context) {
-    return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-      sliver: SliverToBoxAdapter(
-        child: Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(32),
-            border: Border.all(color: AppColors.secondary, width: 1.0),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(30),
-            child: Stack(
-              children: [
-                // Decorative QR Icon in background
-                Positioned(
-                  right: -20,
-                  top: -20,
-                  child: Icon(
-                    Icons.qr_code_2,
-                    size: 140,
-                    color: AppColors.primary.withValues(alpha: 0.03),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(
-                              Icons.qr_code_scanner,
-                              color: AppColors.primary,
-                              size: 20,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            'dashboard.quick_action'.tr(),
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'dashboard.quick_action_desc'.tr(),
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: AppColors.textSecondary,
-                          height: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      ElevatedButton(
-                        onPressed: () => context.push('/scanner'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.bolt, size: 20),
-                            const SizedBox(width: 8),
-                            Text(
-                              'dashboard.tap_to_redeem'.tr(),
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildActiveRoutine(BuildContext context, List<ActivePackage> packages) {
     if (packages.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
@@ -288,7 +189,7 @@ class HomeDashboardScreen extends ConsumerWidget {
                     ),
                   ),
                   TextButton(
-                    onPressed: () {}, // Expanded list logic
+                    onPressed: () => context.push('/purchases'),
                     child: Text(
                       'dashboard.see_all'.tr().toUpperCase(),
                       style: const TextStyle(

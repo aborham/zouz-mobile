@@ -37,32 +37,32 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
         children: [
           _buildMenuTile(
             icon: Icons.lock_outline,
-            title: "Change Password",
+            title: "profile.change_password".tr(),
             onTap: () {},
           ),
           _buildSwitchTile(
             icon: Icons.fingerprint,
-            title: "Biometric Login",
-            subtitle: "Use FaceID or Fingerprint",
+            title: "profile.biometric_login".tr(),
+            subtitle: "profile.biometric_desc".tr(),
             value: _biometricLogin,
             onChanged: (val) => setState(() => _biometricLogin = val),
           ),
           _buildSwitchTile(
             icon: Icons.security,
-            title: "Two-Factor Authentication",
-            subtitle: "Extra layer of security",
+            title: "profile.two_factor".tr(),
+            subtitle: "profile.two_factor_desc".tr(),
             value: _twoFactor,
             onChanged: (val) => setState(() => _twoFactor = val),
           ),
           const SizedBox(height: 32),
           _buildMenuTile(
             icon: Icons.privacy_tip,
-            title: "Privacy Policy",
+            title: "profile.privacy_policy".tr(),
             onTap: () {},
           ),
           _buildMenuTile(
             icon: Icons.description_outlined,
-            title: "Terms of Service",
+            title: "profile.terms_service".tr(),
             onTap: () {},
           ),
           const SizedBox(height: 48),
@@ -73,13 +73,13 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             tileColor: AppColors.error.withValues(alpha: 0.05),
             leading: const Icon(Icons.delete_forever, color: AppColors.error),
-            title: const Text(
-              "Delete Account",
-              style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold),
+            title: Text(
+              "profile.delete_account".tr(),
+              style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.bold),
             ),
-            subtitle: const Text(
-              "Permanently remove your account and data",
-              style: TextStyle(fontSize: 12, color: AppColors.error),
+            subtitle: Text(
+              "profile.delete_account_desc".tr(),
+              style: const TextStyle(fontSize: 12, color: AppColors.error),
             ),
           ),
         ],
@@ -143,23 +143,21 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("Delete Account?"),
-        content: const Text(
-          "This action cannot be undone. All your data, active packages, and history will be lost.",
-        ),
+        title: Text("profile.delete_confirm".tr()),
+        content: Text("profile.delete_confirm_desc".tr()),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
+            child: Text("common.cancel".tr()),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               // Implement delete logic
             },
-            child: const Text(
-              "Delete Permanently",
-              style: TextStyle(color: AppColors.error),
+            child: Text(
+              "profile.delete_btn".tr(),
+              style: const TextStyle(color: AppColors.error),
             ),
           ),
         ],

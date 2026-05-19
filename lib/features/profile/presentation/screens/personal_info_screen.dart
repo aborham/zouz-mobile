@@ -32,6 +32,41 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
     super.dispose();
   }
 
+  bool _isSaving = false;
+
+  Future<void> _handleSave() async {
+    if (_isSaving) return;
+
+    setState(() => _isSaving = true);
+    try {
+      final repository = ref.read(profileRepositoryProvider);
+      await repository.updateProfile({
+        'name': _nameController.text,
+        'email': _emailController.text,
+        // Phone number update logic might be different if it requires OTP, 
+        // but for now we follow the API's PUT handler which doesn't handle phone updates yet.
+      });
+
+      ref.invalidate(profileProvider);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('common.success'.tr())),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final profileAsync = ref.watch(profileProvider);
@@ -46,28 +81,28 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'profile.personal_info'.tr(),
+          'Profile.personal_info'.tr(),
           style: const TextStyle(
             color: AppColors.textPrimary,
             fontWeight: FontWeight.bold,
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () {
-              // TODO: Implement update logic
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('common.success'.tr())),
-              );
-            },
-            child: Text(
-              'common.save'.tr(),
-              style: const TextStyle(
-                color: AppColors.primary,
-                fontWeight: FontWeight.bold,
+          _isSaving 
+            ? const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
+              )
+            : TextButton(
+                onPressed: _handleSave,
+                child: Text(
+                  'common.save'.tr(),
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
-            ),
-          ),
         ],
       ),
       body: profileAsync.when(
@@ -107,13 +142,13 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
                   ),
                 ),
                 const SizedBox(height: 48),
-                _buildFieldLabel('profile.customer_name'.tr()),
+                _buildFieldLabel('Profile.customer_name'.tr()),
                 _buildTextField(_nameController, "John Doe"),
                 const SizedBox(height: 24),
-                _buildFieldLabel('profile.email'.tr()),
+                _buildFieldLabel('Profile.email'.tr()),
                 _buildTextField(_emailController, "john@example.com", keyboardType: TextInputType.emailAddress),
                 const SizedBox(height: 24),
-                _buildFieldLabel('profile.phone_number'.tr()),
+                _buildFieldLabel('Profile.phone_number'.tr()),
                 _buildTextField(_phoneController, "+966 50 000 0000", keyboardType: TextInputType.phone),
                 const SizedBox(height: 40),
                 const Text(

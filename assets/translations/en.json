@@ -56,13 +56,14 @@
     "quick_action": "Quick Action",
     "quick_action_desc": "Scan any merchant code to instantly redeem your active credits.",
     "tap_to_redeem": "Tap to Redeem",
-    "brand_name": "INDIGO VELVET",
     "good_morning": "Good morning",
     "good_afternoon": "Good afternoon",
     "good_evening": "Good evening",
     "visits": "Visits",
     "items": "Items",
-    "scanner": "Scan"
+    "scanner": "Scan",
+    "account": "Account",
+    "support": "Support"
   },
   "common": {
     "error": "An error occurred. Please try again.",
@@ -73,10 +74,12 @@
     "coming_soon": "Feature coming soon!",
     "slogan": "Double your use.",
     "error_title": "Something went wrong",
-    "error_subtitle": "We're having trouble loading this page. Please try again later."
+    "error_subtitle": "We're having trouble loading this page. Please try again later.",
+    "save": "Save Changes"
   },
   "profile": {
     "title": "Profile",
+    "account": "Account",
     "personal_info": "Personal Information",
     "language": "Language",
     "logout": "Logout",
@@ -100,7 +103,15 @@
     "share_app": "Share App",
     "rate_app": "Rate App",
     "terms_content": "These are the terms and conditions for using Zouz...",
-    "privacy_content": "This is the privacy policy for using Zouz..."
+    "privacy_content": "This is the privacy policy for using Zouz...",
+    "security_privacy": "Security & Privacy",
+    "payment_methods": "Payment Methods",
+    "contact_us": "Contact Us",
+    "email": "Email Account",
+    "phone_number": "Phone Number",
+    "agreement_service": "Agreement of Service",
+    "privacy_protection": "Privacy Protection",
+    "last_updated": "Last updated: {}"
   },
   "scanner": {
     "align_qr": "Align the QR code within the frame to scan",
@@ -121,6 +132,13 @@
     "check_status": "Check Status Again"
   },
   "purchases": {
+    "total_spent": "Total Spent",
+    "savings": "Savings",
+    "filter_all": "All",
+    "filter_completed": "Completed",
+    "filter_refunded": "Refunded",
+    "filter_expired": "Expired",
+    "currency": "SAR",
     "empty": "No purchases found.",
     "purchased": "Purchased",
     "remaining": "Remaining",
@@ -239,5 +257,34 @@
     "slide3_title": "Unified QR Wallet",
     "slide3_subtitle": "All-in-one",
     "slide3_desc": "All your purchased coffee, grooming, and dining bundles stored safely in one unified QR code."
+  },
+  "support": {
+    "how_can_we_help": "How can we help?",
+    "description": "Find the answers you need or reach out to our team.",
+    "search_hint": "Search for help...",
+    "live_chat": "Live Chat",
+    "live_chat_wait": "Typical wait time: < 2 mins",
+    "email_support": "Email Support",
+    "email_response": "Response within 24 hours",
+    "call_us": "Call Us",
+    "direct_line": "Direct line to our team",
+    "faq": "Frequently Asked Questions",
+    "view_all": "View All",
+    "concierge_title": "Brand Concierge",
+    "concierge_desc": "Premium support for your active packages"
+  },
+  "payment": {
+    "title": "Payment Methods",
+    "subtitle": "Manage your saved cards and digital wallets.",
+    "error": "Error loading payment methods",
+    "empty_methods": "No payment methods saved.",
+    "default_quick": "Default • Quick Pay",
+    "expires": "Expires {date}",
+    "active": "Active",
+    "add_card": "Add New Card",
+    "secure_vault": "Secure Vault",
+    "secure_vault_desc": "Your card details are encrypted and securely stored.",
+    "spending": "Smart Spending",
+    "spending_desc": "Track your purchases and manage your budget easily."
   }
 }

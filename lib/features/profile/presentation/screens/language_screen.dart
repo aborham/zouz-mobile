@@ -62,15 +62,12 @@ class LanguageScreen extends StatelessWidget {
           width: 1,
         ),
       ),
-      child: RadioListTile<Locale>(
-        value: locale,
-        groupValue: context.locale,
-        onChanged: (Locale? newLocale) {
-          if (newLocale != null) {
-            context.setLocale(newLocale);
+      child: ListTile(
+        onTap: () {
+          if (context.locale != locale) {
+            context.setLocale(locale);
           }
         },
-        activeColor: AppColors.primary,
         title: Text(
           title,
           style: TextStyle(
@@ -78,7 +75,11 @@ class LanguageScreen extends StatelessWidget {
             color: isSelected ? AppColors.primary : AppColors.textPrimary,
           ),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+        trailing: Icon(
+          isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+          color: isSelected ? AppColors.primary : Colors.grey.shade400,
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16),
       ),
     );
   }

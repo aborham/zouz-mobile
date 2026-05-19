@@ -83,7 +83,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
                   2,
                   Icons.person_outline,
                   Icons.person,
-                  'profile.title'.tr().toUpperCase(),
+                  'profile.account'.tr().toUpperCase(),
                 ),
               ],
             ),

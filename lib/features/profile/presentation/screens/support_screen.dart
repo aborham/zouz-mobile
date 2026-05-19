@@ -28,7 +28,7 @@ class SupportScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Center(
               child: Text(
-                'dashboard.brand_name'.tr(),
+                'dashboard.support'.tr(),
                 style: const TextStyle(
                   color: AppColors.primary,
                   fontWeight: FontWeight.w900,
@@ -45,7 +45,7 @@ class SupportScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'support.how_can_we_help'.tr(),
+              'Support.how_can_we_help'.tr(),
               style: const TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.w800,
@@ -55,7 +55,7 @@ class SupportScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'support.description'.tr(),
+              'Support.description'.tr(),
               style: const TextStyle(
                 fontSize: 15,
                 color: AppColors.textSecondary,
@@ -72,7 +72,7 @@ class SupportScreen extends StatelessWidget {
               ),
               child: TextField(
                 decoration: InputDecoration(
-                  hintText: 'support.search_hint'.tr(),
+                  hintText: 'Support.search_hint'.tr(),
                   hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
                   prefixIcon: const Icon(Icons.search, color: Colors.grey),
                   border: InputBorder.none,
@@ -85,22 +85,22 @@ class SupportScreen extends StatelessWidget {
             // Contact Cards
             _buildContactCard(
               icon: Icons.chat_bubble,
-              title: 'support.live_chat'.tr(),
-              subtitle: 'support.live_chat_wait'.tr(),
+              title: 'Support.live_chat'.tr(),
+              subtitle: 'Support.live_chat_wait'.tr(),
               color: Colors.blue,
             ),
             const SizedBox(height: 16),
             _buildContactCard(
               icon: Icons.email,
-              title: 'support.email_support'.tr(),
-              subtitle: 'support.email_response'.tr(),
+              title: 'Support.email_support'.tr(),
+              subtitle: 'Support.email_response'.tr(),
               color: Colors.blue,
             ),
             const SizedBox(height: 16),
             _buildContactCard(
               icon: Icons.phone,
-              title: 'support.call_us'.tr(),
-              subtitle: 'support.direct_line'.tr(),
+              title: 'Support.call_us'.tr(),
+              subtitle: 'Support.direct_line'.tr(),
               color: Colors.blue,
             ),
             
@@ -111,7 +111,7 @@ class SupportScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'support.faq'.tr(),
+                  'Support.faq'.tr(),
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
@@ -121,17 +121,17 @@ class SupportScreen extends StatelessWidget {
                 TextButton(
                   onPressed: () {},
                   child: Text(
-                    'support.view_all'.tr(),
+                    'Support.view_all'.tr(),
                     style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            _buildFaqItem("How do I track my order?"),
-            _buildFaqItem("Can I change my delivery address?"),
-            _buildFaqItem("What is the return policy for premium items?"),
-            _buildFaqItem("Managing my Zouz Plus subscription"),
+            _buildFaqItem("Support.faq_order_tracking".tr()),
+            _buildFaqItem("Support.faq_address_change".tr()),
+            _buildFaqItem("Support.faq_return_policy".tr()),
+            _buildFaqItem("Support.faq_subscription".tr()),
             
             const SizedBox(height: 40),
             
@@ -157,7 +157,7 @@ class SupportScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'support.concierge_title'.tr(),
+                    'Support.concierge_title'.tr(),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 20,
@@ -166,7 +166,7 @@ class SupportScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'support.concierge_desc'.tr(),
+                    'Support.concierge_desc'.tr(),
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.8),
                       fontSize: 14,

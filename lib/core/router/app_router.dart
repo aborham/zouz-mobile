@@ -17,6 +17,8 @@ import '../../features/profile/presentation/screens/language_screen.dart';
 import '../../features/cart/presentation/screens/cart_screen.dart';
 import '../../features/checkout/presentation/screens/payment_success_screen.dart';
 import '../../features/checkout/presentation/screens/payment_failure_screen.dart';
+import '../../features/purchases/presentation/screens/purchases_screen.dart';
+import '../../features/purchases/presentation/screens/purchase_details_screen.dart';
 
 import '../../features/splash/presentation/screens/splash_screen.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
@@ -126,6 +128,17 @@ final GoRouter appRouter = GoRouter(
           package: extra?['package'],
           items: extra?['items'],
         );
+      },
+    ),
+    GoRoute(
+      path: '/purchases',
+      builder: (context, state) => const PurchasesScreen(),
+    ),
+    GoRoute(
+      path: '/purchase-details',
+      builder: (context, state) {
+        final package = state.extra as Map<String, dynamic>;
+        return PurchaseDetailScreen(package: package);
       },
     ),
   ],

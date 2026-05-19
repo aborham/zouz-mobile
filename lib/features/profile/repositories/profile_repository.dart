@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import '../models/profile_model.dart';
+import '../models/saved_payment_method.dart';
 
 class ProfileRepository {
   final Dio _dio;
@@ -18,6 +19,17 @@ class ProfileRepository {
   Future<void> updateProfile(Map<String, dynamic> data) async {
     try {
       await _dio.put('profile', data: data);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<List<SavedPaymentMethod>> fetchPaymentMethods() async {
+    try {
+      final response = await _dio.get('payment-methods');
+      return (response.data as List)
+          .map((json) => SavedPaymentMethod.fromJson(json))
+          .toList();
     } catch (e) {
       rethrow;
     }
