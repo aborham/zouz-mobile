@@ -74,12 +74,13 @@ class HomeDashboardScreen extends ConsumerWidget {
                 children: [
                   CircleAvatar(
                     radius: 16,
-                    backgroundColor: Colors.white,
-                    backgroundImage: user.avatarUrl != null
+                    backgroundColor: AppColors.surface,
+                    backgroundImage: user.avatarUrl != null && !user.avatarUrl!.contains('svg')
                         ? NetworkImage(ImageUtils.getFullUrl(user.avatarUrl!)!)
-                        : const NetworkImage(
-                            'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
-                          ),
+                        : null,
+                    child: user.avatarUrl == null || user.avatarUrl!.contains('svg')
+                        ? const Icon(Icons.person, size: 18, color: AppColors.primary)
+                        : null,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
