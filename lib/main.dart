@@ -50,8 +50,33 @@ class MyApp extends ConsumerWidget {
     // Bind 401 Unauthorized callback
     ApiClient.onUnauthorized = (Ref ref) {
       ref.read(authNotifierProvider.notifier).logout();
-      appRouter.go('/login');
     };
+
+    // Global Reactive Auth Guard
+    ref.listen<AuthState>(authNotifierProvider, (previous, next) {
+      if (next.isInitialized) {
+        final currentPath = appRouter.routerDelegate.currentConfiguration.uri.path;
+        final isAuth = next.status == AuthStatus.authenticated;
+
+        if (!next.onboardingCompleted) {
+          if (currentPath != '/onboarding') {
+            appRouter.go('/onboarding');
+          }
+        } else if (isAuth) {
+          if (currentPath == '/login' || currentPath == '/otp' || currentPath == '/splash') {
+            appRouter.go('/dashboard');
+          }
+        } else {
+          // If unauthenticated or in error/initial state, guard protected routes
+          if (currentPath != '/login' &&
+              currentPath != '/otp' &&
+              currentPath != '/splash' &&
+              currentPath != '/onboarding') {
+            appRouter.go('/login');
+          }
+        }
+      }
+    });
 
     // Sync EasyLocalization locale to our Riverpod provider
     WidgetsBinding.instance.addPostFrameCallback((_) {
