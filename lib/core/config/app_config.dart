@@ -6,6 +6,7 @@ class AppConfig {
   // static const String baseUrl = 'http://$host:$port';
 
   static const String baseUrl = 'https://dashboard.usezouz.com';
+  static const String websiteUrl = 'https://usezouz.com';
   static const String apiBaseUrl = '$baseUrl/api';
   static const String customerApiBaseUrl = '$apiBaseUrl/customer';
 }
