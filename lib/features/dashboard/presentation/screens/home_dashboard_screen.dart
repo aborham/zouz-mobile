@@ -6,7 +6,6 @@ import 'package:zouz_mobile/core/widgets/error_state_widget.dart';
 import 'package:zouz_mobile/core/theme/colors.dart';
 import 'package:zouz_mobile/core/utils/image_utils.dart';
 import '../../providers/home_provider.dart';
-import '../../providers/navigation_provider.dart';
 import '../../models/home_data.dart';
 import '../../../cart/providers/cart_provider.dart';
 
@@ -186,7 +185,7 @@ class HomeDashboardScreen extends ConsumerWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(24),
           onTap: () {
-            ref.read(navigationProvider.notifier).setIndex(1); // Go to QR Scanner screen
+            context.push('/scanner'); // Go to QR Scanner screen
           },
           child: Padding(
             padding: const EdgeInsets.all(20.0),
@@ -279,7 +278,7 @@ class HomeDashboardScreen extends ConsumerWidget {
                 const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: () {
-                    ref.read(navigationProvider.notifier).setIndex(1);
+                    context.push('/scanner');
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
@@ -892,7 +891,7 @@ class _PromoCarouselState extends State<_PromoCarousel> {
     return Column(
       children: [
         SizedBox(
-          height: 150,
+          height: 170,
           child: PageView.builder(
             controller: _pageController,
             onPageChanged: (index) {
@@ -940,6 +939,8 @@ class _PromoCarouselState extends State<_PromoCarousel> {
                       const SizedBox(height: 8),
                       Text(
                         banner.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 18,

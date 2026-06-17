@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/legacy.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zouz_mobile/core/theme/colors.dart';
 import '../../repositories/purchases_repository.dart';
-import '../widgets/purchase_summary_cards.dart';
 
 final purchasesFilterProvider = StateProvider.autoDispose<String>((ref) => 'ALL');
 
@@ -52,11 +51,6 @@ class PurchasesScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(24),
               physics: const AlwaysScrollableScrollPhysics(),
               children: [
-                const PurchaseSummaryCards(
-                  totalSpent: 185,
-                  totalSavings: 65,
-                ),
-                const SizedBox(height: 24),
                 _buildFilterTabs(ref, selectedFilter),
                 const SizedBox(height: 24),
                 if (filteredPurchases.isEmpty)
