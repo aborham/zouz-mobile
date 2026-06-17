@@ -48,7 +48,7 @@ class MyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Bind 401 Unauthorized callback
-    ApiClient.onUnauthorized = (Ref ref) {
+    ApiClient.onUnauthorized = () {
       ref.read(authNotifierProvider.notifier).logout();
     };
 

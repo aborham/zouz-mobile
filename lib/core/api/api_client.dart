@@ -23,7 +23,7 @@ class ApiClient {
   final Dio _dio;
   final Ref _ref;
 
-  static void Function(Ref ref)? onUnauthorized;
+  static void Function()? onUnauthorized;
 
   ApiClient(this._dio, this._ref) {
     _dio.options.baseUrl = '${AppConfig.customerApiBaseUrl}/';
@@ -53,7 +53,7 @@ class ApiClient {
         onError: (DioException e, handler) {
           if (e.response?.statusCode == 401) {
             Future.microtask(() {
-              onUnauthorized?.call(_ref);
+              onUnauthorized?.call();
             });
           }
           return handler.next(e);
