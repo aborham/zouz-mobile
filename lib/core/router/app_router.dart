@@ -12,8 +12,8 @@ import '../../features/profile/presentation/screens/personal_info_screen.dart';
 import '../../features/profile/presentation/screens/payment_methods_screen.dart';
 import '../../features/profile/presentation/screens/support_screen.dart';
 import '../../features/profile/presentation/screens/notifications_settings_screen.dart';
-import '../../features/profile/presentation/screens/security_privacy_screen.dart';
 import '../../features/profile/presentation/screens/language_screen.dart';
+import '../../features/profile/presentation/screens/legal_docs_screen.dart';
 import '../../features/cart/presentation/screens/cart_screen.dart';
 import '../../features/checkout/presentation/screens/payment_success_screen.dart';
 import '../../features/checkout/presentation/screens/payment_failure_screen.dart';
@@ -101,13 +101,16 @@ final GoRouter appRouter = GoRouter(
       path: '/profile/notifications',
       builder: (context, state) => const NotificationsSettingsScreen(),
     ),
-    GoRoute(
-      path: '/profile/security-privacy',
-      builder: (context, state) => const SecurityPrivacyScreen(),
-    ),
+
     GoRoute(
       path: '/profile/language',
       builder: (context, state) => const LanguageScreen(),
+    ),
+    GoRoute(
+      path: '/profile/legal/:type',
+      builder: (context, state) => LegalDocsScreen(
+        type: state.pathParameters['type'] ?? 'terms',
+      ),
     ),
     GoRoute(
       path: '/payment-success',

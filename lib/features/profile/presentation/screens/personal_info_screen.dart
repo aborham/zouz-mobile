@@ -277,6 +277,24 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
                       ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                       : Text('common.save'.tr(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
+                const SizedBox(height: 48),
+                
+                // Delete Account
+                ListTile(
+                  onTap: () => _showDeleteAccountDialog(context),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  tileColor: AppColors.error.withValues(alpha: 0.05),
+                  leading: const Icon(Icons.delete_forever, color: AppColors.error),
+                  title: Text(
+                    "profile.delete_account".tr(),
+                    style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(
+                    "profile.delete_account_desc".tr(),
+                    style: const TextStyle(fontSize: 12, color: AppColors.error),
+                  ),
+                ),
+                const SizedBox(height: 24),
               ],
             ),
           );
@@ -327,6 +345,33 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         ),
+      ),
+    );
+  }
+
+  void _showDeleteAccountDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text("profile.delete_confirm".tr()),
+        content: Text("profile.delete_confirm_desc".tr()),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("common.cancel".tr()),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // Implement delete logic
+            },
+            child: Text(
+              "profile.delete_btn".tr(),
+              style: const TextStyle(color: AppColors.error),
+            ),
+          ),
+        ],
       ),
     );
   }

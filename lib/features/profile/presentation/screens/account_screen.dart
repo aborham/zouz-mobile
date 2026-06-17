@@ -172,9 +172,16 @@ class AccountScreen extends ConsumerWidget {
                   ),
                   _buildMenuItem(
                     context,
-                    icon: Icons.security_outlined,
-                    title: 'profile.security_privacy'.tr(),
-                    onTap: () => context.push('/profile/security-privacy'),
+                    icon: Icons.privacy_tip_outlined,
+                    title: 'profile.privacy_policy'.tr(),
+                    onTap: () => context.push('/profile/legal/privacy'),
+                    iconColor: Colors.blue,
+                  ),
+                  _buildMenuItem(
+                    context,
+                    icon: Icons.description_outlined,
+                    title: 'profile.terms_service'.tr(),
+                    onTap: () => context.push('/profile/legal/terms'),
                     iconColor: Colors.blue,
                   ),
                   _buildMenuItem(
