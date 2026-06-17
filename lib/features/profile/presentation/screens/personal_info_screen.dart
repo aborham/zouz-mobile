@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -350,29 +351,70 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
   }
 
   void _showDeleteAccountDialog(BuildContext context) {
+    int secondsRemaining = 10;
+    Timer? timer;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text("profile.delete_confirm".tr()),
-        content: Text("profile.delete_confirm_desc".tr()),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text("common.cancel".tr()),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // Implement delete logic
-            },
-            child: Text(
-              "profile.delete_btn".tr(),
-              style: const TextStyle(color: AppColors.error),
-            ),
-          ),
-        ],
-      ),
-    );
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            if (timer == null) {
+              timer = Timer.periodic(const Duration(seconds: 1), (t) {
+                if (secondsRemaining > 0) {
+                  setState(() {
+                    secondsRemaining--;
+                  });
+                } else {
+                  t.cancel();
+                }
+              });
+            }
+
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: Text("profile.delete_confirm".tr()),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text("profile.delete_confirm_desc".tr()),
+                  const SizedBox(height: 16),
+                  if (secondsRemaining > 0)
+                    Text(
+                      "Please wait $secondsRemaining seconds...",
+                      style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+                    ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    timer?.cancel();
+                    Navigator.pop(context);
+                  },
+                  child: Text("common.cancel".tr()),
+                ),
+                TextButton(
+                  onPressed: secondsRemaining > 0
+                      ? null
+                      : () {
+                          timer?.cancel();
+                          Navigator.pop(context);
+                          // Implement delete logic
+                        },
+                  child: Text(
+                    "profile.delete_btn".tr(),
+                    style: TextStyle(
+                      color: secondsRemaining > 0 ? Colors.grey : AppColors.error,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    ).then((_) => timer?.cancel());
   }
 }
