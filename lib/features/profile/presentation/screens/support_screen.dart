@@ -45,7 +45,7 @@ class SupportScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Support.how_can_we_help'.tr(),
+              'support.how_can_we_help'.tr(),
               style: const TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.w800,
@@ -55,7 +55,7 @@ class SupportScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'Support.description'.tr(),
+              'support.description'.tr(),
               style: const TextStyle(
                 fontSize: 15,
                 color: AppColors.textSecondary,
@@ -72,7 +72,7 @@ class SupportScreen extends StatelessWidget {
               ),
               child: TextField(
                 decoration: InputDecoration(
-                  hintText: 'Support.search_hint'.tr(),
+                  hintText: 'support.search_hint'.tr(),
                   hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
                   prefixIcon: const Icon(Icons.search, color: Colors.grey),
                   border: InputBorder.none,
@@ -85,22 +85,22 @@ class SupportScreen extends StatelessWidget {
             // Contact Cards
             _buildContactCard(
               icon: Icons.chat_bubble,
-              title: 'Support.live_chat'.tr(),
-              subtitle: 'Support.live_chat_wait'.tr(),
+              title: 'support.live_chat'.tr(),
+              subtitle: 'support.live_chat_wait'.tr(),
               color: Colors.blue,
             ),
             const SizedBox(height: 16),
             _buildContactCard(
               icon: Icons.email,
-              title: 'Support.email_support'.tr(),
-              subtitle: 'Support.email_response'.tr(),
+              title: 'support.email_support'.tr(),
+              subtitle: 'support.email_response'.tr(),
               color: Colors.blue,
             ),
             const SizedBox(height: 16),
             _buildContactCard(
               icon: Icons.phone,
-              title: 'Support.call_us'.tr(),
-              subtitle: 'Support.direct_line'.tr(),
+              title: 'support.call_us'.tr(),
+              subtitle: 'support.direct_line'.tr(),
               color: Colors.blue,
             ),
             
@@ -111,7 +111,7 @@ class SupportScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Support.faq'.tr(),
+                  'support.faq'.tr(),
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
@@ -121,17 +121,17 @@ class SupportScreen extends StatelessWidget {
                 TextButton(
                   onPressed: () {},
                   child: Text(
-                    'Support.view_all'.tr(),
+                    'support.view_all'.tr(),
                     style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            _buildFaqItem("Support.faq_order_tracking".tr()),
-            _buildFaqItem("Support.faq_address_change".tr()),
-            _buildFaqItem("Support.faq_return_policy".tr()),
-            _buildFaqItem("Support.faq_subscription".tr()),
+            _buildFaqItem("support.faq_order_tracking".tr()),
+            _buildFaqItem("support.faq_address_change".tr()),
+            _buildFaqItem("support.faq_return_policy".tr()),
+            _buildFaqItem("support.faq_subscription".tr()),
             
             const SizedBox(height: 40),
             
@@ -157,7 +157,7 @@ class SupportScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Support.concierge_title'.tr(),
+                    'support.concierge_title'.tr(),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 20,
@@ -166,7 +166,7 @@ class SupportScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Support.concierge_desc'.tr(),
+                    'support.concierge_desc'.tr(),
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.8),
                       fontSize: 14,

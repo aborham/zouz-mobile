@@ -1,23 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:zouz_mobile/core/theme/colors.dart';
+import '../../providers/profile_provider.dart';
 
-class NotificationsSettingsScreen extends StatefulWidget {
+class NotificationsSettingsScreen extends ConsumerStatefulWidget {
   const NotificationsSettingsScreen({super.key});
 
   @override
-  State<NotificationsSettingsScreen> createState() => _NotificationsSettingsScreenState();
+  ConsumerState<NotificationsSettingsScreen> createState() => _NotificationsSettingsScreenState();
 }
 
-class _NotificationsSettingsScreenState extends State<NotificationsSettingsScreen> {
+class _NotificationsSettingsScreenState extends ConsumerState<NotificationsSettingsScreen> {
   bool _pushNotifications = true;
   bool _emailNotifications = false;
   bool _smsNotifications = true;
   bool _orderUpdates = true;
   bool _promotions = false;
+  bool _initialized = false;
 
-    @override
+  @override
   Widget build(BuildContext context) {
+    final profileAsync = ref.watch(profileProvider);
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -35,45 +40,92 @@ class _NotificationsSettingsScreenState extends State<NotificationsSettingsScree
           ),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(24.0),
-        children: [
-          _buildSectionHeader("Notifications.channels".tr()),
-          _buildSwitchTile(
-            "Notifications.push".tr(),
-            "Notifications.push_desc".tr(),
-            _pushNotifications,
-            (val) => setState(() => _pushNotifications = val),
-          ),
-          _buildSwitchTile(
-            "Notifications.email".tr(),
-            "Notifications.email_desc".tr(),
-            _emailNotifications,
-            (val) => setState(() => _emailNotifications = val),
-          ),
-          _buildSwitchTile(
-            "Notifications.sms".tr(),
-            "Notifications.sms_desc".tr(),
-            _smsNotifications,
-            (val) => setState(() => _smsNotifications = val),
-          ),
-          const SizedBox(height: 32),
-          _buildSectionHeader("Notifications.preferences".tr()),
-          _buildSwitchTile(
-            "Notifications.order_updates".tr(),
-            "Notifications.order_updates_desc".tr(),
-            _orderUpdates,
-            (val) => setState(() => _orderUpdates = val),
-          ),
-          _buildSwitchTile(
-            "Notifications.promotions".tr(),
-            "Notifications.promotions_desc".tr(),
-            _promotions,
-            (val) => setState(() => _promotions = val),
-          ),
-        ],
+      body: profileAsync.when(
+        data: (profile) {
+          if (!_initialized) {
+            _pushNotifications = profile.settings.pushNotifications;
+            _emailNotifications = profile.settings.emailNotifications;
+            _smsNotifications = profile.settings.smsNotifications;
+            _orderUpdates = profile.settings.orderUpdates;
+            _promotions = profile.settings.promotionalNotifications;
+            _initialized = true;
+          }
+
+          return ListView(
+            padding: const EdgeInsets.all(24.0),
+            children: [
+              _buildSectionHeader("notifications.channels".tr()),
+              _buildSwitchTile(
+                "notifications.push".tr(),
+                "notifications.push_desc".tr(),
+                _pushNotifications,
+                (val) => _updateSetting('pushNotifications', val, () => _pushNotifications = val),
+              ),
+              _buildSwitchTile(
+                "notifications.email".tr(),
+                "notifications.email_desc".tr(),
+                _emailNotifications,
+                (val) => _updateSetting('emailNotifications', val, () => _emailNotifications = val),
+              ),
+              _buildSwitchTile(
+                "notifications.sms".tr(),
+                "notifications.sms_desc".tr(),
+                _smsNotifications,
+                (val) => _updateSetting('smsNotifications', val, () => _smsNotifications = val),
+              ),
+              const SizedBox(height: 32),
+              _buildSectionHeader("notifications.preferences".tr()),
+              _buildSwitchTile(
+                "notifications.order_updates".tr(),
+                "notifications.order_updates_desc".tr(),
+                _orderUpdates,
+                (val) => _updateSetting('orderUpdates', val, () => _orderUpdates = val),
+              ),
+              _buildSwitchTile(
+                "notifications.promotions".tr(),
+                "notifications.promotions_desc".tr(),
+                _promotions,
+                (val) => _updateSetting('promotionalNotifications', val, () => _promotions = val),
+              ),
+            ],
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, _) => Center(child: Text('common.error'.tr())),
       ),
     );
+  }
+
+  Future<void> _updateSetting(String key, bool value, VoidCallback updateLocalState) async {
+    // Optimistic update
+    setState(updateLocalState);
+
+    try {
+      final repository = ref.read(profileRepositoryProvider);
+      
+      final Map<String, dynamic> settingsData = {
+        'pushNotifications': _pushNotifications,
+        'emailNotifications': _emailNotifications,
+        'smsNotifications': _smsNotifications,
+        'orderUpdates': _orderUpdates,
+        'promotionalNotifications': _promotions,
+      };
+
+      await repository.updateProfile({'settings': settingsData});
+      
+      // Background refresh
+      ref.invalidate(profileProvider);
+    } catch (e) {
+      if (mounted) {
+        // Revert on failure
+        setState(() {
+          _initialized = false; // Force re-initialization from provider data
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('common.error'.tr())),
+        );
+      }
+    }
   }
 
   Widget _buildSectionHeader(String title) {

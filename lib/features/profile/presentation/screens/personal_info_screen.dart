@@ -1,7 +1,12 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:zouz_mobile/core/theme/colors.dart';
+import 'package:zouz_mobile/core/utils/image_utils.dart';
+import 'package:zouz_mobile/features/auth/providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
 
 class PersonalInfoScreen extends ConsumerStatefulWidget {
@@ -15,6 +20,8 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
   late TextEditingController _nameController;
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
+  File? _imageFile;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -39,13 +46,25 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
 
     setState(() => _isSaving = true);
     try {
+      String? uploadedUrl;
+      if (_imageFile != null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Uploading image...'), duration: Duration(seconds: 1)),
+        );
+        uploadedUrl = await ref.read(authNotifierProvider.notifier).uploadAvatar(_imageFile!);
+      }
+
       final repository = ref.read(profileRepositoryProvider);
-      await repository.updateProfile({
+      final updates = <String, dynamic>{
         'name': _nameController.text,
         'email': _emailController.text,
-        // Phone number update logic might be different if it requires OTP, 
-        // but for now we follow the API's PUT handler which doesn't handle phone updates yet.
-      });
+      };
+      if (uploadedUrl != null) {
+        updates['avatarUrl'] = uploadedUrl;
+      }
+
+      await repository.updateProfile(updates);
 
       ref.invalidate(profileProvider);
       if (mounted) {
@@ -67,6 +86,97 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
     }
   }
 
+  Future<void> _checkAndPickImage() async {
+    final status = await Permission.camera.status;
+    final galleryStatus = await Permission.photos.status;
+
+    if (!status.isGranted || !galleryStatus.isGranted) {
+      final bool? proceed = await _showPermissionDialog();
+      if (proceed != true) return;
+    }
+
+    _showPickerOptions();
+  }
+
+  Future<bool?> _showPermissionDialog() {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text('auth.permission_title'.tr(), style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.camera_alt_outlined, size: 64, color: AppColors.primary),
+            const SizedBox(height: 16),
+            Text('auth.permission_camera_msg'.tr(), textAlign: TextAlign.center),
+            const SizedBox(height: 8),
+            Text('auth.permission_gallery_msg'.tr(), textAlign: TextAlign.center),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('auth.permission_cancel'.tr(), style: const TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: Text('auth.permission_enable'.tr()),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPickerOptions() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt, color: AppColors.primary),
+              title: const Text('Camera'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library, color: AppColors.primary),
+              title: const Text('Gallery'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final pickedFile = await _picker.pickImage(source: source);
+      if (pickedFile != null) {
+        setState(() {
+          _imageFile = File(pickedFile.path);
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final profileAsync = ref.watch(profileProvider);
@@ -81,29 +191,12 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Profile.personal_info'.tr(),
+          'profile.personal_info'.tr(),
           style: const TextStyle(
             color: AppColors.textPrimary,
             fontWeight: FontWeight.bold,
           ),
         ),
-        actions: [
-          _isSaving 
-            ? const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
-              )
-            : TextButton(
-                onPressed: _handleSave,
-                child: Text(
-                  'common.save'.tr(),
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-        ],
       ),
       body: profileAsync.when(
         data: (profile) {
@@ -121,39 +214,68 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
                 Center(
                   child: Stack(
                     children: [
-                      CircleAvatar(
-                        radius: 50,
-                        backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                        child: const Icon(Icons.person, size: 50, color: AppColors.primary),
+                      Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.2), width: 3),
+                        ),
+                        child: ClipOval(
+                          child: _imageFile != null
+                              ? Image.file(_imageFile!, fit: BoxFit.cover)
+                              : profile.avatarUrl != null
+                                  ? Image.network(ImageUtils.getFullUrl(profile.avatarUrl)!, fit: BoxFit.cover)
+                                  : const Icon(Icons.person, size: 50, color: AppColors.primary),
+                        ),
                       ),
                       Positioned(
                         bottom: 0,
                         right: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: const BoxDecoration(
-                            color: AppColors.primary,
-                            shape: BoxShape.circle,
+                        child: GestureDetector(
+                          onTap: _checkAndPickImage,
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: const BoxDecoration(
+                              color: AppColors.primary,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.camera_alt, color: Colors.white, size: 16),
                           ),
-                          child: const Icon(Icons.camera_alt, color: Colors.white, size: 16),
                         ),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 48),
-                _buildFieldLabel('Profile.customer_name'.tr()),
+                _buildFieldLabel('profile.customer_name'.tr()),
+                const SizedBox(height: 8),
                 _buildTextField(_nameController, "John Doe"),
                 const SizedBox(height: 24),
-                _buildFieldLabel('Profile.email'.tr()),
-                _buildTextField(_emailController, "john@example.com", keyboardType: TextInputType.emailAddress),
+                _buildFieldLabel('profile.email'.tr()),
+                const SizedBox(height: 8),
+                _buildTextField(_emailController, "john@example.com", keyboardType: TextInputType.emailAddress, enabled: false),
                 const SizedBox(height: 24),
-                _buildFieldLabel('Profile.phone_number'.tr()),
+                _buildFieldLabel('profile.phone_number'.tr()),
                 _buildTextField(_phoneController, "+966 50 000 0000", keyboardType: TextInputType.phone),
                 const SizedBox(height: 40),
                 const Text(
                   "Note: Changing your email or phone number will require verification.",
                   style: TextStyle(color: Colors.grey, fontSize: 12),
+                ),
+                const SizedBox(height: 40),
+                ElevatedButton(
+                  onPressed: _isSaving ? null : _handleSave,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size.fromHeight(56),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: _isSaving
+                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : Text('common.save'.tr(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
@@ -183,17 +305,22 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
     TextEditingController controller,
     String hint, {
     TextInputType? keyboardType,
+    bool enabled = true,
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB),
+        color: enabled ? const Color(0xFFF9FAFB) : const Color(0xFFEEEEEE),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFF3F4FB)),
       ),
       child: TextField(
         controller: controller,
         keyboardType: keyboardType,
-        style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+        enabled: enabled,
+        style: TextStyle(
+          fontWeight: FontWeight.w600, 
+          color: enabled ? AppColors.textPrimary : Colors.grey,
+        ),
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: const TextStyle(color: Colors.grey, fontWeight: FontWeight.normal),

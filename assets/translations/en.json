@@ -113,7 +113,19 @@
     "phone_number": "Phone Number",
     "agreement_service": "Agreement of Service",
     "privacy_protection": "Privacy Protection",
-    "last_updated": "Last updated: {}"
+    "last_updated": "Last updated: {}",
+    "change_password": "Change Password",
+    "biometric_login": "Biometric Login",
+    "biometric_desc": "Login with Face ID or Touch ID",
+    "two_factor": "Two-Factor Authentication",
+    "two_factor_desc": "Add an extra layer of security",
+    "terms_service": "Terms of Service",
+    "privacy_policy": "Privacy Policy",
+    "delete_account": "Delete Account",
+    "delete_account_desc": "Permanently delete your account and data",
+    "delete_confirm": "Delete Account",
+    "delete_confirm_desc": "Are you sure you want to delete your account? This action cannot be undone.",
+    "delete_btn": "Delete"
   },
   "scanner": {
     "align_qr": "Align the QR code within the frame to scan",
@@ -273,7 +285,11 @@
     "faq": "Frequently Asked Questions",
     "view_all": "View All",
     "concierge_title": "Brand Concierge",
-    "concierge_desc": "Premium support for your active packages"
+    "concierge_desc": "Premium support for your active packages",
+    "faq_order_tracking": "How do I track my order?",
+    "faq_address_change": "Can I change my address?",
+    "faq_return_policy": "What is the return policy?",
+    "faq_subscription": "How to cancel subscription?"
   },
   "payment": {
     "title": "Payment Methods",
@@ -288,5 +304,19 @@
     "secure_vault_desc": "Your card details are encrypted and securely stored.",
     "spending": "Smart Spending",
     "spending_desc": "Track your purchases and manage your budget easily."
+  },
+  "notifications": {
+    "channels": "Notification Channels",
+    "push": "Push Notifications",
+    "push_desc": "Receive push notifications on this device",
+    "email": "Email Notifications",
+    "email_desc": "Receive updates and offers via email",
+    "sms": "SMS Notifications",
+    "sms_desc": "Receive important alerts via SMS",
+    "preferences": "Notification Preferences",
+    "order_updates": "Order Updates",
+    "order_updates_desc": "Get notified about your order status",
+    "promotions": "Promotions",
+    "promotions_desc": "Receive special offers and promotional content"
   }
 }

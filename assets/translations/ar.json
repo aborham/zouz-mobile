@@ -114,7 +114,19 @@
     "phone_number": "رقم الهاتف",
     "agreement_service": "اتفاقية الخدمة",
     "privacy_protection": "حماية الخصوصية",
-    "last_updated": "آخر تحديث: {}"
+    "last_updated": "آخر تحديث: {}",
+    "change_password": "تغيير كلمة المرور",
+    "biometric_login": "تسجيل الدخول الحيوي",
+    "biometric_desc": "تسجيل الدخول بالبصمة أو الوجه",
+    "two_factor": "المصادقة الثنائية",
+    "two_factor_desc": "إضافة طبقة حماية إضافية",
+    "terms_service": "شروط الخدمة",
+    "privacy_policy": "سياسة الخصوصية",
+    "delete_account": "حذف الحساب",
+    "delete_account_desc": "حذف حسابك وبياناتك نهائياً",
+    "delete_confirm": "حذف الحساب",
+    "delete_confirm_desc": "هل أنت متأكد من حذف حسابك؟ لا يمكن التراجع عن هذا الإجراء.",
+    "delete_btn": "حذف"
   },
   "scanner": {
     "align_qr": "ضع الكود داخل المربع للمسح",
@@ -274,7 +286,11 @@
     "faq": "الأسئلة الشائعة",
     "view_all": "عرض الكل",
     "concierge_title": "كونسيرج العلامة التجارية",
-    "concierge_desc": "دعم بريميوم لباقاتك النشطة"
+    "concierge_desc": "دعم بريميوم لباقاتك النشطة",
+    "faq_order_tracking": "كيف أتتبع طلبي؟",
+    "faq_address_change": "هل يمكنني تغيير عنواني؟",
+    "faq_return_policy": "ما هي سياسة الاسترجاع؟",
+    "faq_subscription": "كيف ألغي اشتراكي؟"
   },
   "payment": {
     "title": "طرق الدفع",
@@ -289,5 +305,19 @@
     "secure_vault_desc": "تفاصيل بطاقتك مشفرة ومحفوظة بأمان.",
     "spending": "إنفاق ذكي",
     "spending_desc": "تتبع مشترياتك وأدر ميزانيتك بسهولة."
+  },
+  "notifications": {
+    "channels": "قنوات التنبيهات",
+    "push": "تنبيهات التطبيق",
+    "push_desc": "استلام تنبيهات على هذا الجهاز",
+    "email": "تنبيهات البريد الإلكتروني",
+    "email_desc": "استلام التحديثات والعروض عبر البريد",
+    "sms": "رسائل نصية",
+    "sms_desc": "استلام التنبيهات الهامة عبر رسائل SMS",
+    "preferences": "تفضيلات التنبيهات",
+    "order_updates": "تحديثات الطلبات",
+    "order_updates_desc": "احصل على إشعارات حول حالة طلبك",
+    "promotions": "العروض الترويجية",
+    "promotions_desc": "احصل على العروض الخاصة والمحتوى الترويجي"
   }
 }
