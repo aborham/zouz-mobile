@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,9 +18,42 @@ class OtpScreen extends ConsumerStatefulWidget {
 class _OtpScreenState extends ConsumerState<OtpScreen> {
   final _otpController = TextEditingController();
   final _pinFocusNode = FocusNode();
+  Timer? _timer;
+  int _secondsRemaining = 60;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTimer();
+  }
+
+  void _startTimer() {
+    setState(() {
+      _secondsRemaining = 60;
+    });
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          if (_secondsRemaining > 0) {
+            _secondsRemaining--;
+          } else {
+            _timer?.cancel();
+          }
+        });
+      }
+    });
+  }
+
+  String _formatTime(int seconds) {
+    final minutes = seconds ~/ 60;
+    final remainingSeconds = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
+  }
 
   @override
   void dispose() {
+    _timer?.cancel();
     _otpController.dispose();
     _pinFocusNode.dispose();
     super.dispose();
@@ -139,31 +173,45 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                   ),
                 ),
               ),
+
               const SizedBox(height: 40),
               // Timer and Resend
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.access_time_rounded, size: 16, color: Colors.blue),
-                  const SizedBox(width: 8),
-                  Text(
-                    'auth.resend_timer'.tr(args: ['01:30']),
-                    style: const TextStyle(
-                      color: Colors.blue,
-                      fontWeight: FontWeight.bold,
+              if (_secondsRemaining > 0) ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.access_time_rounded, size: 16, color: Colors.blue),
+                    const SizedBox(width: 8),
+                    Text(
+                      'auth.resend_timer'.tr(args: [_formatTime(_secondsRemaining)]),
+                      style: const TextStyle(
+                        color: Colors.blue,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ] else ...[
+                Center(
+                  child: TextButton(
+                    onPressed: () {
+                      if (authState.phoneNumber != null) {
+                        ref.read(authNotifierProvider.notifier).requestOtp(authState.phoneNumber!);
+                        _startTimer();
+                      }
+                    },
+                    child: Text(
+                      'auth.resend_code'.tr(),
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'auth.didnt_receive'.tr(),
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 14,
                 ),
-                textAlign: TextAlign.center,
-              ),
+              ],
+              const SizedBox(height: 16),
               const Spacer(),
               // Verify Button
               ElevatedButton(
