@@ -52,7 +52,9 @@ class ApiClient {
         },
         onError: (DioException e, handler) {
           if (e.response?.statusCode == 401) {
-            onUnauthorized?.call(_ref);
+            Future.microtask(() {
+              onUnauthorized?.call(_ref);
+            });
           }
           return handler.next(e);
         },

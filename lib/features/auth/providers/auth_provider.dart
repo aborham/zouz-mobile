@@ -193,6 +193,7 @@ class AuthNotifier extends Notifier<AuthState> {
   }
 
   Future<void> logout() async {
+    if (state.status == AuthStatus.unauthenticated) return;
     await _storage.delete(key: 'jwt_token');
     ref.read(authTokenProvider.notifier).updateToken(null);
     state = AuthState(status: AuthStatus.unauthenticated, isInitialized: true, onboardingCompleted: true);
