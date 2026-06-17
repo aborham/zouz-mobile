@@ -27,7 +27,8 @@
     "permission_gallery_msg": "We need gallery access to choose your profile picture.",
     "permission_enable": "Enable",
     "permission_cancel": "Not now",
-    "terms_consent": "By continuing, you agree to our Terms of Service and Privacy Policy"
+    "terms_consent": "By continuing, you agree to our Terms of Service and Privacy Policy",
+    "skip": "Skip"
   },
   "dashboard": {
     "currency": "SAR",
@@ -75,7 +76,8 @@
     "slogan": "Double your use.",
     "error_title": "Something went wrong",
     "error_subtitle": "We're having trouble loading this page. Please try again later.",
-    "save": "Save Changes"
+    "save": "Save Changes",
+    "done": "Done"
   },
   "profile": {
     "title": "Profile",

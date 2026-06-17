@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:go_router/go_router.dart';
@@ -126,24 +127,82 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
   }
 
   Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now().subtract(const Duration(days: 365 * 18)),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(primary: AppColors.primary),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-      });
+    if (Platform.isIOS) {
+      DateTime tempPickedDate = _selectedDate ?? DateTime.now().subtract(const Duration(days: 365 * 18));
+      await showCupertinoModalPopup<void>(
+        context: context,
+        builder: (BuildContext context) {
+          return Container(
+            height: 300,
+            color: Colors.white,
+            child: SafeArea(
+              top: false,
+              child: Column(
+                children: [
+                  Container(
+                    color: Colors.grey[100],
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        CupertinoButton(
+                          child: Text(
+                            'common.cancel'.tr(),
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                        CupertinoButton(
+                          child: Text(
+                            'common.done'.tr(),
+                            style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _selectedDate = tempPickedDate;
+                            });
+                            Navigator.of(context).pop();
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: CupertinoDatePicker(
+                      mode: CupertinoDatePickerMode.date,
+                      initialDateTime: tempPickedDate,
+                      minimumYear: 1900,
+                      maximumDate: DateTime.now(),
+                      onDateTimeChanged: (DateTime newDate) {
+                        tempPickedDate = newDate;
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    } else {
+      final DateTime? picked = await showDatePicker(
+        context: context,
+        initialDate: _selectedDate ?? DateTime.now().subtract(const Duration(days: 365 * 18)),
+        firstDate: DateTime(1900),
+        lastDate: DateTime.now(),
+        builder: (context, child) {
+          return Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: const ColorScheme.light(primary: AppColors.primary),
+            ),
+            child: child!,
+          );
+        },
+      );
+      if (picked != null && picked != _selectedDate) {
+        setState(() {
+          _selectedDate = picked;
+        });
+      }
     }
   }
 
@@ -198,6 +257,22 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => context.pop(),
         ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              ref.read(authNotifierProvider.notifier).skipProfile();
+            },
+            child: Text(
+              'auth.skip'.tr(),
+              style: const TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(

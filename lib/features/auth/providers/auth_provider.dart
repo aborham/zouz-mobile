@@ -192,6 +192,10 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
+  void skipProfile() {
+    state = state.copyWith(status: AuthStatus.authenticated);
+  }
+
   Future<void> logout() async {
     if (state.status == AuthStatus.unauthenticated) return;
     await _storage.delete(key: 'jwt_token');
