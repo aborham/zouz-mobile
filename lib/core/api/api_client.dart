@@ -23,6 +23,8 @@ class ApiClient {
   final Dio _dio;
   final Ref _ref;
 
+  static void Function(Ref ref)? onUnauthorized;
+
   ApiClient(this._dio, this._ref) {
     _dio.options.baseUrl = '${AppConfig.customerApiBaseUrl}/';
     _dio.options.connectTimeout = const Duration(seconds: 10);
@@ -47,6 +49,12 @@ class ApiClient {
           }
           
           return handler.next(options);
+        },
+        onError: (DioException e, handler) {
+          if (e.response?.statusCode == 401) {
+            onUnauthorized?.call(_ref);
+          }
+          return handler.next(e);
         },
       ),
     );

@@ -47,6 +47,12 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Bind 401 Unauthorized callback
+    ApiClient.onUnauthorized = (Ref ref) {
+      ref.read(authNotifierProvider.notifier).logout();
+      appRouter.go('/login');
+    };
+
     // Sync EasyLocalization locale to our Riverpod provider
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final currentLocale = context.locale.languageCode;
