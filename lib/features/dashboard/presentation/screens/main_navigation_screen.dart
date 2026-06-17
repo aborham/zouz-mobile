@@ -16,18 +16,30 @@ class MainNavigationScreen extends ConsumerStatefulWidget {
 }
 
 class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
+  /// Tracks which tabs have ever been visited.
+  /// Only visited tabs get their widget tree built — this prevents ALL tabs
+  /// from firing API calls simultaneously on startup (the IndexedStack bug).
+  final Set<int> _visitedTabs = {0}; // Home is always built first
+
   @override
   Widget build(BuildContext context) {
     final currentIndex = ref.watch(navigationProvider);
 
+    // Mark current tab as visited — triggers its widget tree to be built
+    if (!_visitedTabs.contains(currentIndex)) {
+      // Use addPostFrameCallback to avoid setState during build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _visitedTabs.add(currentIndex));
+      });
+    }
+
     return Scaffold(
-      extendBody: true, // Allows body to flow behind the notched bar
-      body: IndexedStack(
-        index: currentIndex,
-        children: const [
-          HomeDashboardScreen(),
-          QrScannerScreen(),
-          AccountScreen(),
+      extendBody: true,
+      body: Stack(
+        children: [
+          _buildTab(0, const HomeDashboardScreen(), currentIndex),
+          _buildTab(1, const QrScannerScreen(), currentIndex),
+          _buildTab(2, const AccountScreen(), currentIndex),
         ],
       ),
       floatingActionButton: Container(
@@ -46,7 +58,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
         child: FloatingActionButton(
           onPressed: () => ref.read(navigationProvider.notifier).setIndex(1),
           backgroundColor: AppColors.primary,
-          elevation: 0, // Handled by container for better control
+          elevation: 0,
           shape: const CircleBorder(),
           child: const Icon(Icons.qr_code_scanner, color: Colors.white, size: 32),
         ),
@@ -66,7 +78,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
           shape: const CircularNotchedRectangle(),
           notchMargin: 10,
           color: Colors.white,
-          elevation: 0, // Elevation handled by custom shadow
+          elevation: 0,
           child: SizedBox(
             height: 64,
             child: Row(
@@ -78,7 +90,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
                   Icons.home,
                   'dashboard.home'.tr().toUpperCase(),
                 ),
-                const SizedBox(width: 50), // Optimized spacer for the 68px FAB
+                const SizedBox(width: 50),
                 _buildNavItem(
                   2,
                   Icons.person_outline,
@@ -89,6 +101,24 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  /// Lazily builds a tab:
+  /// - Not yet visited → renders nothing (SizedBox.shrink)
+  /// - Visited but not active → Offstage (hidden but alive in the tree)
+  /// - Active → fully rendered and ticking
+  Widget _buildTab(int index, Widget child, int currentIndex) {
+    if (!_visitedTabs.contains(index)) {
+      return const SizedBox.shrink();
+    }
+    final isActive = currentIndex == index;
+    return Offstage(
+      offstage: !isActive,
+      child: TickerMode(
+        enabled: isActive,
+        child: child,
       ),
     );
   }
@@ -126,4 +156,3 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
     );
   }
 }
-

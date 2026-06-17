@@ -9,6 +9,8 @@ import 'core/api/api_client.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'features/auth/providers/auth_provider.dart';
+import 'features/dashboard/providers/home_provider.dart';
+import 'features/profile/providers/profile_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -47,8 +49,14 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Bind 401 Unauthorized callback
+    // Bind 401 Unauthorized callback — runs on every 401 response from the server.
+    // Clears all cached data AND the auth token, then the reactive guard (below)
+    // detects the unauthenticated state and navigates to /login automatically.
     ApiClient.onUnauthorized = () {
+      // Invalidate cached data so stale responses don't persist to the next session
+      ref.invalidate(homeDataProvider);
+      ref.invalidate(profileProvider);
+      // Trigger logout (deletes JWT from secure storage + clears token state)
       ref.read(authNotifierProvider.notifier).logout();
     };
 
