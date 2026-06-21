@@ -360,17 +360,15 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
-            if (timer == null) {
-              timer = Timer.periodic(const Duration(seconds: 1), (t) {
-                if (secondsRemaining > 0) {
-                  setState(() {
-                    secondsRemaining--;
-                  });
-                } else {
-                  t.cancel();
-                }
-              });
-            }
+            timer ??= Timer.periodic(const Duration(seconds: 1), (t) {
+              if (secondsRemaining > 0) {
+                setState(() {
+                  secondsRemaining--;
+                });
+              } else {
+                t.cancel();
+              }
+            });
 
             return AlertDialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),

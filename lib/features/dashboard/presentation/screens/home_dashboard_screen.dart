@@ -29,7 +29,7 @@ class HomeDashboardScreen extends ConsumerWidget {
                 const SliverToBoxAdapter(child: SizedBox(height: 8)),
                 SliverToBoxAdapter(child: _buildScanStandBanner(context, ref)),
                 const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                const SliverToBoxAdapter(child: _PromoCarousel()),
+                SliverToBoxAdapter(child: _PromoCarousel(banners: data.banners)),
                 _buildActiveRoutine(context, ref, data.activePackages),
                 _buildTrendingPackages(context, data.trendingPackages),
                 const SliverToBoxAdapter(child: SizedBox(height: 32)),
@@ -829,24 +829,10 @@ class _SkeletonPlaceholderState extends State<_SkeletonPlaceholder>
   }
 }
 
-class _PromoBannerItem {
-  final String title;
-  final String subtitle;
-  final String badgeText;
-  final String imageUrl;
-  final Color baseColor;
-
-  _PromoBannerItem({
-    required this.title,
-    required this.subtitle,
-    required this.badgeText,
-    required this.imageUrl,
-    required this.baseColor,
-  });
-}
 
 class _PromoCarousel extends StatefulWidget {
-  const _PromoCarousel();
+  final List<HomeBanner> banners;
+  const _PromoCarousel({required this.banners});
 
   @override
   State<_PromoCarousel> createState() => _PromoCarouselState();
@@ -856,38 +842,27 @@ class _PromoCarouselState extends State<_PromoCarousel> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  final List<_PromoBannerItem> _banners = [
-    _PromoBannerItem(
-      title: "Half Million Special",
-      subtitle: "Save up to 35% on your daily V60 and Flat White routines",
-      badgeText: "HOT DEAL",
-      imageUrl: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?q=80&w=800&auto=format&fit=crop",
-      baseColor: const Color(0xFFEF6C00),
-    ),
-    _PromoBannerItem(
-      title: "Key Cafe Signature",
-      subtitle: "Get the premium Spanish Latte bundle at a special rate",
-      badgeText: "POPULAR",
-      imageUrl: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?q=80&w=800&auto=format&fit=crop",
-      baseColor: const Color(0xFF4527A0),
-    ),
-    _PromoBannerItem(
-      title: "Barns Premium Coffee",
-      subtitle: "Unlock exclusive rewards when scanning table stand QR codes",
-      badgeText: "EXCLUSIVE",
-      imageUrl: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=800&auto=format&fit=crop",
-      baseColor: const Color(0xFFC2185B),
-    ),
-  ];
-
   @override
   void dispose() {
     _pageController.dispose();
     super.dispose();
   }
 
+  void _handleBannerTap(HomeBanner banner) {
+    if (banner.linkUrl != null && banner.linkUrl!.isNotEmpty) {
+      if (banner.linkUrl!.startsWith('http')) {
+        // Open web view or external link (could use url_launcher if added later)
+      } else {
+        // Internal route
+        context.push(banner.linkUrl!);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (widget.banners.isEmpty) return const SizedBox.shrink();
+
     return Column(
       children: [
         SizedBox(
@@ -899,66 +874,19 @@ class _PromoCarouselState extends State<_PromoCarousel> {
                 _currentPage = index;
               });
             },
-            itemCount: _banners.length,
+            itemCount: widget.banners.length,
             itemBuilder: (context, index) {
-              final banner = _banners[index];
-              return Container(
-                margin: const EdgeInsets.symmetric(horizontal: 24),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  image: DecorationImage(
-                    image: NetworkImage(banner.imageUrl),
-                    fit: BoxFit.cover,
-                    colorFilter: ColorFilter.mode(
-                      Colors.black.withValues(alpha: 0.55),
-                      BlendMode.darken,
+              final banner = widget.banners[index];
+              return GestureDetector(
+                onTap: () => _handleBannerTap(banner),
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 24),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(24),
+                    image: DecorationImage(
+                      image: NetworkImage(banner.imageUrl),
+                      fit: BoxFit.cover,
                     ),
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: banner.baseColor,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          banner.badgeText,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        banner.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        banner.subtitle,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
                   ),
                 ),
               );
@@ -966,23 +894,24 @@ class _PromoCarouselState extends State<_PromoCarousel> {
           ),
         ),
         const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(
-            _banners.length,
-            (index) => Container(
-              width: 8,
-              height: 8,
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: _currentPage == index
-                    ? AppColors.primary
-                    : AppColors.textSecondary.withValues(alpha: 0.3),
+        if (widget.banners.length > 1)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(
+              widget.banners.length,
+              (index) => Container(
+                width: 8,
+                height: 8,
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _currentPage == index
+                      ? AppColors.primary
+                      : AppColors.textSecondary.withValues(alpha: 0.3),
+                ),
               ),
             ),
           ),
-        ),
       ],
     );
   }

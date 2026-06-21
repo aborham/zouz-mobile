@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:zouz_mobile/features/auth/providers/auth_provider.dart';
 import 'package:zouz_mobile/core/theme/colors.dart';
 import 'package:zouz_mobile/core/widgets/zouz_logo.dart';
+import 'dart:ui' as ui;
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -132,7 +133,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     color: const Color(0xFFF7F8FA),
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: Row(
+                  child: Directionality(
+                    textDirection: ui.TextDirection.ltr,
+                    child: Row(
                     children: [
                       const SizedBox(width: 16),
                       // Saudi Flag & Code
@@ -184,6 +187,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                     ],
                   ),
+                ),
                 ),
               ),
               const Spacer(flex: 3),

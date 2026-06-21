@@ -6,6 +6,7 @@ import 'package:zouz_mobile/core/theme/colors.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../repositories/checkout_repository.dart';
 import '../../../cart/providers/cart_provider.dart';
+import '../../../profile/providers/profile_provider.dart';
 
 class CheckoutScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic>? package;
@@ -93,6 +94,21 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     try {
       final repository = ref.read(checkoutRepositoryProvider);
       
+      // Enforce profile completion before checkout
+      try {
+        final profile = await ref.read(profileProvider.future);
+        if (profile.name?.isEmpty ?? true) {
+          setState(() => _isProcessingPayment = false);
+          if (mounted) {
+            context.push('/complete-profile');
+          }
+          return;
+        }
+      } catch (e) {
+        debugPrint('Failed to fetch profile before checkout: $e');
+        // If it fails, we can proceed, but ideally we show error. We'll proceed or redirect.
+      }
+
       List<Map<String, dynamic>> orderItems = [];
 
       if (widget.fromCart && widget.items != null) {

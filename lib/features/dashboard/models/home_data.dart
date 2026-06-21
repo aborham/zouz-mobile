@@ -2,12 +2,14 @@ import 'dart:convert';
 
 class HomeData {
   final HomeUser user;
+  final List<HomeBanner> banners;
   final List<ActivePackage> activePackages;
   final List<TrendingPackage> trendingPackages;
   final List<TrendingProvider> trendingProviders;
 
   HomeData({
     required this.user,
+    required this.banners,
     required this.activePackages,
     required this.trendingPackages,
     required this.trendingProviders,
@@ -16,6 +18,9 @@ class HomeData {
   factory HomeData.fromJson(Map<String, dynamic> json) {
     return HomeData(
       user: HomeUser.fromJson(json['user'] ?? {}),
+      banners: json['banners'] != null 
+          ? (json['banners'] as List).map((i) => HomeBanner.fromJson(i)).toList()
+          : [],
       activePackages: json['activePackages'] != null 
           ? (json['activePackages'] as List).map((i) => ActivePackage.fromJson(i)).toList()
           : [],
@@ -25,6 +30,26 @@ class HomeData {
       trendingProviders: json['trendingProviders'] != null 
           ? (json['trendingProviders'] as List).map((i) => TrendingProvider.fromJson(i)).toList()
           : [],
+    );
+  }
+}
+
+class HomeBanner {
+  final String id;
+  final String imageUrl;
+  final String? linkUrl;
+
+  HomeBanner({
+    required this.id,
+    required this.imageUrl,
+    this.linkUrl,
+  });
+
+  factory HomeBanner.fromJson(Map<String, dynamic> json) {
+    return HomeBanner(
+      id: json['id'] ?? '',
+      imageUrl: json['imageUrl'] ?? '',
+      linkUrl: json['linkUrl'],
     );
   }
 }
