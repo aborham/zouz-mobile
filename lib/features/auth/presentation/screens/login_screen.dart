@@ -65,7 +65,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         );
       } else if (next.status == AuthStatus.otpSent) {
-        context.push('/otp');
+        // Only push if we are currently looking at the login screen
+        if (ModalRoute.of(context)?.isCurrent == true) {
+          context.push('/otp');
+        }
       }
     });
 
