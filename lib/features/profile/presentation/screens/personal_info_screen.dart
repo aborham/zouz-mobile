@@ -382,7 +382,7 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
                   const SizedBox(height: 16),
                   if (secondsRemaining > 0)
                     Text(
-                      "Please wait $secondsRemaining seconds...",
+                      "profile.wait_seconds".tr().replaceFirst('{}', secondsRemaining.toString()),
                       style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
                     ),
                 ],

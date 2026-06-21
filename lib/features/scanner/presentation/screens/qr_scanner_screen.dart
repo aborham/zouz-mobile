@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zouz_mobile/features/dashboard/providers/navigation_provider.dart';
 import 'package:zouz_mobile/core/theme/colors.dart';
 
 class QrScannerScreen extends ConsumerStatefulWidget {
@@ -36,12 +35,9 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
     
-    // Initial check but don't start camera unless we are at index 1
-    // The listener below will handle the logic
+    // Check permission and start camera immediately since this is a standalone screen
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (ref.read(navigationProvider) == 1) {
-        _checkPermission();
-      }
+      _checkPermission();
     });
   }
 
@@ -56,12 +52,9 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      final currentIndex = ref.read(navigationProvider);
-      if (currentIndex == 1) {
-        Future.delayed(const Duration(milliseconds: 800), () {
-          if (mounted) _checkPermission();
-        });
-      }
+      Future.delayed(const Duration(milliseconds: 800), () {
+        if (mounted) _checkPermission();
+      });
     } else if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
       if (cameraController.value.isRunning) {
         cameraController.stop();
@@ -92,6 +85,16 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
     final status = await Permission.camera.request();
     if (!mounted) return;
     setState(() => _cameraPermissionStatus = status);
+    
+    if (status.isGranted || status.isProvisional) {
+      try {
+        if (!cameraController.value.isRunning && !cameraController.value.isStarting) {
+          await cameraController.start();
+        }
+      } catch (e) {
+        debugPrint('Zouz: Error starting camera: $e');
+      }
+    }
   }
 
   void _onDetect(BarcodeCapture capture) {
@@ -137,9 +140,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
                   _isProcessing = false;
                   _showSuccess = false;
                 });
-                if (ref.read(navigationProvider) == 1) {
-                  cameraController.start();
-                }
+                cameraController.start();
               }
             });
           });
@@ -167,19 +168,6 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
 
   @override
   Widget build(BuildContext context) {
-    // Listen to tab changes to start/stop camera
-    ref.listen(navigationProvider, (previous, next) {
-      if (next == 1 && previous != 1) {
-        // Switched TO Scanner tab
-        _checkPermission();
-      } else if (next != 1 && previous == 1) {
-        // Switched AWAY FROM Scanner tab
-        if (cameraController.value.isRunning) {
-          cameraController.stop();
-        }
-      }
-    });
-
     final bool isGranted = _cameraPermissionStatus.isGranted || _cameraPermissionStatus.isProvisional;
 
     return Scaffold(

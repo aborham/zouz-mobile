@@ -9,4 +9,5 @@ class AppConfig {
   static const String websiteUrl = 'https://usezouz.com';
   static const String apiBaseUrl = '$baseUrl/api';
   static const String customerApiBaseUrl = '$apiBaseUrl/customer';
+  static const String crispWebsiteId = '1da3bb6b-9c97-4f51-8c65-41c4886a170b';
 }

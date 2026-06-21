@@ -12,6 +12,7 @@ import '../../features/profile/presentation/screens/personal_info_screen.dart';
 import '../../features/profile/presentation/screens/payment_methods_screen.dart';
 import '../../features/profile/presentation/screens/support_screen.dart';
 import '../../features/profile/presentation/screens/notifications_settings_screen.dart';
+import '../../features/profile/presentation/screens/notifications_list_screen.dart';
 import '../../features/profile/presentation/screens/language_screen.dart';
 import '../../features/profile/presentation/screens/legal_docs_screen.dart';
 import '../../features/cart/presentation/screens/cart_screen.dart';
@@ -100,6 +101,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/profile/notifications',
       builder: (context, state) => const NotificationsSettingsScreen(),
+    ),
+    GoRoute(
+      path: '/profile/notifications-list',
+      builder: (context, state) => const NotificationsListScreen(),
     ),
 
     GoRoute(

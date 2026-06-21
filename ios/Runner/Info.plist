@@ -42,9 +42,13 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>This app needs camera access to scan stand QR codes and take profile pictures.</string>
+	<string>This app needs camera access to scan stand QR codes, take profile pictures, and for live chat.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app needs photo library access to choose a profile picture.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>This app needs photo library access to save images from live chat.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app needs microphone access for live chat audio.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -85,5 +89,7 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>

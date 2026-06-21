@@ -215,140 +215,147 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
     final isInCart = cartItemIndex >= 0;
     final quantity = isInCart ? cart.items[cartItemIndex].quantity : 0;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _getLocalizedValue(pkg['name'], locale),
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF1A1A1A)),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    _getLocalizedValue(pkg['description'], locale),
-                    style: TextStyle(fontSize: 13, color: Colors.grey[600], height: 1.4),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      // Action Button on the LEFT
-                      if (!isInCart)
-                        InkWell(
-                          onTap: () => _addToCart(pkg, tenant, locale),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+    return InkWell(
+      onTap: () {
+        // Pass both package and tenant information if needed, or just package
+        context.push('/package', extra: pkg);
+      },
+      borderRadius: BorderRadius.circular(28),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _getLocalizedValue(pkg['name'], locale),
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF1A1A1A)),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      _getLocalizedValue(pkg['description'], locale),
+                      style: TextStyle(fontSize: 13, color: Colors.grey[600], height: 1.4),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Action Button on the LEFT
+                        if (!isInCart)
+                          InkWell(
+                            onTap: () => _addToCart(pkg, tenant, locale),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF224AFB),
+                                borderRadius: BorderRadius.circular(25),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF224AFB).withValues(alpha: 0.3),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 4),
+                                  )
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'cart.add_to_cart'.tr(),
+                                    style: const TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Icon(Icons.add, size: 18, color: Colors.white),
+                                ],
+                              ),
+                            ),
+                          )
+                        else
+                          Container(
+                            padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF224AFB),
+                              color: const Color(0xFFE8EDFF),
                               borderRadius: BorderRadius.circular(25),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFF224AFB).withValues(alpha: 0.3),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 4),
-                                )
-                              ],
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text(
-                                  'cart.add_to_cart'.tr(),
-                                  style: const TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.bold),
+                                IconButton(
+                                  constraints: const BoxConstraints(),
+                                  padding: const EdgeInsets.all(10),
+                                  icon: const Icon(Icons.remove, size: 20, color: Color(0xFF224AFB)),
+                                  onPressed: () => ref.read(cartProvider.notifier).updateQuantity(pkg['id'], quantity - 1),
                                 ),
-                                const SizedBox(width: 8),
-                                const Icon(Icons.add, size: 18, color: Colors.white),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                                  child: Text(
+                                    '$quantity',
+                                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Colors.black),
+                                  ),
+                                ),
+                                IconButton(
+                                  constraints: const BoxConstraints(),
+                                  padding: const EdgeInsets.all(10),
+                                  icon: const Icon(Icons.add, size: 20, color: Color(0xFF224AFB)),
+                                  onPressed: () => ref.read(cartProvider.notifier).updateQuantity(pkg['id'], quantity + 1),
+                                ),
                               ],
                             ),
                           ),
+                        const Spacer(),
+                        // Price on the RIGHT
+                        Text(
+                          '${pkg['price']} ${'dashboard.currency'.tr()}',
+                          style: const TextStyle(
+                            color: Color(0xFF224AFB),
+                            fontWeight: FontWeight.w900,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              // Circular-ish Image on the right
+              Container(
+                width: 85,
+                height: 85,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(22),
+                  color: Colors.grey[50],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(22),
+                  child: pkg['imageUrl'] != null
+                      ? Image.network(
+                          ImageUtils.getFullUrl(pkg['imageUrl'])!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const Icon(Icons.fastfood_outlined, color: Colors.grey),
                         )
-                      else
-                        Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE8EDFF),
-                            borderRadius: BorderRadius.circular(25),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                constraints: const BoxConstraints(),
-                                padding: const EdgeInsets.all(10),
-                                icon: const Icon(Icons.remove, size: 20, color: Color(0xFF224AFB)),
-                                onPressed: () => ref.read(cartProvider.notifier).updateQuantity(pkg['id'], quantity - 1),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 12),
-                                child: Text(
-                                  '$quantity',
-                                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Colors.black),
-                                ),
-                              ),
-                              IconButton(
-                                constraints: const BoxConstraints(),
-                                padding: const EdgeInsets.all(10),
-                                icon: const Icon(Icons.add, size: 20, color: Color(0xFF224AFB)),
-                                onPressed: () => ref.read(cartProvider.notifier).updateQuantity(pkg['id'], quantity + 1),
-                              ),
-                            ],
-                          ),
-                        ),
-                      const Spacer(),
-                      // Price on the RIGHT
-                      Text(
-                        '${pkg['price']} ${'dashboard.currency'.tr()}',
-                        style: const TextStyle(
-                          color: Color(0xFF224AFB),
-                          fontWeight: FontWeight.w900,
-                          fontSize: 18,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                      : const Icon(Icons.fastfood_outlined, color: Colors.grey),
+                ),
               ),
-            ),
-            const SizedBox(width: 16),
-            // Circular-ish Image on the right
-            Container(
-              width: 85,
-              height: 85,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(22),
-                color: Colors.grey[50],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(22),
-                child: pkg['imageUrl'] != null
-                    ? Image.network(
-                        ImageUtils.getFullUrl(pkg['imageUrl'])!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(Icons.fastfood_outlined, color: Colors.grey),
-                      )
-                    : const Icon(Icons.fastfood_outlined, color: Colors.grey),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

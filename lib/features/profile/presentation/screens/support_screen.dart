@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:crisp_chat/crisp_chat.dart';
 import 'package:zouz_mobile/core/theme/colors.dart';
+import 'package:zouz_mobile/core/config/app_config.dart';
+import '../../providers/profile_provider.dart';
 
-class SupportScreen extends StatelessWidget {
+class SupportScreen extends ConsumerWidget {
   const SupportScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profileAsync = ref.watch(profileProvider);
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -83,11 +89,26 @@ class SupportScreen extends StatelessWidget {
             const SizedBox(height: 40),
             
             // Contact Cards
-            _buildContactCard(
-              icon: Icons.chat_bubble,
-              title: 'support.live_chat'.tr(),
-              subtitle: 'support.live_chat_wait'.tr(),
-              color: Colors.blue,
+            GestureDetector(
+              onTap: () {
+                final profile = profileAsync.value;
+                FlutterCrispChat.openCrispChat(
+                  config: CrispConfig(
+                    websiteID: AppConfig.crispWebsiteId,
+                    user: profile != null ? User(
+                      email: profile.email ?? '',
+                      nickName: profile.name ?? '',
+                      phone: profile.phoneNumber ?? '',
+                    ) : null,
+                  ),
+                );
+              },
+              child: _buildContactCard(
+                icon: Icons.chat_bubble,
+                title: 'support.live_chat'.tr(),
+                subtitle: 'support.live_chat_wait'.tr(),
+                color: Colors.blue,
+              ),
             ),
             const SizedBox(height: 16),
             _buildContactCard(

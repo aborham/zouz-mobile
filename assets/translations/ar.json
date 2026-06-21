@@ -98,7 +98,10 @@
     "order_history": "سجل الطلبات",
     "view_past_purchases": "عرض المشتريات السابقة",
     "account_settings": "إعدادات الحساب",
-    "notifications": "التنبيهات",
+    "notification_settings": "إعدادات التنبيهات",
+    "push_notifications_list": "إشعارات التطبيق",
+    "mark_all_read": "تحديد الكل كمقروء",
+    "no_notifications": "لا توجد إشعارات حتى الآن",
     "preferences": "التفضيلات",
     "legal_support": "القانون والدعم",
     "help_center": "مركز المساعدة",
@@ -126,6 +129,7 @@
     "delete_account_desc": "حذف حسابك وبياناتك نهائياً",
     "delete_confirm": "حذف الحساب",
     "delete_confirm_desc": "هل أنت متأكد من حذف حسابك؟ لا يمكن التراجع عن هذا الإجراء.",
+    "wait_seconds": "يرجى الانتظار {} ثوان...",
     "delete_btn": "حذف"
   },
   "scanner": {
@@ -202,7 +206,10 @@
     "items": "مرات",
     "days_validity": "يوم صلاحية",
     "unlimited": "لامحدود",
-    "price_unset": "السعر غير محدد"
+    "price_unset": "السعر غير محدد",
+    "total_price": "السعر الإجمالي",
+    "trending": "رائج",
+    "days": "أيام"
   },
   "checkout": {
     "checkout": "الدفع",

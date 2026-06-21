@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:go_router/go_router.dart';
+import 'package:crisp_chat/crisp_chat.dart';
+import 'package:zouz_mobile/core/config/app_config.dart';
 import 'package:zouz_mobile/core/theme/colors.dart';
 import 'package:zouz_mobile/core/utils/image_utils.dart';
 import 'package:zouz_mobile/features/auth/providers/auth_provider.dart';
@@ -16,32 +18,6 @@ class AccountScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu, color: AppColors.textSecondary),
-            onPressed: () => Scaffold.of(context).openDrawer(),
-          ),
-        ),
-        title: Text(
-          'dashboard.account'.tr(),
-          style: const TextStyle(
-            color: AppColors.primary,
-            fontWeight: FontWeight.w900,
-            fontSize: 22,
-            letterSpacing: -0.5,
-          ),
-        ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none, color: AppColors.textSecondary),
-            onPressed: () => context.push('/profile/notifications'),
-          ),
-        ],
-      ),
       body: SafeArea(
         child: profileAsync.when(
           data: (profile) => RefreshIndicator(
@@ -160,15 +136,17 @@ class AccountScreen extends ConsumerWidget {
                   ),
                   _buildMenuItem(
                     context,
+                    icon: Icons.notifications_active_outlined,
+                    title: 'profile.push_notifications_list'.tr(),
+                    onTap: () => context.push('/profile/notifications-list'),
+                    iconColor: Colors.blue,
+                  ),
+                  _buildMenuItem(
+                    context,
                     icon: Icons.notifications_none,
-                    title: 'profile.notifications'.tr(),
+                    title: 'profile.notification_settings'.tr(),
                     onTap: () => context.push('/profile/notifications'),
                     iconColor: Colors.blue,
-                    trailing: Switch(
-                      value: true,
-                      onChanged: (val) {},
-                      activeTrackColor: AppColors.primary,
-                    ),
                   ),
                   _buildMenuItem(
                     context,
@@ -203,7 +181,18 @@ class AccountScreen extends ConsumerWidget {
                     context,
                     icon: Icons.support_agent_outlined,
                     title: 'profile.contact_us'.tr(),
-                    onTap: () => context.push('/profile/support'),
+                    onTap: () {
+                      FlutterCrispChat.openCrispChat(
+                        config: CrispConfig(
+                          websiteID: AppConfig.crispWebsiteId,
+                          user: User(
+                            email: profile.email ?? '',
+                            nickName: profile.name ?? '',
+                            phone: profile.phoneNumber ?? '',
+                          ),
+                        ),
+                      );
+                    },
                     iconColor: Colors.blue,
                   ),
                   

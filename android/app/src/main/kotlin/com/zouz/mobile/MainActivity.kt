@@ -1,4 +1,4 @@
-package com.zouz.zouz_mobile
+package com.zouz.mobile
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -28,6 +28,8 @@ dependencies:
   image_picker: ^1.1.2
   cached_network_image: ^3.4.1
   shared_preferences: ^2.5.4
+  crisp_chat: ^2.6.0
+  timeago: ^3.7.1
 
 dev_dependencies:
   flutter_test:
@@ -35,7 +37,13 @@ dev_dependencies:
   flutter_lints: ^5.0.0
   build_runner: ^2.9.0
   riverpod_generator: any
+  flutter_launcher_icons: ^0.13.1
 
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/logo.png"
+  remove_alpha_ios: true
 flutter:
   uses-material-design: true
   assets:

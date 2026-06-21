@@ -97,7 +97,10 @@
     "order_history": "Order History",
     "view_past_purchases": "View past purchases",
     "account_settings": "Account Settings",
-    "notifications": "Notifications",
+    "notification_settings": "Notification Settings",
+    "push_notifications_list": "Push Notifications",
+    "mark_all_read": "Mark all as read",
+    "no_notifications": "No notifications yet",
     "preferences": "Preferences",
     "legal_support": "Legal & Support",
     "help_center": "Help Center",
@@ -125,6 +128,7 @@
     "delete_account_desc": "Permanently delete your account and data",
     "delete_confirm": "Delete Account",
     "delete_confirm_desc": "Are you sure you want to delete your account? This action cannot be undone.",
+    "wait_seconds": "Please wait {} seconds...",
     "delete_btn": "Delete"
   },
   "scanner": {
@@ -201,7 +205,10 @@
     "items": "Items",
     "days_validity": "Days Validity",
     "unlimited": "Unlimited",
-    "price_unset": "Price Unset"
+    "price_unset": "Price Unset",
+    "total_price": "Total Price",
+    "trending": "Trending",
+    "days": "Days"
   },
   "checkout": {
     "checkout": "Checkout",
