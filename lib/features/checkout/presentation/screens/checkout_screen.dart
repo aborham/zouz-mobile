@@ -9,6 +9,7 @@ import 'package:go_sell_sdk_flutter/go_sell_sdk_flutter.dart';
 import 'package:go_sell_sdk_flutter/model/models.dart';
 import 'dart:io' show Platform;
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import '../../../../core/config/app_config.dart';
 import '../../repositories/checkout_repository.dart';
 import '../../../cart/providers/cart_provider.dart';
@@ -46,7 +47,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
   void _configureTapSDK() {
     GoSellSdkFlutter.configureApp(
-      bundleId: Platform.isAndroid ? AppConfig.tapBundleIdAndroid : AppConfig.tapBundleIdIOS,
+      bundleId: Platform.isAndroid
+          ? AppConfig.tapBundleIdAndroid
+          : AppConfig.tapBundleIdIOS,
       productionSecretKey: AppConfig.tapProductionSecretKey,
       sandBoxSecretKey: AppConfig.tapSandboxSecretKey,
       lang: "en", // context.locale.languageCode might not be available here yet
@@ -82,25 +85,25 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       ref.read(cartProvider.notifier).clear();
       final uri = Uri.parse(url);
       final orderId = uri.queryParameters['orderId'];
-      context.goNamed('payment-success', queryParameters: {'orderId': orderId ?? ''});
+      context.goNamed(
+        'payment-success',
+        queryParameters: {'orderId': orderId ?? ''},
+      );
     } else if (url.contains('/checkout/failed')) {
       _isNavigatingToStatus = true;
       final uri = Uri.parse(url);
       final reason = uri.queryParameters['reason'];
-      
-      // Reset state 
+
+      // Reset state
       setState(() {
         _isProcessingPayment = false;
         _checkoutUrl = null;
       });
-      
+
       context.goNamed(
-        'payment-failure', 
+        'payment-failure',
         queryParameters: {'reason': reason ?? ''},
-        extra: {
-          'package': widget.package,
-          'items': widget.items,
-        },
+        extra: {'package': widget.package, 'items': widget.items},
       );
     }
   }
@@ -110,7 +113,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
     try {
       final repository = ref.read(checkoutRepositoryProvider);
-      
+
       // Enforce profile completion before checkout
       try {
         final profile = await ref.read(profileProvider.future);
@@ -136,7 +139,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             'packageId': widget.package!['id'],
             'quantity': 1,
             'standId': widget.package!['standId'],
-          }
+          },
         ];
       } else {
         throw Exception('checkout.no_items'.tr());
@@ -149,7 +152,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       if (!mounted) return;
 
       if (_selectedPaymentMethod == 'apple_pay' && Platform.isIOS) {
-        await _startApplePay(orderId, totalAmount: totalAmount); 
+        await _startApplePay(orderId, totalAmount: totalAmount);
       } else {
         // 2. Process Order (Initiate Tap Payment Hosted)
         final processResponse = await repository.processOrder(orderId);
@@ -171,7 +174,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     }
   }
 
-  Future<void> _startApplePay(String orderId, {required double totalAmount}) async {
+  Future<void> _startApplePay(
+    String orderId, {
+    required double totalAmount,
+  }) async {
     try {
       final applePayMerchantID = AppConfig.applePayMerchantId;
 
@@ -200,7 +206,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         isUserAllowedToSaveCard: false,
         isRequires3DSecure: true,
         receipt: Receipt(false, false),
-        authorizeAction: AuthorizeAction(type: AuthorizeActionType.CAPTURE, timeInHours: 10),
+        authorizeAction: AuthorizeAction(
+          type: AuthorizeActionType.CAPTURE,
+          timeInHours: 10,
+        ),
         destinations: null,
         merchantID: "",
         allowedCadTypes: CardType.ALL,
@@ -213,7 +222,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       );
 
       final tapSDKResult = await GoSellSdkFlutter.startPaymentSDK;
-      
+
       if (tapSDKResult != null) {
         final sdkResult = tapSDKResult['sdk_result'];
         if (sdkResult == 'SUCCESS') {
@@ -239,15 +248,21 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   Future<void> _processCheckoutWithToken(String orderId, String token) async {
     try {
       final repository = ref.read(checkoutRepositoryProvider);
-      final processResponse = await repository.processOrder(orderId, token: token);
-      
+      final processResponse = await repository.processOrder(
+        orderId,
+        token: token,
+      );
+
       if (!mounted) return;
 
       if (processResponse['success'] == true) {
         // Success
         _isNavigatingToStatus = true;
         ref.read(cartProvider.notifier).clear();
-        context.goNamed('payment-success', queryParameters: {'orderId': orderId});
+        context.goNamed(
+          'payment-success',
+          queryParameters: {'orderId': orderId},
+        );
       } else {
         // If it requires 3DS or failed
         final redirectUrl = processResponse['redirectUrl'];
@@ -257,8 +272,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           });
           _webViewController.loadRequest(Uri.parse(redirectUrl));
         } else {
-           _showError('Payment failed to process');
-           setState(() => _isProcessingPayment = false);
+          _showError('Payment failed to process');
+          setState(() => _isProcessingPayment = false);
         }
       }
     } catch (e) {
@@ -303,17 +318,96 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
     String? tenantName;
     String? tenantLogoUrl;
-    
+
     if (widget.fromCart && widget.items != null && widget.items!.isNotEmpty) {
       tenantName = widget.items!.first['tenantName'];
       tenantLogoUrl = widget.items!.first['tenantLogoUrl'];
-      
+
       for (var item in widget.items!) {
         final price = double.tryParse(item['price']?.toString() ?? '0') ?? 0.0;
         final qty = int.tryParse(item['quantity']?.toString() ?? '1') ?? 1;
         subtotal += price * qty;
-        
-        itemWidgets.add(Padding(
+
+        itemWidgets.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    '$qty × ${item['packageName']}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 15,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    SaudiCurrencySymbol(
+                      price: price * qty,
+                      priceStyle: const TextStyle(
+                        color: Colors.black87,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                      ),
+                      symbolFontColor: Colors.black87,
+                      isOldPrice: false,
+                    ),
+                    if (item['originalPrice'] != null) ...[
+                      const SizedBox(height: 2),
+                      SaudiCurrencySymbol(
+                        price:
+                            (double.tryParse(
+                                  item['originalPrice'].toString(),
+                                ) ??
+                                0.0) *
+                            qty,
+                        priceStyle: TextStyle(
+                          color: Colors.grey.shade400,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 12,
+                        ),
+                        symbolFontColor: Colors.grey.shade400,
+                        isOldPrice: true,
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    } else if (widget.package != null) {
+      final name = widget.package!['name'] is Map
+          ? widget.package!['name'][locale] ??
+                widget.package!['name']['en'] ??
+                ''
+          : widget.package!['name']?.toString() ?? '';
+
+      tenantName = widget.package!['tenantName'] is Map
+          ? (widget.package!['tenantName'][locale] ??
+                widget.package!['tenantName']['en'])
+          : widget.package!['tenantName']?.toString();
+
+      if (tenantName == null && widget.package!['providerName'] != null) {
+        tenantName = widget.package!['providerName'];
+      }
+
+      tenantLogoUrl =
+          widget.package!['tenantLogoUrl'] ?? widget.package!['imageUrl'];
+
+      final price =
+          double.tryParse(widget.package!['price']?.toString() ?? '0') ?? 0.0;
+      subtotal = price;
+
+      itemWidgets.add(
+        Padding(
           padding: const EdgeInsets.symmetric(vertical: 12),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -321,8 +415,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             children: [
               Expanded(
                 child: Text(
-                  '$qty × ${item['packageName']}', 
-                  style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15),
+                  '1 × $name',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 15,
+                  ),
                 ),
               ),
               const SizedBox(width: 16),
@@ -330,7 +427,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   SaudiCurrencySymbol(
-                    price: price * qty,
+                    price: price,
                     priceStyle: const TextStyle(
                       color: Colors.black87,
                       fontWeight: FontWeight.w600,
@@ -339,10 +436,14 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     symbolFontColor: Colors.black87,
                     isOldPrice: false,
                   ),
-                  if (item['originalPrice'] != null) ...[
+                  if (widget.package!['originalPrice'] != null) ...[
                     const SizedBox(height: 2),
                     SaudiCurrencySymbol(
-                      price: (double.tryParse(item['originalPrice'].toString()) ?? 0.0) * qty,
+                      price:
+                          double.tryParse(
+                            widget.package!['originalPrice'].toString(),
+                          ) ??
+                          0.0,
                       priceStyle: TextStyle(
                         color: Colors.grey.shade400,
                         fontWeight: FontWeight.w500,
@@ -356,70 +457,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               ),
             ],
           ),
-        ));
-      }
-    } else if (widget.package != null) {
-      final name = widget.package!['name'] is Map 
-        ? widget.package!['name'][locale] ?? widget.package!['name']['en'] ?? ''
-        : widget.package!['name']?.toString() ?? '';
-        
-      tenantName = widget.package!['tenantName'] is Map 
-        ? (widget.package!['tenantName'][locale] ?? widget.package!['tenantName']['en'])
-        : widget.package!['tenantName']?.toString();
-      
-      if (tenantName == null && widget.package!['providerName'] != null) {
-        tenantName = widget.package!['providerName'];
-      }
-      
-      tenantLogoUrl = widget.package!['tenantLogoUrl'] ?? widget.package!['imageUrl'];
-      
-      final price = double.tryParse(widget.package!['price']?.toString() ?? '0') ?? 0.0;
-      subtotal = price;
-      
-      itemWidgets.add(Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Text(
-                '1 × $name', 
-                style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                SaudiCurrencySymbol(
-                  price: price,
-                  priceStyle: const TextStyle(
-                    color: Colors.black87,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
-                  ),
-                  symbolFontColor: Colors.black87,
-                  isOldPrice: false,
-                ),
-                if (widget.package!['originalPrice'] != null) ...[
-                  const SizedBox(height: 2),
-                  SaudiCurrencySymbol(
-                    price: double.tryParse(widget.package!['originalPrice'].toString()) ?? 0.0,
-                    priceStyle: TextStyle(
-                      color: Colors.grey.shade400,
-                      fontWeight: FontWeight.w500,
-                      fontSize: 12,
-                    ),
-                    symbolFontColor: Colors.grey.shade400,
-                    isOldPrice: true,
-                  ),
-                ],
-              ],
-            ),
-          ],
         ),
-      ));
+      );
     }
 
     final total = subtotal;
@@ -428,7 +467,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F7F9),
       appBar: AppBar(
-        title: Text('checkout.title'.tr(), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
+        title: Text(
+          'checkout.title'.tr(),
+          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+        ),
         centerTitle: true,
         backgroundColor: Colors.white,
         elevation: 0,
@@ -444,10 +486,13 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
               child: Text(
                 'checkout.summary'.tr(),
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
-            
+
             // Items Card
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -474,10 +519,16 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                         CircleAvatar(
                           backgroundColor: Colors.grey.shade100,
                           radius: 20,
-                          backgroundImage: tenantLogoUrl != null ? NetworkImage(tenantLogoUrl) : null,
-                          child: tenantLogoUrl == null 
-                            ? const Icon(Icons.store_rounded, color: Colors.black54, size: 20)
-                            : null,
+                          backgroundImage: tenantLogoUrl != null
+                              ? NetworkImage(tenantLogoUrl)
+                              : null,
+                          child: tenantLogoUrl == null
+                              ? const Icon(
+                                  Icons.store_rounded,
+                                  color: Colors.black54,
+                                  size: 20,
+                                )
+                              : null,
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -486,12 +537,18 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                             children: [
                               Text(
                                 tenantName ?? 'checkout.store_label'.tr(),
-                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 15,
+                                ),
                               ),
                               const SizedBox(height: 2),
                               Text(
                                 '${widget.items?.length ?? 1} ${'packages.items'.tr()}',
-                                style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                                style: TextStyle(
+                                  color: Colors.grey.shade500,
+                                  fontSize: 13,
+                                ),
                               ),
                             ],
                           ),
@@ -500,26 +557,27 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     ),
                   ),
                   Divider(height: 1, color: Colors.grey.shade100),
-                  
+
                   // Items List
                   Padding(
                     padding: const EdgeInsets.all(16),
-                    child: Column(
-                      children: itemWidgets,
-                    ),
+                    child: Column(children: itemWidgets),
                   ),
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Order Totals Header
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
               child: Text(
                 'checkout.total'.tr(),
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
 
@@ -545,12 +603,18 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('checkout.total'.tr(), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+                      Text(
+                        'checkout.total'.tr(),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 18,
+                        ),
+                      ),
                       SaudiCurrencySymbol(
                         price: total,
                         priceStyle: const TextStyle(
-                          fontWeight: FontWeight.w800, 
-                          fontSize: 18, 
+                          fontWeight: FontWeight.w800,
+                          fontSize: 18,
                           color: Colors.black,
                         ),
                         symbolFontColor: Colors.black,
@@ -559,39 +623,66 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     ],
                   ),
                   const SizedBox(height: 6),
-                  Text('packages.vat_included'.tr(), style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+                  Text(
+                    'packages.vat_included'.tr(),
+                    style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                  ),
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // Payment Method Header
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text('checkout.payment_method'.tr(), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+              child: Text(
+                'checkout.payment_method'.tr(),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
             ),
             const SizedBox(height: 12),
-            
+
             if (Platform.isIOS) ...[
               GestureDetector(
-                onTap: () => setState(() => _selectedPaymentMethod = 'apple_pay'),
+                onTap: () =>
+                    setState(() => _selectedPaymentMethod = 'apple_pay'),
                 child: Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16),
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: _selectedPaymentMethod == 'apple_pay' ? Colors.black : Colors.grey.shade200, 
-                      width: 1.5
+                      color: _selectedPaymentMethod == 'apple_pay'
+                          ? Colors.black
+                          : Colors.grey.shade200,
+                      width: 1.5,
                     ),
                     borderRadius: BorderRadius.circular(16),
-                    color: _selectedPaymentMethod == 'apple_pay' ? Colors.black.withValues(alpha: 0.05) : Colors.white,
+                    color: _selectedPaymentMethod == 'apple_pay'
+                        ? Colors.black.withValues(alpha: 0.05)
+                        : Colors.white,
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.apple, color: _selectedPaymentMethod == 'apple_pay' ? Colors.black : Colors.grey.shade600, size: 28),
+                      Icon(
+                        Icons.apple,
+                        color: _selectedPaymentMethod == 'apple_pay'
+                            ? Colors.black
+                            : Colors.grey.shade600,
+                        size: 28,
+                      ),
                       const SizedBox(width: 8),
-                      const Text('Apple Pay', style: TextStyle(fontWeight: FontWeight.w700, color: Colors.black87, fontSize: 16)),
+                      const Text(
+                        'Apple Pay',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black87,
+                          fontSize: 16,
+                        ),
+                      ),
                       const Spacer(),
                       if (_selectedPaymentMethod == 'apple_pay')
                         const Icon(Icons.check_circle, color: Colors.black),
@@ -609,17 +700,32 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   border: Border.all(
-                    color: _selectedPaymentMethod == 'card' ? AppColors.primary : Colors.grey.shade200, 
-                    width: 1.5
+                    color: _selectedPaymentMethod == 'card'
+                        ? AppColors.primary
+                        : Colors.grey.shade200,
+                    width: 1.5,
                   ),
                   borderRadius: BorderRadius.circular(16),
-                  color: _selectedPaymentMethod == 'card' ? AppColors.primary.withValues(alpha: 0.05) : Colors.white,
+                  color: _selectedPaymentMethod == 'card'
+                      ? AppColors.primary.withValues(alpha: 0.05)
+                      : Colors.white,
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.credit_card, color: _selectedPaymentMethod == 'card' ? AppColors.primary : Colors.grey.shade600),
+                    Icon(
+                      Icons.credit_card,
+                      color: _selectedPaymentMethod == 'card'
+                          ? AppColors.primary
+                          : Colors.grey.shade600,
+                    ),
                     const SizedBox(width: 12),
-                    Text('checkout.card'.tr(), style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.black87)),
+                    Text(
+                      'checkout.card'.tr(),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black87,
+                      ),
+                    ),
                     const Spacer(),
                     if (_selectedPaymentMethod == 'card')
                       const Icon(Icons.check_circle, color: AppColors.primary),
@@ -627,7 +733,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 24),
             Text(
               'checkout.security_hint'.tr(),
@@ -658,13 +764,17 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 children: [
                   Text(
                     'checkout.total'.tr(),
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Colors.black87),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: Colors.black87,
+                    ),
                   ),
                   SaudiCurrencySymbol(
                     price: total,
                     priceStyle: const TextStyle(
-                      fontWeight: FontWeight.w900, 
-                      fontSize: 20, 
+                      fontWeight: FontWeight.w900,
+                      fontSize: 20,
                       color: Color(0xFF2C3E50),
                     ),
                     symbolFontColor: const Color(0xFF2C3E50),
@@ -677,41 +787,56 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 width: double.infinity,
                 height: 54,
                 child: ElevatedButton(
-                  onPressed: _isProcessingPayment ? null : () => _processCheckout(total),
+                  onPressed: _isProcessingPayment
+                      ? null
+                      : () => _processCheckout(total),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _selectedPaymentMethod == 'apple_pay' ? Colors.black : AppColors.primary,
+                    backgroundColor: _selectedPaymentMethod == 'apple_pay'
+                        ? Colors.black
+                        : AppColors.primary,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     elevation: 0,
                   ),
                   child: _isProcessingPayment
                       ? const SizedBox(
-                          width: 24, 
-                          height: 24, 
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5)
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2.5,
+                          ),
                         )
                       : _selectedPaymentMethod == 'apple_pay'
-                          ? Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'checkout.pay_with'.tr(),
-                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                                ),
-                                const Text(
-                                  'Pay',
-                                  style: TextStyle(
-                                    fontSize: 16, 
-                                    fontWeight: FontWeight.w600, 
-                                    fontFamily: '.SF Pro Text',
-                                  ),
-                                ),
-                              ],
-                            )
-                          : Text(
-                              'checkout.pay_button'.tr(args: ['']).trim(),
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ? Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'checkout.pay_with'.tr(),
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
+                            const Text(
+                              'Pay',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                fontFamily: '.SF Pro Text',
+                              ),
+                            ),
+                          ],
+                        )
+                      : Text(
+                          'checkout.pay_button'.tr(args: ['']).trim(),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ),
             ],
