@@ -5,7 +5,8 @@ class AppConfig {
   // - iOS Simulator: 'localhost'
   // - Android Emulator: '10.0.2.2'
   // - Physical Device: Your computer's local IP (e.g. '192.168.1.50')
-  static const String host = '127.0.0.1';
+  //static const String host = '127.0.0.1';
+  static const String host = '10.0.0.178';
   static const String port = '3000';
   
   static const String _localBaseUrl = 'http://$host:$port';

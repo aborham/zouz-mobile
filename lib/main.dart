@@ -12,17 +12,37 @@ import 'features/auth/providers/auth_provider.dart';
 import 'features/dashboard/providers/home_provider.dart';
 import 'features/profile/providers/profile_provider.dart';
 
+import 'firebase_options.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await EasyLocalization.ensureInitialized();
   final sharedPrefs = await SharedPreferences.getInstance();
 
   try {
-    await Firebase.initializeApp();
+    // Read the locale from EasyLocalization's SharedPreferences
+    final String savedLocale = sharedPrefs.getString('locale') ?? 'en';
+    // The savedLocale might be a full language tag like "en-US" or JSON, we can safely just take the first two letters. 
+    // Wait, EasyLocalization saves locale as languageCode. Let's just fallback to "en" if null.
+    // If it's a JSON string (like '{"languageCode":"en"}'), we might need to be careful.
+    // However, since we'll just send it to backend, extracting a simple string is fine.
+    // A safe way is to pass `startLocale.languageCode` but we don't have it easily.
+    // Let's parse it safely:
+    String currentLang = 'en';
+    if (savedLocale.contains('ar')) {
+      currentLang = 'ar';
+    } else if (savedLocale.contains('en')) {
+      currentLang = 'en';
+    }
+    
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
     // Setup Push Notifications and pass router to handle incoming intent
-    PushNotificationService().initialize(appRouter);
-  } catch (e) {
+    PushNotificationService().initialize(appRouter, currentLang);
+  } catch (e, stack) {
     debugPrint('Firebase initialization failed: $e');
+    debugPrintStack(stackTrace: stack);
     debugPrint(
       'Make sure you have added GoogleService-Info.plist (iOS) or google-services.json (Android)',
     );
