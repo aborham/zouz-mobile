@@ -87,11 +87,11 @@ class MyApp extends ConsumerWidget {
         final isAuth = next.status == AuthStatus.authenticated;
 
         if (!next.onboardingCompleted) {
-          if (currentPath != '/onboarding') {
+          if (currentPath != '/onboarding' && currentPath != '/splash') {
             appRouter.go('/onboarding');
           }
         } else if (isAuth) {
-          if (currentPath == '/login' || currentPath == '/otp' || currentPath == '/splash') {
+          if (currentPath == '/login' || currentPath == '/otp') {
             appRouter.go('/dashboard');
           }
         } else {

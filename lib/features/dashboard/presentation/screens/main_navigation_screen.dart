@@ -6,6 +6,8 @@ import '../../providers/navigation_provider.dart';
 import 'home_dashboard_screen.dart';
 import '../../../purchases/presentation/screens/purchases_screen.dart';
 import '../../../profile/presentation/screens/account_screen.dart';
+import '../../../../core/services/app_update_service.dart';
+import '../../../common/presentation/widgets/app_update_dialog.dart';
 
 class MainNavigationScreen extends ConsumerStatefulWidget {
   const MainNavigationScreen({super.key});
@@ -20,6 +22,22 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
   /// Only visited tabs get their widget tree built — this prevents ALL tabs
   /// from firing API calls simultaneously on startup (the IndexedStack bug).
   final Set<int> _visitedTabs = {0}; // Home is always built first
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkOptionalUpdate();
+    });
+  }
+
+  void _checkOptionalUpdate() {
+    final pendingUpdate = AppUpdateService.pendingOptionalUpdate;
+    if (pendingUpdate != null) {
+      AppUpdateService.pendingOptionalUpdate = null; // Clear it so it doesn't show again unnecessarily
+      AppUpdateDialog.show(context, pendingUpdate);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

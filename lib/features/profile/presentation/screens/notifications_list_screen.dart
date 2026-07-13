@@ -57,18 +57,6 @@ class _NotificationsListScreenState extends ConsumerState<NotificationsListScree
           ),
         ),
         centerTitle: true,
-        actions: [
-          TextButton(
-            onPressed: () => notifier.markAllAsRead(),
-            child: Text(
-              'profile.mark_all_read'.tr(),
-              style: const TextStyle(
-                color: AppColors.primary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
       ),
       body: notificationsAsync.when(
         data: (state) {

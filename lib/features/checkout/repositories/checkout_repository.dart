@@ -41,12 +41,13 @@ class CheckoutRepository {
     }
   }
 
-  Future<Map<String, dynamic>> processOrder(String orderId) async {
+  Future<Map<String, dynamic>> processOrder(String orderId, {String? token}) async {
     try {
       final response = await _dio.post(
         '/payment/process-order',
         data: {
           'orderId': orderId,
+          if (token != null) 'token': token,
         },
       );
       return Map<String, dynamic>.from(response.data);

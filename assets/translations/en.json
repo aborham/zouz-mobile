@@ -226,6 +226,7 @@
     "payment_method": "Payment Method",
     "card": "Debit or credit card",
     "pay_button": "Pay {}",
+    "pay_with": "Pay with ",
     "security_hint": "Your payment is secured and encrypted",
     "success_title": "Purchase Successful!",
     "success_subtitle": "Your package has been added to your wallet, enjoy!",

@@ -103,7 +103,7 @@ class HomeDashboardScreen extends ConsumerWidget {
                 const SizedBox(width: 8),
                 _buildHeaderIconButton(
                   icon: Icons.notifications_outlined,
-                  onPressed: () {},
+                  onPressed: () => context.push('/profile/notifications-list'),
                 ),
               ],
             ),

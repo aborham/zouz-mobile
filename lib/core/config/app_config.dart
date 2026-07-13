@@ -23,4 +23,17 @@ class AppConfig {
   static String get customerApiBaseUrl => '$apiBaseUrl/customer';
   
   static const String crispWebsiteId = '1da3bb6b-9c97-4f51-8c65-41c4886a170b';
+
+  static const String _localApplePayMerchantId = 'merchant.zouz.tap.sandbox';
+  static const String _prodApplePayMerchantId = 'merchant.zouz.tap.production';
+  
+  static String get applePayMerchantId => kReleaseMode ? _prodApplePayMerchantId : _localApplePayMerchantId;
+
+  // Tap Payments Mobile SDK Keys
+  // REPLACE these with the actual keys from your Tap Dashboard
+  static const String tapSandboxSecretKey = String.fromEnvironment('TAP_SANDBOX_KEY', defaultValue: 'sk_test_YOUR_SANDBOX_KEY');
+  static const String tapProductionSecretKey = String.fromEnvironment('TAP_PROD_KEY', defaultValue: 'sk_live_YOUR_PROD_KEY');
+  
+  static const String tapBundleIdIOS = 'com.zouz.mobile';
+  static const String tapBundleIdAndroid = 'com.zouz.mobile';
 }

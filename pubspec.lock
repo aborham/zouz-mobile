@@ -653,6 +653,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "17.1.0"
+  go_sell_sdk_flutter:
+    dependency: "direct main"
+    description:
+      name: go_sell_sdk_flutter
+      sha256: fdda1b4f2affaa090e4692bd5755e3b1a33c2d085871983fb37235d71c06dcd2
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.4.29"
   graphs:
     dependency: transitive
     description:
@@ -1451,7 +1459,7 @@ packages:
     source: hosted
     version: "1.4.0"
   url_launcher:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: url_launcher
       sha256: f6a7e5c4835bb4e3026a04793a4199ca2d14c739ec378fdfe23fc8075d0439f8

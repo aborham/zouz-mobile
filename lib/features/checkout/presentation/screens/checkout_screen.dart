@@ -5,6 +5,11 @@ import 'package:go_router/go_router.dart';
 import 'package:saudi_riyal_symbol/saudi_riyal_symbol.dart';
 import 'package:zouz_mobile/core/theme/colors.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:go_sell_sdk_flutter/go_sell_sdk_flutter.dart';
+import 'package:go_sell_sdk_flutter/model/models.dart';
+import 'dart:io' show Platform;
+import 'package:flutter/services.dart';
+import '../../../../core/config/app_config.dart';
 import '../../repositories/checkout_repository.dart';
 import '../../../cart/providers/cart_provider.dart';
 import '../../../profile/providers/profile_provider.dart';
@@ -29,12 +34,23 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   bool _isProcessingPayment = false;
   bool _isNavigatingToStatus = false;
   String? _checkoutUrl;
+  String _selectedPaymentMethod = 'card';
   late final WebViewController _webViewController;
 
   @override
   void initState() {
     super.initState();
     _initWebViewController();
+    _configureTapSDK();
+  }
+
+  void _configureTapSDK() {
+    GoSellSdkFlutter.configureApp(
+      bundleId: Platform.isAndroid ? AppConfig.tapBundleIdAndroid : AppConfig.tapBundleIdIOS,
+      productionSecretKey: AppConfig.tapProductionSecretKey,
+      sandBoxSecretKey: AppConfig.tapSandboxSecretKey,
+      lang: "en", // context.locale.languageCode might not be available here yet
+    );
   }
 
   void _initWebViewController() {
@@ -89,7 +105,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     }
   }
 
-  Future<void> _processCheckout() async {
+  Future<void> _processCheckout(double totalAmount) async {
     setState(() => _isProcessingPayment = true);
 
     try {
@@ -132,17 +148,118 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
       if (!mounted) return;
 
-      // 2. Process Order (Initiate Tap Payment)
-      final processResponse = await repository.processOrder(orderId);
-      final redirectUrl = processResponse['redirectUrl'];
-
-      if (redirectUrl != null && redirectUrl.isNotEmpty) {
-        setState(() {
-          _checkoutUrl = redirectUrl;
-        });
-        _webViewController.loadRequest(Uri.parse(redirectUrl));
+      if (_selectedPaymentMethod == 'apple_pay' && Platform.isIOS) {
+        await _startApplePay(orderId, totalAmount: totalAmount); 
       } else {
-        throw Exception('checkout.no_redirect'.tr());
+        // 2. Process Order (Initiate Tap Payment Hosted)
+        final processResponse = await repository.processOrder(orderId);
+        final redirectUrl = processResponse['redirectUrl'];
+
+        if (redirectUrl != null && redirectUrl.isNotEmpty) {
+          setState(() {
+            _checkoutUrl = redirectUrl;
+          });
+          _webViewController.loadRequest(Uri.parse(redirectUrl));
+        } else {
+          throw Exception('checkout.no_redirect'.tr());
+        }
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isProcessingPayment = false);
+      _showError(e.toString());
+    }
+  }
+
+  Future<void> _startApplePay(String orderId, {required double totalAmount}) async {
+    try {
+      final applePayMerchantID = AppConfig.applePayMerchantId;
+
+      GoSellSdkFlutter.sessionConfigurations(
+        trxMode: TransactionMode.TOKENIZE_CARD,
+        transactionCurrency: "sar",
+        amount: totalAmount,
+        customer: Customer(
+          customerId: "",
+          email: "customer@usezouz.com",
+          isdNumber: "966",
+          number: "500000000",
+          firstName: "Customer",
+          middleName: "",
+          lastName: "",
+          metaData: null,
+        ),
+        paymentItems: <PaymentItem>[],
+        taxes: <Tax>[],
+        shippings: <Shipping>[],
+        postURL: "https://tap.company",
+        paymentDescription: "Apple Pay Checkout",
+        paymentMetaData: {},
+        paymentReference: Reference(),
+        paymentStatementDescriptor: "",
+        isUserAllowedToSaveCard: false,
+        isRequires3DSecure: true,
+        receipt: Receipt(false, false),
+        authorizeAction: AuthorizeAction(type: AuthorizeActionType.CAPTURE, timeInHours: 10),
+        destinations: null,
+        merchantID: "",
+        allowedCadTypes: CardType.ALL,
+        applePayMerchantID: applePayMerchantID,
+        allowsToSaveSameCardMoreThanOnce: false,
+        paymentType: PaymentType.DEVICE,
+        sdkMode: kReleaseMode ? SDKMode.Production : SDKMode.Sandbox,
+        cardHolderName: "Customer",
+        allowsToEditCardHolderName: false,
+      );
+
+      final tapSDKResult = await GoSellSdkFlutter.startPaymentSDK;
+      
+      if (tapSDKResult != null) {
+        final sdkResult = tapSDKResult['sdk_result'];
+        if (sdkResult == 'SUCCESS') {
+          if (tapSDKResult['trx_mode'] == 'TOKENIZE') {
+            final token = tapSDKResult['token'];
+            if (token != null) {
+              await _processCheckoutWithToken(orderId, token);
+            }
+          }
+        } else if (sdkResult == 'FAILED') {
+          _showError('Apple Pay failed: ${tapSDKResult['error']}');
+          setState(() => _isProcessingPayment = false);
+        } else {
+          setState(() => _isProcessingPayment = false);
+        }
+      }
+    } on PlatformException catch (e) {
+      _showError('Apple Pay error: ${e.message}');
+      setState(() => _isProcessingPayment = false);
+    }
+  }
+
+  Future<void> _processCheckoutWithToken(String orderId, String token) async {
+    try {
+      final repository = ref.read(checkoutRepositoryProvider);
+      final processResponse = await repository.processOrder(orderId, token: token);
+      
+      if (!mounted) return;
+
+      if (processResponse['success'] == true) {
+        // Success
+        _isNavigatingToStatus = true;
+        ref.read(cartProvider.notifier).clear();
+        context.goNamed('payment-success', queryParameters: {'orderId': orderId});
+      } else {
+        // If it requires 3DS or failed
+        final redirectUrl = processResponse['redirectUrl'];
+        if (redirectUrl != null && redirectUrl.isNotEmpty) {
+          setState(() {
+            _checkoutUrl = redirectUrl;
+          });
+          _webViewController.loadRequest(Uri.parse(redirectUrl));
+        } else {
+           _showError('Payment failed to process');
+           setState(() => _isProcessingPayment = false);
+        }
       }
     } catch (e) {
       if (!mounted) return;
@@ -455,22 +572,59 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               child: Text('checkout.payment_method'.tr(), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
             ),
             const SizedBox(height: 12),
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                border: Border.all(color: AppColors.primary, width: 1.5),
-                borderRadius: BorderRadius.circular(16),
-                color: AppColors.primary.withValues(alpha: 0.05),
+            
+            if (Platform.isIOS) ...[
+              GestureDetector(
+                onTap: () => setState(() => _selectedPaymentMethod = 'apple_pay'),
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: _selectedPaymentMethod == 'apple_pay' ? Colors.black : Colors.grey.shade200, 
+                      width: 1.5
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    color: _selectedPaymentMethod == 'apple_pay' ? Colors.black.withValues(alpha: 0.05) : Colors.white,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.apple, color: _selectedPaymentMethod == 'apple_pay' ? Colors.black : Colors.grey.shade600, size: 28),
+                      const SizedBox(width: 8),
+                      const Text('Apple Pay', style: TextStyle(fontWeight: FontWeight.w700, color: Colors.black87, fontSize: 16)),
+                      const Spacer(),
+                      if (_selectedPaymentMethod == 'apple_pay')
+                        const Icon(Icons.check_circle, color: Colors.black),
+                    ],
+                  ),
+                ),
               ),
-              child: Row(
-                children: [
-                  const Icon(Icons.credit_card, color: AppColors.primary),
-                  const SizedBox(width: 12),
-                  Text('checkout.card'.tr(), style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.black87)),
-                  const Spacer(),
-                  const Icon(Icons.check_circle, color: AppColors.primary),
-                ],
+              const SizedBox(height: 12),
+            ],
+
+            GestureDetector(
+              onTap: () => setState(() => _selectedPaymentMethod = 'card'),
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: _selectedPaymentMethod == 'card' ? AppColors.primary : Colors.grey.shade200, 
+                    width: 1.5
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  color: _selectedPaymentMethod == 'card' ? AppColors.primary.withValues(alpha: 0.05) : Colors.white,
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.credit_card, color: _selectedPaymentMethod == 'card' ? AppColors.primary : Colors.grey.shade600),
+                    const SizedBox(width: 12),
+                    Text('checkout.card'.tr(), style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.black87)),
+                    const Spacer(),
+                    if (_selectedPaymentMethod == 'card')
+                      const Icon(Icons.check_circle, color: AppColors.primary),
+                  ],
+                ),
               ),
             ),
             
@@ -496,53 +650,68 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           ],
         ),
         child: SafeArea(
-          child: Row(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'checkout.total'.tr(),
-                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
-                    ),
-                    const SizedBox(height: 4),
-                    SaudiCurrencySymbol(
-                      price: total,
-                      priceStyle: const TextStyle(
-                        fontWeight: FontWeight.w900, 
-                        fontSize: 20, 
-                        color: Colors.black,
-                      ),
-                      symbolFontColor: Colors.black,
-                      isOldPrice: false,
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: SizedBox(
-                  height: 54,
-                  child: ElevatedButton(
-                    onPressed: _isProcessingPayment ? null : _processCheckout,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(27)),
-                      elevation: 0,
-                    ),
-                    child: _isProcessingPayment
-                        ? const SizedBox(
-                            width: 24, 
-                            height: 24, 
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5)
-                          )
-                        : Text(
-                            'checkout.pay_button'.tr(args: ['']).trim(),
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'checkout.total'.tr(),
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Colors.black87),
                   ),
+                  SaudiCurrencySymbol(
+                    price: total,
+                    priceStyle: const TextStyle(
+                      fontWeight: FontWeight.w900, 
+                      fontSize: 20, 
+                      color: Color(0xFF2C3E50),
+                    ),
+                    symbolFontColor: const Color(0xFF2C3E50),
+                    isOldPrice: false,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: ElevatedButton(
+                  onPressed: _isProcessingPayment ? null : () => _processCheckout(total),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _selectedPaymentMethod == 'apple_pay' ? Colors.black : AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                  ),
+                  child: _isProcessingPayment
+                      ? const SizedBox(
+                          width: 24, 
+                          height: 24, 
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5)
+                        )
+                      : _selectedPaymentMethod == 'apple_pay'
+                          ? Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'checkout.pay_with'.tr(),
+                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                                ),
+                                const Text(
+                                  'Pay',
+                                  style: TextStyle(
+                                    fontSize: 16, 
+                                    fontWeight: FontWeight.w600, 
+                                    fontFamily: '.SF Pro Text',
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Text(
+                              'checkout.pay_button'.tr(args: ['']).trim(),
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
                 ),
               ),
             ],

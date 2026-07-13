@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../../../auth/providers/auth_provider.dart';
-
+import '../../../../core/services/app_update_service.dart';
+import '../../../common/presentation/widgets/app_update_dialog.dart';
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
@@ -31,12 +32,48 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     _controller.forward();
   }
 
-  void _handleNavigation(AuthState authState) {
-    if (!authState.isInitialized) return;
+  bool _isCheckingUpdate = false;
+  bool _updateChecked = false;
+  bool _forceUpdateRequired = false;
+  bool _isShowingUpdateDialog = false;
 
-    if (!authState.onboardingCompleted) {
+  Future<void> _handleNavigation(AuthState authState) async {
+    if (!authState.isInitialized) return;
+    if (_forceUpdateRequired) return;
+
+    if (!_updateChecked) {
+      if (_isCheckingUpdate) return;
+      _isCheckingUpdate = true;
+
+      final updateService = AppUpdateService();
+      final updateInfo = await updateService.checkUpdate();
+      
+      _updateChecked = true;
+      _isCheckingUpdate = false;
+
+      if (!mounted) return;
+
+      if (updateInfo != null && updateInfo.updateAvailable) {
+        if (updateInfo.forceUpdate) {
+          _isShowingUpdateDialog = true;
+          debugPrint('SplashScreen: Showing Mandatory AppUpdateDialog');
+          await AppUpdateDialog.show(context, updateInfo);
+          _isShowingUpdateDialog = false;
+          _forceUpdateRequired = true;
+          return;
+        } else {
+          // It's optional: save it and show it on the Home Screen instead
+          AppUpdateService.pendingOptionalUpdate = updateInfo;
+        }
+      }
+    } else if (_isCheckingUpdate || _isShowingUpdateDialog) {
+      return;
+    }
+
+    final latestState = ref.read(authNotifierProvider);
+    if (!latestState.onboardingCompleted) {
       context.go('/onboarding');
-    } else if (authState.status == AuthStatus.authenticated) {
+    } else if (latestState.status == AuthStatus.authenticated) {
       context.go('/dashboard');
     } else {
       context.go('/login');
