@@ -6,6 +6,9 @@ import 'package:go_router/go_router.dart';
 import 'package:zouz_mobile/features/auth/providers/auth_provider.dart';
 import 'package:zouz_mobile/core/theme/colors.dart';
 import 'package:zouz_mobile/core/widgets/zouz_logo.dart';
+import 'package:zouz_mobile/core/config/app_config.dart';
+import 'package:flutter/gestures.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:ui' as ui;
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -48,6 +51,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       context.setLocale(const Locale('ar'));
     } else {
       context.setLocale(const Locale('en'));
+    }
+  }
+
+  Future<void> _launchUrl(String path) async {
+    final lang = context.locale.languageCode;
+    final url = Uri.parse('${AppConfig.websiteUrl}/$lang/$path');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.inAppWebView);
     }
   }
 
@@ -221,11 +232,34 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
               const SizedBox(height: 16),
               // Terms Footer
-              Text(
-                'auth.terms_consent'.tr(),
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textSecondary,
+              Text.rich(
+                TextSpan(
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                  children: [
+                    TextSpan(text: 'auth.terms_consent_1'.tr()),
+                    TextSpan(
+                      text: 'auth.terms_consent_2'.tr(),
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                        decoration: TextDecoration.underline,
+                      ),
+                      recognizer: TapGestureRecognizer()..onTap = () => _launchUrl('terms'),
+                    ),
+                    TextSpan(text: 'auth.terms_consent_3'.tr()),
+                    TextSpan(
+                      text: 'auth.terms_consent_4'.tr(),
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                        decoration: TextDecoration.underline,
+                      ),
+                      recognizer: TapGestureRecognizer()..onTap = () => _launchUrl('privacy'),
+                    ),
+                  ],
                 ),
                 textAlign: TextAlign.center,
               ),

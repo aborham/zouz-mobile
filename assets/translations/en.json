@@ -27,7 +27,7 @@
     "permission_gallery_msg": "We need gallery access to choose your profile picture.",
     "permission_enable": "Enable",
     "permission_cancel": "Not now",
-    "terms_consent": "By continuing, you agree to our Terms of Service and Privacy Policy",
+    "terms_consent_1": "By continuing, you agree to our ", "terms_consent_2": "Terms of Service", "terms_consent_3": " and ", "terms_consent_4": "Privacy Policy",
     "skip": "Skip"
   },
   "dashboard": {
@@ -77,7 +77,12 @@
     "error_title": "Something went wrong",
     "error_subtitle": "We're having trouble loading this page. Please try again later.",
     "save": "Save Changes",
-    "done": "Done"
+    "done": "Done",
+    "update_available": "Update Available!",
+    "update_mandatory_desc": "A new version of the app is available. Please update to continue using the app.",
+    "update_optional_desc": "A new version of the app is available. Would you like to update now?",
+    "update_now": "Update Now",
+    "skip_for_now": "Skip for now"
   },
   "profile": {
     "title": "Profile",
