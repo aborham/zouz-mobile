@@ -9,6 +9,7 @@ import 'package:package_info_plus/package_info_plus.dart' as package_info_plus;
 import 'package:dio/dio.dart' as dio_lib;
 import 'package:zouz_mobile/core/config/app_config.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 const AndroidNotificationChannel _channel = AndroidNotificationChannel(
   'high_importance_channel', // id
@@ -22,6 +23,7 @@ final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin =
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
   debugPrint('Handling a background message: ${message.messageId}');
+  await PushNotificationService._syncNotificationToBackend(message);
 }
 
 class PushNotificationService {
@@ -33,6 +35,38 @@ class PushNotificationService {
   }
 
   PushNotificationService._internal();
+
+  static Future<void> _syncNotificationToBackend(RemoteMessage message) async {
+    try {
+      // If the backend already saved it, it will pass backend_saved flag
+      if (message.data['backend_saved'] == 'true') return;
+
+      // Extract title and body
+      final title = message.notification?.title ?? message.data['title'];
+      final body = message.notification?.body ?? message.data['body'];
+
+      if (title == null && body == null) return;
+
+      const storage = FlutterSecureStorage();
+      final token = await storage.read(key: 'auth_token');
+      if (token == null) return;
+
+      final dio = dio_lib.Dio();
+      dio.options.headers['Authorization'] = 'Bearer $token';
+
+      await dio.post(
+        '${AppConfig.customerApiBaseUrl}/notifications/sync',
+        data: {
+          'title': title,
+          'body': body,
+          'data': message.data,
+        },
+      );
+      debugPrint('Successfully synced FCM notification to backend');
+    } catch (e) {
+      debugPrint('Failed to sync notification: $e');
+    }
+  }
 
   Future<void> initialize(GoRouter router, String appLanguage) async {
     FirebaseMessaging messaging = FirebaseMessaging.instance;
@@ -145,6 +179,7 @@ class PushNotificationService {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       debugPrint('Got a message whilst in the foreground!');
       debugPrint('Message data: ${message.data}');
+      PushNotificationService._syncNotificationToBackend(message);
 
       if (message.notification != null) {
         debugPrint(
