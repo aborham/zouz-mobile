@@ -33,7 +33,7 @@ class _NotificationsSettingsScreenState extends ConsumerState<NotificationsSetti
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'profile.notifications'.tr(),
+          'profile.notification_settings'.tr(),
           style: const TextStyle(
             color: AppColors.textPrimary,
             fontWeight: FontWeight.bold,

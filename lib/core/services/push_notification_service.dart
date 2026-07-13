@@ -40,7 +40,7 @@ class PushNotificationService {
     try {
       String? token = await messaging.getToken();
       debugPrint("FCM Token: $token");
-      // TODO: Send to backend
+      // Token is sent to backend during OTP verification in AuthProvider
     } catch (e) {
       debugPrint("Failed to get FCM token: $e");
     }

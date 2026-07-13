@@ -23,6 +23,10 @@ class AuthRepository {
     String phoneNumber,
     String code, {
     String? deviceToken,
+    String? deviceType,
+    String? deviceModel,
+    String? osVersion,
+    String? appVersion,
   }) async {
     try {
       final response = await _apiClient.dio.post(
@@ -30,10 +34,14 @@ class AuthRepository {
         data: {
           'phoneNumber': phoneNumber,
           'code': code,
-          'deviceInfo': {
-            'token': deviceToken ?? 'dummy_dev_token',
-            'type': 'IOS', // or 'ANDROID' based on platform
-          },
+          if (deviceToken != null)
+            'deviceInfo': {
+              'token': deviceToken,
+              'type': deviceType ?? 'IOS',
+              'model': deviceModel,
+              'osVersion': osVersion,
+              'appVersion': appVersion,
+            },
         },
       );
 

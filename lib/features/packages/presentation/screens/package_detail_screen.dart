@@ -4,7 +4,12 @@ import 'package:go_router/go_router.dart';
 import 'package:zouz_mobile/core/theme/colors.dart';
 import 'package:zouz_mobile/core/utils/image_utils.dart';
 
-class PackageDetailScreen extends StatelessWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:saudi_riyal_symbol/saudi_riyal_symbol.dart';
+import 'package:zouz_mobile/features/cart/providers/cart_provider.dart';
+import 'package:zouz_mobile/features/cart/providers/cart_provider.dart' as cart_models;
+
+class PackageDetailScreen extends ConsumerWidget {
   final Map<String, dynamic> package;
 
   const PackageDetailScreen({super.key, required this.package});
@@ -19,7 +24,7 @@ class PackageDetailScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final locale = context.locale.languageCode;
     final name = _getLocalizedValue(package['name'], locale);
     final description = _getLocalizedValue(package['description'], locale);
@@ -136,7 +141,7 @@ class PackageDetailScreen extends StatelessWidget {
                     
                     if (description.isNotEmpty) ...[
                       Text(
-                        'package.description'.tr(),
+                        'packages.description'.tr(),
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
@@ -199,66 +204,132 @@ class PackageDetailScreen extends StatelessWidget {
               ),
             ],
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(
-                    'packages.total_price'.tr(),
-                    style: TextStyle(
-                      color: Colors.grey.shade500,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '$price ${'dashboard.currency'.tr()}',
-                    style: const TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 26,
-                      letterSpacing: -0.5,
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'packages.total_price'.tr(),
+                        style: TextStyle(
+                          color: Colors.grey.shade500,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          SaudiCurrencySymbol(
+                            price: double.tryParse(package['price']?.toString() ?? '0') ?? 0,
+                            priceStyle: const TextStyle(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 28,
+                              letterSpacing: -0.5,
+                            ),
+                            symbolFontColor: AppColors.primary,
+                            isOldPrice: false,
+                          ),
+                          if (package['originalPrice'] != null) ...[
+                            const SizedBox(width: 8),
+                            SaudiCurrencySymbol(
+                              price: double.tryParse(package['originalPrice'].toString()) ?? 0,
+                              priceStyle: TextStyle(
+                                color: Colors.grey.shade400,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 15,
+                              ),
+                              symbolFontColor: Colors.grey.shade400,
+                              isOldPrice: true,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
                   ),
                 ],
               ),
-              const SizedBox(width: 32),
-              Expanded(
-                child: InkWell(
-                  onTap: () {
-                    context.push('/checkout', extra: {'package': package});
-                  },
-                  borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.3),
-                          blurRadius: 15,
-                          offset: const Offset(0, 8),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  InkWell(
+                    onTap: () {
+                      final cartItem = cart_models.CartItem(
+                        packageId: package['id'],
+                        packageName: name,
+                        price: double.tryParse(package['price'].toString()) ?? 0.0,
+                        imageUrl: package['imageUrl'],
+                        quantity: 1,
+                        tenantId: package['tenantId'],
+                        type: package['type'] ?? 'QUANTITY',
+                        tenantName: package['tenantName'] is Map 
+                          ? (package['tenantName'][locale] ?? package['tenantName']['en'] ?? '')
+                          : package['tenantName']?.toString(),
+                        tenantLogoUrl: package['tenantLogoUrl'],
+                      );
+                      
+                      ref.read(cartProvider.notifier).addItem(cartItem);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Added to cart'), // Fallback text, ideally localized
+                          backgroundColor: Colors.green,
+                          duration: const Duration(seconds: 2),
+                          behavior: SnackBarBehavior.floating,
                         ),
-                      ],
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Icon(Icons.add_shopping_cart_rounded, color: AppColors.primary),
                     ),
-                    width: double.infinity,
-                    child: Text(
-                      'packages.purchase_now'.tr(),
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.5,
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: InkWell(
+                      onTap: () {
+                        context.push('/checkout', extra: {'package': package});
+                      },
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.3),
+                              blurRadius: 15,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          'packages.purchase_now'.tr(),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
+                ],
               ),
             ],
           ),

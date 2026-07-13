@@ -6,6 +6,7 @@ import 'package:zouz_mobile/core/theme/colors.dart';
 import 'package:zouz_mobile/core/utils/image_utils.dart';
 import 'package:zouz_mobile/features/cart/providers/cart_provider.dart';
 import 'package:zouz_mobile/features/scanner/providers/menu_provider.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class CartScreen extends ConsumerStatefulWidget {
   const CartScreen({super.key});
@@ -35,24 +36,25 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         ),
         centerTitle: true,
         actions: [
-          TextButton(
-            onPressed: () {
-              ref.read(cartProvider.notifier).clear();
-              context.pop();
-            },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Text(
-                'cart.clear'.tr(), // Verbatim "مسح السلة"
-                style: const TextStyle(
-                  color: AppColors.error,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
+          if (cart.items.isNotEmpty)
+            TextButton(
+              onPressed: () {
+                ref.read(cartProvider.notifier).clear();
+                context.pop();
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text(
+                  'cart.clear'.tr(), // Verbatim "مسح السلة"
+                  style: const TextStyle(
+                    color: AppColors.error,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 1,
                 ),
-                maxLines: 1,
               ),
             ),
-          ),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
@@ -86,20 +88,28 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   }
 
   Widget _buildEmptyState(BuildContext context) {
+    const String emptyCartSvg = '''
+<svg width="150" height="150" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path opacity="0.1" d="M5 9H19L20 21H4L5 9Z" fill="#224AFB"/>
+  <path d="M16 11V7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7V11M5 9H19L20 21H4L5 9Z" stroke="#224AFB" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="12" cy="15" r="2" fill="#224AFB" opacity="0.5"/>
+</svg>
+''';
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.shopping_cart_outlined, size: 80, color: Colors.grey[200]),
+          SvgPicture.string(emptyCartSvg, width: 120, height: 120),
           const SizedBox(height: 24),
           Text(
             'cart.empty_title'.tr(),
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
           ),
-          const SizedBox(height: 32),
-          ElevatedButton(
-            onPressed: () => context.pop(),
-            child: Text('cart.browse_packages'.tr()),
+          const SizedBox(height: 8),
+          Text(
+            'cart.empty_subtitle'.tr(),
+            style: const TextStyle(fontSize: 14, color: Colors.grey),
           ),
         ],
       ),

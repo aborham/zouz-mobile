@@ -31,7 +31,6 @@ class HomeDashboardScreen extends ConsumerWidget {
                 const SliverToBoxAdapter(child: SizedBox(height: 24)),
                 SliverToBoxAdapter(child: _PromoCarousel(banners: data.banners)),
                 _buildActiveRoutine(context, ref, data.activePackages),
-                _buildTrendingPackages(context, data.trendingPackages),
                 const SliverToBoxAdapter(child: SizedBox(height: 32)),
               ],
             ),
@@ -80,7 +79,7 @@ class HomeDashboardScreen extends ConsumerWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      '${greetingKey.tr()}, ${user.name?.split(' ').first ?? 'profile.customer_name'.tr()}',
+                      '${greetingKey.tr()}, ${user.name?.split(' ').first ?? ''}',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
@@ -469,155 +468,6 @@ class HomeDashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildTrendingPackages(BuildContext context, List<TrendingPackage> packages) {
-    if (packages.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
-
-    return SliverPadding(
-      padding: const EdgeInsets.symmetric(vertical: 28),
-      sliver: SliverToBoxAdapter(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Text(
-                'dashboard.featured_packages'.tr(),
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 240,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                itemCount: packages.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 16),
-                itemBuilder: (context, index) {
-                  final pkg = packages[index];
-                  final locale = context.locale.languageCode;
-                  final packageName = pkg.name[locale] ?? pkg.name['en'] ?? '';
-                  final providerName = pkg.providerName[locale] ?? pkg.providerName['en'] ?? '';
-
-                  return GestureDetector(
-                    onTap: () {
-                      context.push('/package', extra: {
-                        'id': pkg.id,
-                        'name': packageName,
-                        'price': pkg.price.toString(),
-                        'imageUrl': pkg.imageUrl,
-                        'businessName': providerName,
-                        'rating': pkg.rating,
-                      });
-                    },
-                    child: Container(
-                      width: 180,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: AppColors.secondary, width: 1.0),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.02),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                                image: pkg.imageUrl != null
-                                    ? DecorationImage(
-                                        image: NetworkImage(pkg.imageUrl!),
-                                        fit: BoxFit.cover,
-                                      )
-                                    : null,
-                                color: AppColors.surface,
-                              ),
-                              child: pkg.imageUrl == null
-                                  ? const Center(
-                                      child: Icon(Icons.inventory_2_outlined, color: AppColors.primary, size: 32),
-                                    )
-                                  : null,
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  packageName,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  providerName,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      '${pkg.price} ${'dashboard.currency'.tr()}',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: 14,
-                                        color: AppColors.primary,
-                                      ),
-                                    ),
-                                    Row(
-                                      children: [
-                                        const Icon(Icons.star, color: Colors.amber, size: 14),
-                                        const SizedBox(width: 2),
-                                        Text(
-                                          (pkg.rating ?? 4.5).toString(),
-                                          style: const TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold,
-                                            color: AppColors.textPrimary,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildDefaultIcon(String name) {
     final lName = name.toLowerCase();

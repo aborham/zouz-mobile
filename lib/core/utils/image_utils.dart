@@ -2,7 +2,7 @@ import '../config/app_config.dart';
 
 class ImageUtils {
   // Base URL for the backend server
-  static const String _serverBaseUrl = AppConfig.baseUrl;
+  static String get _serverBaseUrl => AppConfig.baseUrl;
 
   /// Resolves a full URL for an image.
   /// If [path] is relative (starts with /), it prepends the server base URL.

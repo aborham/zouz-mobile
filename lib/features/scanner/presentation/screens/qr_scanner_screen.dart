@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:ui';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:go_router/go_router.dart';
@@ -101,56 +102,90 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
     if (_isProcessing || _showSuccess || _errorMessage != null) return;
     final List<Barcode> barcodes = capture.barcodes;
     if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
-      final code = barcodes.first.rawValue!;
+      _processQRCode(barcodes.first.rawValue!);
+    }
+  }
+
+  void _processQRCode(String code) {
+    if (_isProcessing || _showSuccess || _errorMessage != null) return;
+    try {
+      final uri = Uri.parse(code);
+      String? tenantSlug;
+      String? standId;
+
+      // Validation logic for Zouz QR codes
+      final bool isZouzMenu = uri.pathSegments.contains('menu');
+      final bool isZouzDirect = uri.host == 'zouz.app' || uri.host == 'dev.zouzapp.com';
       
-      try {
-        final uri = Uri.parse(code);
-        String? tenantSlug;
-        String? standId;
+      if (isZouzMenu) {
+        final index = uri.pathSegments.indexOf('menu');
+        if (index + 1 < uri.pathSegments.length) {
+          tenantSlug = uri.pathSegments[index + 1];
+        }
+        standId = uri.queryParameters['standId'];
+      } else if (isZouzDirect) {
+        tenantSlug = uri.pathSegments.isNotEmpty ? uri.pathSegments.first : null;
+      }
 
-        // Validation logic for Zouz QR codes
-        final bool isZouzMenu = uri.pathSegments.contains('menu');
-        final bool isZouzDirect = uri.host == 'zouz.app' || uri.host == 'dev.zouzapp.com';
+      if (tenantSlug != null && tenantSlug.isNotEmpty) {
+        setState(() {
+          _isProcessing = true;
+          _showSuccess = true;
+        });
+        cameraController.stop();
+
+        final query = standId != null ? '?standId=$standId' : '';
         
-        if (isZouzMenu) {
-          final index = uri.pathSegments.indexOf('menu');
-          if (index + 1 < uri.pathSegments.length) {
-            tenantSlug = uri.pathSegments[index + 1];
-          }
-          standId = uri.queryParameters['standId'];
-        } else if (isZouzDirect) {
-          tenantSlug = uri.pathSegments.isNotEmpty ? uri.pathSegments.first : null;
-        }
-
-        if (tenantSlug != null && tenantSlug.isNotEmpty) {
-          setState(() {
-            _isProcessing = true;
-            _showSuccess = true;
+        // Show success feedback for a moment before navigating
+        Future.delayed(const Duration(milliseconds: 1500), () {
+          if (!mounted) return;
+          context.push('/menu/$tenantSlug$query').then((_) {
+            if (mounted) {
+              setState(() {
+                _isProcessing = false;
+                _showSuccess = false;
+              });
+              cameraController.start();
+            }
           });
-          cameraController.stop();
-
-          final query = standId != null ? '?standId=$standId' : '';
-          
-          // Show success feedback for a moment before navigating
-          Future.delayed(const Duration(milliseconds: 1500), () {
-            if (!mounted) return;
-            context.push('/menu/$tenantSlug$query').then((_) {
-              if (mounted) {
-                setState(() {
-                  _isProcessing = false;
-                  _showSuccess = false;
-                });
-                cameraController.start();
-              }
-            });
-          });
-        } else {
-          _handleInvalidQr();
-        }
-      } catch (e) {
+        });
+      } else {
         _handleInvalidQr();
       }
+    } catch (e) {
+      _handleInvalidQr();
     }
+  }
+
+  void _showDebugScannerDialog() {
+    final TextEditingController controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Debug: Simulate QR Scan'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            hintText: 'Paste QR Code URL here',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              if (controller.text.isNotEmpty) {
+                _processQRCode(controller.text);
+              }
+            },
+            child: const Text('Simulate Scan'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _handleInvalidQr() {
@@ -220,6 +255,13 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
                 ),
                 Row(
                   children: [
+                    if (kDebugMode) ...[
+                      _buildGlassButton(
+                        icon: Icons.bug_report,
+                        onPressed: _showDebugScannerDialog,
+                      ),
+                      const SizedBox(width: 12),
+                    ],
                     _buildGlassButton(
                       icon: Icons.flash_on,
                       onPressed: () => cameraController.toggleTorch(),

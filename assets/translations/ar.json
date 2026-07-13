@@ -31,7 +31,7 @@
     "skip": "تخطي"
   },
   "dashboard": {
-    "currency": "ر.س",
+    "currency": "⃁",
     "home": "الرئيسية",
     "purchases": "مشترياتي",
     "profile": "الملف الشخصي",
@@ -91,7 +91,8 @@
     "terms": "الشروط والأحكام",
     "privacy": "سياسة الخصوصية",
     "version": "الإصدار {}",
-    "customer_name": "عميل زوز",
+    "customer_name": "الاسم",
+    "customer_name_placeholder": "محمد احمد",
     "active_packages": "الباقات النشطة",
     "account_activity": "نشاط الحساب",
     "my_packages": "باقاتي",
@@ -157,7 +158,7 @@
     "filter_completed": "مكتملة",
     "filter_refunded": "مستردة",
     "filter_expired": "منتهية",
-    "currency": "ريال",
+    "currency": "⃁",
     "empty": "لا توجد باقات مشتراة حالياً.",
     "purchased": "تاريخ الشراء",
     "remaining": "المتبقي",

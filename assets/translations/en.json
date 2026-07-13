@@ -31,7 +31,7 @@
     "skip": "Skip"
   },
   "dashboard": {
-    "currency": "SAR",
+    "currency": "⃁",
     "home": "Home",
     "explore": "Explore",
     "my_packages": "My Packages",
@@ -91,6 +91,7 @@
     "privacy": "Privacy Policy",
     "version": "Version {}",
     "customer_name": "Zouz Customer",
+    "customer_name_placeholder": "John Doe",
     "active_packages": "Active Packages",
     "account_activity": "Account Activity",
     "my_packages": "My Packages",
@@ -156,7 +157,7 @@
     "filter_completed": "Completed",
     "filter_refunded": "Refunded",
     "filter_expired": "Expired",
-    "currency": "SAR",
+    "currency": "⃁",
     "empty": "No purchases found.",
     "purchased": "Purchased",
     "remaining": "Remaining",

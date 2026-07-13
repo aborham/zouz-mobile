@@ -252,7 +252,7 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
                 const SizedBox(height: 48),
                 _buildFieldLabel('profile.customer_name'.tr()),
                 const SizedBox(height: 8),
-                _buildTextField(_nameController, "John Doe"),
+                _buildTextField(_nameController, 'profile.customer_name_placeholder'.tr()),
                 const SizedBox(height: 24),
                 _buildFieldLabel('profile.email'.tr()),
                 const SizedBox(height: 8),

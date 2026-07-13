@@ -2,6 +2,9 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import '../repositories/auth_repository.dart';
 import '../../../core/api/api_client.dart';
 
@@ -128,7 +131,45 @@ class AuthNotifier extends Notifier<AuthState> {
 
     state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
     try {
-      final response = await _repository.verifyOtp(state.phoneNumber!, code);
+      // Gather device info
+      String? deviceToken;
+      String? deviceType;
+      String? deviceModel;
+      String? osVersion;
+      String? appVersion;
+
+      try {
+        deviceToken = await FirebaseMessaging.instance.getToken();
+        
+        final packageInfo = await PackageInfo.fromPlatform();
+        appVersion = packageInfo.version;
+
+        final deviceInfo = DeviceInfoPlugin();
+        if (Platform.isIOS) {
+          deviceType = 'IOS';
+          final iosInfo = await deviceInfo.iosInfo;
+          deviceModel = iosInfo.model; // e.g., 'iPhone' or specifically 'iPhone 15 Pro Max'
+          osVersion = iosInfo.systemVersion;
+        } else if (Platform.isAndroid) {
+          deviceType = 'ANDROID';
+          final androidInfo = await deviceInfo.androidInfo;
+          deviceModel = androidInfo.model;
+          osVersion = androidInfo.version.release;
+        }
+      } catch (e) {
+        // Silently ignore device info failures
+        print('Failed to get device info: $e');
+      }
+
+      final response = await _repository.verifyOtp(
+        state.phoneNumber!, 
+        code,
+        deviceToken: deviceToken,
+        deviceType: deviceType,
+        deviceModel: deviceModel,
+        osVersion: osVersion,
+        appVersion: appVersion,
+      );
       final token = response['token'];
 
       if (token != null) {

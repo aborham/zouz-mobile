@@ -10,6 +10,8 @@ class CartItem {
   final int quantity;
   final String type;
   final String tenantId;
+  final String? tenantName;
+  final String? tenantLogoUrl;
   final String? standId;
   final String? imageUrl;
 
@@ -21,6 +23,8 @@ class CartItem {
     required this.quantity,
     required this.type,
     required this.tenantId,
+    this.tenantName,
+    this.tenantLogoUrl,
     this.standId,
     this.imageUrl,
   });
@@ -36,6 +40,8 @@ class CartItem {
       quantity: quantity ?? this.quantity,
       type: type,
       tenantId: tenantId,
+      tenantName: tenantName,
+      tenantLogoUrl: tenantLogoUrl,
       standId: standId,
       imageUrl: imageUrl,
     );
@@ -50,6 +56,8 @@ class CartItem {
       'quantity': quantity,
       'type': type,
       'tenantId': tenantId,
+      'tenantName': tenantName,
+      'tenantLogoUrl': tenantLogoUrl,
       'standId': standId,
       'imageUrl': imageUrl,
     };
@@ -61,9 +69,11 @@ class CartItem {
       packageName: map['packageName'] ?? '',
       packageDescription: map['packageDescription'],
       price: double.tryParse(map['price']?.toString() ?? '0') ?? 0.0,
-      quantity: map['quantity'] ?? 1,
-      type: map['type'] ?? 'QUANTITY',
+      quantity: map['quantity']?.toInt() ?? 0,
+      type: map['type'] ?? '',
       tenantId: map['tenantId'] ?? '',
+      tenantName: map['tenantName'],
+      tenantLogoUrl: map['tenantLogoUrl'],
       standId: map['standId'],
       imageUrl: map['imageUrl'],
     );

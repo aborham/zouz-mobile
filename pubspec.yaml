@@ -31,6 +31,8 @@ dependencies:
   crisp_chat: ^2.6.0
   timeago: ^3.7.1
   saudi_riyal_symbol: ^0.0.7
+  device_info_plus: ^11.0.0
+  package_info_plus: ^9.0.1
 
 dev_dependencies:
   flutter_test:
