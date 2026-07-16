@@ -14,6 +14,7 @@ import '../../../../core/config/app_config.dart';
 import '../../repositories/checkout_repository.dart';
 import '../../../cart/providers/cart_provider.dart';
 import '../../../profile/providers/profile_provider.dart';
+import '../../../profile/models/profile_model.dart';
 
 class CheckoutScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic>? package;
@@ -181,18 +182,45 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     try {
       final applePayMerchantID = AppConfig.applePayMerchantId;
 
+      UserProfile? profile;
+      try {
+        profile = await ref.read(profileProvider.future);
+      } catch (e) {
+        debugPrint('Failed to load profile details for Apple Pay: $e');
+      }
+
+      final email = profile?.email ?? "customer@usezouz.com";
+      final phone = profile?.phoneNumber ?? "500000000";
+      final name = profile?.name ?? "Customer";
+
+      // Split first name and last name
+      final nameParts = name.trim().split(' ');
+      final firstName = nameParts.first.isNotEmpty ? nameParts.first : "Customer";
+      final lastName = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : "Customer";
+
+      // Clean phone number (extract code and number)
+      String cleanPhone = phone.replaceAll('+', '').replaceAll(' ', '');
+      String countryCode = "966";
+      String numberPart = cleanPhone;
+      if (cleanPhone.startsWith("966")) {
+        countryCode = "966";
+        numberPart = cleanPhone.substring(3);
+      } else if (cleanPhone.startsWith("0")) {
+        numberPart = cleanPhone.substring(1);
+      }
+
       GoSellSdkFlutter.sessionConfigurations(
         trxMode: TransactionMode.TOKENIZE_CARD,
         transactionCurrency: "sar",
         amount: totalAmount,
         customer: Customer(
           customerId: "",
-          email: "customer@usezouz.com",
-          isdNumber: "966",
-          number: "500000000",
-          firstName: "Customer",
+          email: email,
+          isdNumber: countryCode,
+          number: numberPart,
+          firstName: firstName,
           middleName: "",
-          lastName: "",
+          lastName: lastName,
           metaData: null,
         ),
         paymentItems: <PaymentItem>[],
@@ -217,7 +245,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         allowsToSaveSameCardMoreThanOnce: false,
         paymentType: PaymentType.DEVICE,
         sdkMode: kReleaseMode ? SDKMode.Production : SDKMode.Sandbox,
-        cardHolderName: "Customer",
+        cardHolderName: name,
         allowsToEditCardHolderName: false,
       );
 
@@ -462,7 +490,6 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     }
 
     final total = subtotal;
-    final tax = total - (total / 1.15);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F7F9),
