@@ -1,0 +1,19 @@
+{
+  "provider": "apple_pay",
+  "data": {
+    "merchantIdentifier": "merchant.zouz.tap.sandbox",
+    "displayName": "Zouz",
+    "merchantCapabilities": [
+      "3DS",
+      "debit",
+      "credit"
+    ],
+    "supportedNetworks": [
+      "visa",
+      "masterCard",
+      "mada"
+    ],
+    "countryCode": "SA",
+    "currencyCode": "SAR"
+  }
+}

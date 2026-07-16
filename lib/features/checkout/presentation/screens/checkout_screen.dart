@@ -5,16 +5,12 @@ import 'package:go_router/go_router.dart';
 import 'package:saudi_riyal_symbol/saudi_riyal_symbol.dart';
 import 'package:zouz_mobile/core/theme/colors.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:go_sell_sdk_flutter/go_sell_sdk_flutter.dart';
-import 'package:go_sell_sdk_flutter/model/models.dart';
+import 'package:pay/pay.dart';
 import 'dart:io' show Platform;
-import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
-import '../../../../core/config/app_config.dart';
 import '../../repositories/checkout_repository.dart';
 import '../../../cart/providers/cart_provider.dart';
 import '../../../profile/providers/profile_provider.dart';
-import '../../../profile/models/profile_model.dart';
 
 class CheckoutScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic>? package;
@@ -38,22 +34,16 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   String? _checkoutUrl;
   String _selectedPaymentMethod = 'card';
   late final WebViewController _webViewController;
+  late final Future<PaymentConfiguration> _applePayConfigFuture;
 
   @override
   void initState() {
     super.initState();
     _initWebViewController();
-    _configureTapSDK();
-  }
-
-  void _configureTapSDK() {
-    GoSellSdkFlutter.configureApp(
-      bundleId: Platform.isAndroid
-          ? AppConfig.tapBundleIdAndroid
-          : AppConfig.tapBundleIdIOS,
-      productionSecretKey: AppConfig.tapProductionSecretKey,
-      sandBoxSecretKey: AppConfig.tapSandboxSecretKey,
-      lang: "en", // context.locale.languageCode might not be available here yet
+    _applePayConfigFuture = PaymentConfiguration.fromAsset(
+      kReleaseMode
+          ? 'payment_configurations/apple_pay_production.json'
+          : 'payment_configurations/apple_pay_sandbox.json',
     );
   }
 
@@ -152,21 +142,17 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
       if (!mounted) return;
 
-      if (_selectedPaymentMethod == 'apple_pay' && Platform.isIOS) {
-        await _startApplePay(orderId, totalAmount: totalAmount);
-      } else {
-        // 2. Process Order (Initiate Tap Payment Hosted)
-        final processResponse = await repository.processOrder(orderId);
-        final redirectUrl = processResponse['redirectUrl'];
+      // 2. Process Order (Initiate Tap Payment Hosted)
+      final processResponse = await repository.processOrder(orderId);
+      final redirectUrl = processResponse['redirectUrl'];
 
-        if (redirectUrl != null && redirectUrl.isNotEmpty) {
-          setState(() {
-            _checkoutUrl = redirectUrl;
-          });
-          _webViewController.loadRequest(Uri.parse(redirectUrl));
-        } else {
-          throw Exception('checkout.no_redirect'.tr());
-        }
+      if (redirectUrl != null && redirectUrl.isNotEmpty) {
+        setState(() {
+          _checkoutUrl = redirectUrl;
+        });
+        _webViewController.loadRequest(Uri.parse(redirectUrl));
+      } else {
+        throw Exception('checkout.no_redirect'.tr());
       }
     } catch (e) {
       if (!mounted) return;
@@ -175,116 +161,57 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     }
   }
 
-  Future<void> _startApplePay(
-    String orderId, {
-    required double totalAmount,
-  }) async {
-    try {
-      final applePayMerchantID = AppConfig.applePayMerchantId;
+  Future<void> _processApplePayResult(Map<String, dynamic> paymentResult, double totalAmount) async {
+    setState(() => _isProcessingPayment = true);
 
-      UserProfile? profile;
-      try {
-        profile = await ref.read(profileProvider.future);
-      } catch (e) {
-        debugPrint('Failed to load profile details for Apple Pay: $e');
-      }
-
-      final email = profile?.email ?? "customer@usezouz.com";
-      final phone = profile?.phoneNumber ?? "500000000";
-      final name = profile?.name ?? "Customer";
-
-      // Split first name and last name
-      final nameParts = name.trim().split(' ');
-      final firstName = nameParts.first.isNotEmpty ? nameParts.first : "Customer";
-      final lastName = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : "Customer";
-
-      // Clean phone number (extract code and number)
-      String cleanPhone = phone.replaceAll('+', '').replaceAll(' ', '');
-      String countryCode = "966";
-      String numberPart = cleanPhone;
-      if (cleanPhone.startsWith("966")) {
-        countryCode = "966";
-        numberPart = cleanPhone.substring(3);
-      } else if (cleanPhone.startsWith("0")) {
-        numberPart = cleanPhone.substring(1);
-      }
-
-      GoSellSdkFlutter.sessionConfigurations(
-        trxMode: TransactionMode.TOKENIZE_CARD,
-        transactionCurrency: "sar",
-        amount: totalAmount,
-        customer: Customer(
-          customerId: "",
-          email: email,
-          isdNumber: countryCode,
-          number: numberPart,
-          firstName: firstName,
-          middleName: "",
-          lastName: lastName,
-          metaData: null,
-        ),
-        paymentItems: <PaymentItem>[],
-        taxes: <Tax>[],
-        shippings: <Shipping>[],
-        postURL: "https://tap.company",
-        paymentDescription: "Apple Pay Checkout",
-        paymentMetaData: {},
-        paymentReference: Reference(),
-        paymentStatementDescriptor: "",
-        isUserAllowedToSaveCard: false,
-        isRequires3DSecure: true,
-        receipt: Receipt(false, false),
-        authorizeAction: AuthorizeAction(
-          type: AuthorizeActionType.CAPTURE,
-          timeInHours: 10,
-        ),
-        destinations: null,
-        merchantID: "",
-        allowedCadTypes: CardType.ALL,
-        applePayMerchantID: applePayMerchantID,
-        allowsToSaveSameCardMoreThanOnce: false,
-        paymentType: PaymentType.DEVICE,
-        sdkMode: kReleaseMode ? SDKMode.Production : SDKMode.Sandbox,
-        cardHolderName: name,
-        allowsToEditCardHolderName: false,
-      );
-
-      final tapSDKResult = await GoSellSdkFlutter.startPaymentSDK;
-
-      if (tapSDKResult != null) {
-        final sdkResult = tapSDKResult['sdk_result'];
-        if (sdkResult == 'SUCCESS') {
-          if (tapSDKResult['trx_mode'] == 'TOKENIZE') {
-            final token = tapSDKResult['token'];
-            if (token != null) {
-              await _processCheckoutWithToken(orderId, token);
-            }
-          }
-        } else if (sdkResult == 'FAILED') {
-          _showError('Apple Pay failed: ${tapSDKResult['error']}');
-          setState(() => _isProcessingPayment = false);
-        } else {
-          setState(() => _isProcessingPayment = false);
-        }
-      }
-    } on PlatformException catch (e) {
-      _showError('Apple Pay error: ${e.message}');
-      setState(() => _isProcessingPayment = false);
-    }
-  }
-
-  Future<void> _processCheckoutWithToken(String orderId, String token) async {
     try {
       final repository = ref.read(checkoutRepositoryProvider);
+
+      // Enforce profile completion before checkout
+      try {
+        final profile = await ref.read(profileProvider.future);
+        if (profile.name?.isEmpty ?? true) {
+          setState(() => _isProcessingPayment = false);
+          if (mounted) {
+            context.push('/complete-profile');
+          }
+          return;
+        }
+      } catch (e) {
+        debugPrint('Failed to fetch profile before checkout: $e');
+      }
+
+      List<Map<String, dynamic>> orderItems = [];
+
+      if (widget.fromCart && widget.items != null) {
+        orderItems = widget.items!;
+      } else if (widget.package != null) {
+        orderItems = [
+          {
+            'packageId': widget.package!['id'],
+            'quantity': 1,
+            'standId': widget.package!['standId'],
+          },
+        ];
+      } else {
+        throw Exception('checkout.no_items'.tr());
+      }
+
+      // 1. Create Order
+      final createResponse = await repository.createOrder(orderItems);
+      final orderId = createResponse['orderId'];
+
+      if (!mounted) return;
+
+      // 2. Process Order with raw Apple Pay token data
       final processResponse = await repository.processOrder(
         orderId,
-        token: token,
+        applePayToken: paymentResult,
       );
 
       if (!mounted) return;
 
       if (processResponse['success'] == true) {
-        // Success
         _isNavigatingToStatus = true;
         ref.read(cartProvider.notifier).clear();
         context.goNamed(
@@ -292,17 +219,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           queryParameters: {'orderId': orderId},
         );
       } else {
-        // If it requires 3DS or failed
-        final redirectUrl = processResponse['redirectUrl'];
-        if (redirectUrl != null && redirectUrl.isNotEmpty) {
-          setState(() {
-            _checkoutUrl = redirectUrl;
-          });
-          _webViewController.loadRequest(Uri.parse(redirectUrl));
-        } else {
-          _showError('Payment failed to process');
-          setState(() => _isProcessingPayment = false);
-        }
+        _showError('Payment failed to process');
+        setState(() => _isProcessingPayment = false);
       }
     } catch (e) {
       if (!mounted) return;
@@ -809,63 +727,78 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                height: 54,
-                child: ElevatedButton(
-                  onPressed: _isProcessingPayment
-                      ? null
-                      : () => _processCheckout(total),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _selectedPaymentMethod == 'apple_pay'
-                        ? Colors.black
-                        : AppColors.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: _isProcessingPayment
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2.5,
-                          ),
-                        )
-                      : _selectedPaymentMethod == 'apple_pay'
-                      ? Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              'checkout.pay_with'.tr(),
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
+              _selectedPaymentMethod == 'apple_pay'
+                  ? SizedBox(
+                      width: double.infinity,
+                      height: 54,
+                      child: FutureBuilder<PaymentConfiguration>(
+                        future: _applePayConfigFuture,
+                        builder: (context, snapshot) {
+                          if (snapshot.hasData) {
+                            return ApplePayButton(
+                              paymentConfiguration: snapshot.data!,
+                              paymentItems: [
+                                PaymentItem(
+                                  label: tenantName ?? 'Zouz Checkout',
+                                  amount: total.toStringAsFixed(2),
+                                  status: PaymentItemStatus.final_price,
+                                )
+                              ],
+                              style: ApplePayButtonStyle.black,
+                              type: ApplePayButtonType.buy,
+                              onPaymentResult: (paymentResult) =>
+                                  _processApplePayResult(paymentResult, total),
+                              loadingIndicator: const Center(
+                                child: CircularProgressIndicator(),
                               ),
-                            ),
-                            const Text(
-                              'Pay',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                fontFamily: '.SF Pro Text',
+                            );
+                          } else if (snapshot.hasError) {
+                            return Center(
+                              child: Text(
+                                'Error loading Apple Pay configuration',
+                                style: TextStyle(color: AppColors.error),
                               ),
-                            ),
-                          ],
-                        )
-                      : Text(
-                          'checkout.pay_button'.tr(args: ['']).trim(),
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                            );
+                          }
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        },
+                      ),
+                    )
+                  : SizedBox(
+                      width: double.infinity,
+                      height: 54,
+                      child: ElevatedButton(
+                        onPressed: _isProcessingPayment
+                            ? null
+                            : () => _processCheckout(total),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
+                          elevation: 0,
                         ),
-                ),
-              ),
+                        child: _isProcessingPayment
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2.5,
+                                ),
+                              )
+                            : Text(
+                                'checkout.pay_button'.tr(args: ['']).trim(),
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                      ),
+                    ),
             ],
           ),
         ),
