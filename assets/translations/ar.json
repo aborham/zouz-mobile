@@ -255,7 +255,13 @@
     "status_page_title": "حالة الدفع",
     "error_prefix": "خطأ: {}",
     "no_items": "لا توجد عناصر للدفع",
-    "no_redirect": "فشل الحصول على رابط الدفع"
+    "no_redirect": "فشل الحصول على رابط الدفع",
+    "profile_incomplete_title": "الملف الشخصي غير مكتمل",
+    "profile_incomplete_desc": "يرجى إكمال الاسم والبريد الإلكتروني في ملفك الشخصي للمتابعة إلى الدفع.",
+    "complete_profile_btn": "إكمال الملف الشخصي",
+    "profile_error": "لم نتمكن من التحقق من تفاصيل الملف الشخصي",
+    "anonymous_user": "مستخدم مجهول",
+    "personal_details": "التفاصيل الشخصية"
   },
   "cart": {
     "title": "سلة التسوق",

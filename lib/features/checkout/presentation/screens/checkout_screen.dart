@@ -11,6 +11,7 @@ import 'package:flutter/foundation.dart';
 import '../../repositories/checkout_repository.dart';
 import '../../../cart/providers/cart_provider.dart';
 import '../../../profile/providers/profile_provider.dart';
+import '../../../profile/models/profile_model.dart';
 
 class CheckoutScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic>? package;
@@ -35,6 +36,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   String _selectedPaymentMethod = 'card';
   late final WebViewController _webViewController;
   late final Future<PaymentConfiguration> _applePayConfigFuture;
+  bool _isShowingProfileDialog = false;
 
   @override
   void initState() {
@@ -245,6 +247,66 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     );
   }
 
+  void _showProfileIncompleteDialog(BuildContext context) {
+    if (_isShowingProfileDialog) return;
+    _isShowingProfileDialog = true;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: Row(
+            children: [
+              const Icon(Icons.account_circle_outlined, color: AppColors.primary, size: 28),
+              const SizedBox(width: 10),
+              Text(
+                'checkout.profile_incomplete_title'.tr(),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+            ],
+          ),
+          content: Text(
+            'checkout.profile_incomplete_desc'.tr(),
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+          ),
+          actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          actions: [
+            TextButton(
+              onPressed: () {
+                _isShowingProfileDialog = false;
+                Navigator.pop(dialogContext); // close dialog
+                context.pop(); // return to previous screen
+              },
+              child: Text(
+                'common.cancel'.tr(),
+                style: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w600),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                _isShowingProfileDialog = false;
+                Navigator.pop(dialogContext); // close dialog
+                context.push('/complete-profile');
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
+              ),
+              child: Text(
+                'checkout.complete_profile_btn'.tr(),
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_checkoutUrl != null) {
@@ -269,13 +331,13 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       data: (profile) {
         if ((profile.name?.isEmpty ?? true) || (profile.email?.isEmpty ?? true)) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            context.push('/complete-profile');
+            _showProfileIncompleteDialog(context);
           });
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
-        return _buildCheckoutContent(context);
+        return _buildCheckoutContent(context, profile);
       },
       loading: () => const Scaffold(
         body: Center(child: CircularProgressIndicator()),
@@ -286,7 +348,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     );
   }
 
-  Widget _buildCheckoutContent(BuildContext context) {
+  Widget _buildCheckoutContent(BuildContext context, UserProfile profile) {
 
     final locale = context.locale.languageCode;
     double subtotal = 0;
@@ -456,6 +518,87 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Profile Card (User Information)
+            Container(
+              margin: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade100),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.02),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 24,
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                    backgroundImage: profile.avatarUrl != null && profile.avatarUrl!.isNotEmpty
+                        ? NetworkImage(profile.avatarUrl!)
+                        : null,
+                    child: profile.avatarUrl == null || profile.avatarUrl!.isEmpty
+                        ? Text(
+                            (profile.name?.isNotEmpty ?? false)
+                                ? profile.name![0].toUpperCase()
+                                : 'U',
+                            style: const TextStyle(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          )
+                        : null,
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          profile.name?.isNotEmpty ?? false
+                              ? profile.name!
+                              : 'checkout.anonymous_user'.tr(),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          profile.email ?? '',
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 13,
+                          ),
+                        ),
+                        if (profile.phoneNumber != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            profile.phoneNumber!,
+                            style: TextStyle(
+                              color: Colors.grey.shade500,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => context.push('/complete-profile'),
+                    icon: const Icon(Icons.edit_outlined, color: AppColors.primary),
+                  ),
+                ],
+              ),
+            ),
+
             // Order Summary Header
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),

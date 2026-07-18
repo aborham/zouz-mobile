@@ -251,7 +251,13 @@
     "status_page_title": "Payment Status",
     "error_prefix": "Error: {}",
     "no_items": "No items to checkout",
-    "no_redirect": "Failed to get payment URL"
+    "no_redirect": "Failed to get payment URL",
+    "profile_incomplete_title": "Profile Incomplete",
+    "profile_incomplete_desc": "Please complete your name and email in your profile to proceed with the checkout.",
+    "complete_profile_btn": "Complete Profile",
+    "profile_error": "Could not verify profile details",
+    "anonymous_user": "Anonymous User",
+    "personal_details": "Personal Details"
   },
   "cart": {
     "title": "Shopping Cart",
