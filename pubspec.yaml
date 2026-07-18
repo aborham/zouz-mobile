@@ -37,7 +37,7 @@ dependencies:
   firebase_in_app_messaging: ^0.9.2+4
   firebase_app_installations: ^0.4.2+4
   url_launcher: ^6.3.2
-  pay: ^3.3.0
+  tap_apple_pay_flutter: 1.0.32
 
 dev_dependencies:
   flutter_test:

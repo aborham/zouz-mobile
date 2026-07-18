@@ -5,7 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:saudi_riyal_symbol/saudi_riyal_symbol.dart';
 import 'package:zouz_mobile/core/theme/colors.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:pay/pay.dart';
+import 'package:tap_apple_pay_flutter/tap_apple_pay_flutter.dart';
+import 'package:tap_apple_pay_flutter/models/models.dart';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import '../../repositories/checkout_repository.dart';
@@ -35,18 +36,33 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   String? _checkoutUrl;
   String _selectedPaymentMethod = 'card';
   late final WebViewController _webViewController;
-  late final Future<PaymentConfiguration> _applePayConfigFuture;
   bool _isShowingProfileDialog = false;
 
   @override
   void initState() {
     super.initState();
     _initWebViewController();
-    _applePayConfigFuture = PaymentConfiguration.fromAsset(
-      kReleaseMode
-          ? 'payment_configurations/apple_pay_production.json'
-          : 'payment_configurations/apple_pay_sandbox.json',
-    );
+    _initApplePay();
+  }
+
+  Future<void> _initApplePay() async {
+    try {
+      TapApplePayFlutter.setupApplePayConfiguration(
+        sandboxKey: "pk_test_6aUaSuqvkbFwBQ8REGAgjYcUtT6Da",
+        productionKey: "pk_live_YOUR_PRODUCTION_KEY",
+        sdkMode: kReleaseMode ? SdkMode.production : SdkMode.sandbox,
+        merchantId: kReleaseMode ? "merchant.zouz.tap.production" : "merchant.zouz.tap.sandbox",
+        applePayButtonRadius: 28,
+      );
+      final result = await TapApplePayFlutter.setupApplePay;
+      if (result["success"] == true) {
+        debugPrint("Apple pay plugin is configured properly.");
+      } else {
+        debugPrint("Apple pay plugin configuration failed: ${result["error"]}");
+      }
+    } catch (e) {
+      debugPrint("Error initializing Apple Pay: $e");
+    }
   }
 
   void _initWebViewController() {
@@ -165,7 +181,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     }
   }
 
-  Future<void> _processApplePayResult(Map<String, dynamic> paymentResult, double totalAmount) async {
+  Future<void> _processApplePayCheckout(double total) async {
+    if (_isProcessingPayment) return;
     setState(() => _isProcessingPayment = true);
 
     try {
@@ -177,7 +194,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         if ((profile.name?.isEmpty ?? true) || (profile.email?.isEmpty ?? true)) {
           setState(() => _isProcessingPayment = false);
           if (mounted) {
-            context.push('/complete-profile');
+            _showProfileIncompleteDialog(context);
           }
           return;
         }
@@ -187,6 +204,32 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         _showError('checkout.profile_error'.tr());
         return;
       }
+
+      // 2. Request Tap Apple Pay Token
+      final result = await TapApplePayFlutter.getTapToken(
+        config: ApplePayConfig(
+          transactionCurrency: TapCurrencyCode.SAR,
+          allowedCardNetworks: [
+            AllowedCardNetworks.VISA,
+            AllowedCardNetworks.MASTERCARD,
+            AllowedCardNetworks.MADA,
+          ],
+          applePayMerchantId: kReleaseMode ? "merchant.zouz.tap.production" : "merchant.zouz.tap.sandbox",
+          amount: total,
+          merchantCapabilities: [
+            MerchantCapabilities.ThreeDS,
+            MerchantCapabilities.Debit,
+            MerchantCapabilities.Credit,
+          ],
+        ),
+      );
+
+      if (result["success"] != true) {
+        throw Exception(result["error"] ?? "Apple Pay token generation failed");
+      }
+
+      final tapTokenData = result["data"];
+      final String tapTokenId = tapTokenData["id"];
 
       List<Map<String, dynamic>> orderItems = [];
 
@@ -204,28 +247,21 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         throw Exception('checkout.no_items'.tr());
       }
 
-      // 1. Create Order
+      // 3. Create Order
       final createResponse = await repository.createOrder(orderItems);
       final orderId = createResponse['orderId'];
 
       if (!mounted) return;
 
-      // 2. Process Order with raw Apple Pay token data
+      // 4. Process Order with Tap Token
       final processResponse = await repository.processOrder(
         orderId,
-        applePayToken: paymentResult,
+        token: tapTokenId,
       );
 
       if (!mounted) return;
 
-      final redirectUrl = processResponse['redirectUrl'];
-
-      if (redirectUrl != null && redirectUrl.isNotEmpty) {
-        setState(() {
-          _checkoutUrl = redirectUrl;
-        });
-        _webViewController.loadRequest(Uri.parse(redirectUrl));
-      } else if (processResponse['success'] == true) {
+      if (processResponse['success'] == true) {
         _isNavigatingToStatus = true;
         ref.read(cartProvider.notifier).clear();
         context.goNamed(
@@ -911,39 +947,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   ? SizedBox(
                       width: double.infinity,
                       height: 54,
-                      child: FutureBuilder<PaymentConfiguration>(
-                        future: _applePayConfigFuture,
-                        builder: (context, snapshot) {
-                          if (snapshot.hasData) {
-                            return ApplePayButton(
-                              paymentConfiguration: snapshot.data!,
-                              paymentItems: [
-                                PaymentItem(
-                                  label: tenantName ?? 'Zouz Checkout',
-                                  amount: total.toStringAsFixed(2),
-                                  status: PaymentItemStatus.final_price,
-                                )
-                              ],
-                              style: ApplePayButtonStyle.black,
-                              type: ApplePayButtonType.buy,
-                              onPaymentResult: (paymentResult) =>
-                                  _processApplePayResult(paymentResult, total),
-                              loadingIndicator: const Center(
-                                child: CircularProgressIndicator(),
-                              ),
-                            );
-                          } else if (snapshot.hasError) {
-                            return Center(
-                              child: Text(
-                                'Error loading Apple Pay configuration',
-                                style: TextStyle(color: AppColors.error),
-                              ),
-                            );
-                          }
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
-                        },
+                      child: TapApplePayFlutter.buildApplePayButton(
+                        applePayButtonType: ApplePayButtonType.appleLogoOnly,
+                        applePayButtonStyle: ApplePayButtonStyle.black,
+                        onPress: () => _processApplePayCheckout(total),
                       ),
                     )
                   : SizedBox(
