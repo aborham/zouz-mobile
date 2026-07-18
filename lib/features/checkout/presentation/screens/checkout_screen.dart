@@ -51,7 +51,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         sandboxKey: "pk_test_6aUaSuqvkbFwBQ8REGAgjYcUtT6Da",
         productionKey: "pk_live_YOUR_PRODUCTION_KEY",
         sdkMode: kReleaseMode ? SdkMode.production : SdkMode.sandbox,
-        merchantId: kReleaseMode ? "merchant.zouz.tap.production" : "merchant.zouz.tap.sandbox",
+        merchantId: kReleaseMode ? "merchant.zouz.tap.production" : "merchant.tap.gosell",
         applePayButtonRadius: 28,
       );
       final result = await TapApplePayFlutter.setupApplePay;
@@ -214,7 +214,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             AllowedCardNetworks.MASTERCARD,
             AllowedCardNetworks.MADA,
           ],
-          applePayMerchantId: kReleaseMode ? "merchant.zouz.tap.production" : "merchant.zouz.tap.sandbox",
+          applePayMerchantId: kReleaseMode ? "merchant.zouz.tap.production" : "merchant.tap.gosell",
           amount: total,
           merchantCapabilities: [
             MerchantCapabilities.ThreeDS,
