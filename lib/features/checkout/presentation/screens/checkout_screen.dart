@@ -218,7 +218,14 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
       if (!mounted) return;
 
-      if (processResponse['success'] == true) {
+      final redirectUrl = processResponse['redirectUrl'];
+
+      if (redirectUrl != null && redirectUrl.isNotEmpty) {
+        setState(() {
+          _checkoutUrl = redirectUrl;
+        });
+        _webViewController.loadRequest(Uri.parse(redirectUrl));
+      } else if (processResponse['success'] == true) {
         _isNavigatingToStatus = true;
         ref.read(cartProvider.notifier).clear();
         context.goNamed(
