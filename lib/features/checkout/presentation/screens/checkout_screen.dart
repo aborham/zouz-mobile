@@ -38,6 +38,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   String _selectedPaymentMethod = 'card';
   late final WebViewController _webViewController;
   bool _isShowingProfileDialog = false;
+  // true once setupApplePay resolves successfully
+  bool _applePayReady = false;
 
   @override
   void initState() {
@@ -48,18 +50,23 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
   Future<void> _initApplePay() async {
     try {
+      // NOTE: merchantId is required but nullable. We pass null here (SDK sends "")
+      // because passing a non-Tap-registered merchant ID causes server error 1164.
+      // The Apple Pay merchant ID used for the actual payment token is supplied
+      // per-transaction in ApplePayConfig inside _processApplePayCheckout().
       TapApplePayFlutter.setupApplePayConfiguration(
         sandboxKey: AppConfig.tapPublishableSandboxKey,
         productionKey: AppConfig.tapPublishableProductionKey,
         sdkMode: kReleaseMode ? SdkMode.production : SdkMode.sandbox,
-        merchantId: AppConfig.applePayMerchantId,
+        merchantId: null,
         applePayButtonRadius: 28,
       );
       final result = await TapApplePayFlutter.setupApplePay;
       if (result["success"] == true) {
-        debugPrint("Apple pay plugin is configured properly.");
+        debugPrint("Apple Pay SDK initialised successfully.");
+        if (mounted) setState(() => _applePayReady = true);
       } else {
-        debugPrint("Apple pay plugin configuration failed: ${result["error"]}");
+        debugPrint("Apple Pay SDK init failed: ${result["error"]}");
       }
     } catch (e) {
       debugPrint("Error initializing Apple Pay: $e");
@@ -215,7 +222,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             AllowedCardNetworks.MASTERCARD,
             AllowedCardNetworks.MADA,
           ],
-          applePayMerchantId: kReleaseMode ? "merchant.zouz.tap.production" : "merchant.zouz.tap.sandbox",
+          applePayMerchantId: AppConfig.applePayMerchantId,
           amount: total,
           merchantCapabilities: [
             MerchantCapabilities.ThreeDS,
@@ -810,45 +817,59 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
             if (Platform.isIOS) ...[
               GestureDetector(
-                onTap: () =>
-                    setState(() => _selectedPaymentMethod = 'apple_pay'),
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: _selectedPaymentMethod == 'apple_pay'
-                          ? Colors.black
-                          : Colors.grey.shade200,
-                      width: 1.5,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                    color: _selectedPaymentMethod == 'apple_pay'
-                        ? Colors.black.withValues(alpha: 0.05)
-                        : Colors.white,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.apple,
+                // Only allow selection after SDK is ready
+                onTap: _applePayReady
+                    ? () => setState(() => _selectedPaymentMethod = 'apple_pay')
+                    : null,
+                child: Opacity(
+                  opacity: _applePayReady ? 1.0 : 0.55,
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      border: Border.all(
                         color: _selectedPaymentMethod == 'apple_pay'
                             ? Colors.black
-                            : Colors.grey.shade600,
-                        size: 28,
+                            : Colors.grey.shade200,
+                        width: 1.5,
                       ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Apple Pay',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black87,
-                          fontSize: 16,
+                      borderRadius: BorderRadius.circular(16),
+                      color: _selectedPaymentMethod == 'apple_pay'
+                          ? Colors.black.withValues(alpha: 0.05)
+                          : Colors.white,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.apple,
+                          color: _selectedPaymentMethod == 'apple_pay'
+                              ? Colors.black
+                              : Colors.grey.shade600,
+                          size: 28,
                         ),
-                      ),
-                      const Spacer(),
-                      if (_selectedPaymentMethod == 'apple_pay')
-                        const Icon(Icons.check_circle, color: Colors.black),
-                    ],
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Apple Pay',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black87,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (!_applePayReady)
+                          const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.black54,
+                            ),
+                          )
+                        else if (_selectedPaymentMethod == 'apple_pay')
+                          const Icon(Icons.check_circle, color: Colors.black),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -948,11 +969,27 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   ? SizedBox(
                       width: double.infinity,
                       height: 54,
-                      child: TapApplePayFlutter.buildApplePayButton(
-                        applePayButtonType: ApplePayButtonType.appleLogoOnly,
-                        applePayButtonStyle: ApplePayButtonStyle.black,
-                        onPress: () => _processApplePayCheckout(total),
-                      ),
+                      child: _applePayReady
+                          ? TapApplePayFlutter.buildApplePayButton(
+                              applePayButtonType: ApplePayButtonType.appleLogoOnly,
+                              applePayButtonStyle: ApplePayButtonStyle.black,
+                              onPress: () => _processApplePayCheckout(total),
+                            )
+                          : Container(
+                              decoration: BoxDecoration(
+                                color: Colors.black87,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              alignment: Alignment.center,
+                              child: const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2.5,
+                                ),
+                              ),
+                            ),
                     )
                   : SizedBox(
                       width: double.infinity,
