@@ -40,7 +40,6 @@ class PurchasesScreen extends ConsumerWidget {
             final status = p['status'] ?? 'UNKNOWN';
             if (selectedFilter == 'ALL') return true;
             if (selectedFilter == 'COMPLETED' && status == 'ACTIVE') return true; // Treating ACTIVE as COMPLETED in the UI for now
-            if (selectedFilter == 'REFUNDED' && status == 'REFUNDED') return true;
             if (selectedFilter == 'EXPIRED' && (status == 'EXPIRED' || status == 'DEPLETED')) return true;
             return false;
           }).toList();
@@ -101,7 +100,6 @@ class PurchasesScreen extends ConsumerWidget {
     final filters = [
       {'id': 'ALL', 'label': 'purchases.filter_all'.tr()},
       {'id': 'COMPLETED', 'label': 'purchases.filter_completed'.tr()},
-      {'id': 'REFUNDED', 'label': 'purchases.filter_refunded'.tr()},
       {'id': 'EXPIRED', 'label': 'purchases.filter_expired'.tr()},
     ];
 

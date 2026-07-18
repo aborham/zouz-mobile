@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/api/api_client.dart';
-import '../../../dashboard/providers/navigation_provider.dart';
 
 class PaymentSuccessScreen extends ConsumerStatefulWidget {
   final String orderId;
@@ -170,8 +169,7 @@ class _PaymentSuccessScreenState extends ConsumerState<PaymentSuccessScreen> {
           const SizedBox(height: 40),
           ElevatedButton(
             onPressed: () {
-              ref.read(navigationProvider.notifier).setIndex(2);
-              context.go('/dashboard');
+              context.go('/purchases');
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF224AFB),
