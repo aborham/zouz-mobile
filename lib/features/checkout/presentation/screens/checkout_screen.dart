@@ -9,6 +9,7 @@ import 'package:tap_apple_pay_flutter/tap_apple_pay_flutter.dart';
 import 'package:tap_apple_pay_flutter/models/models.dart';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
+import '../../../../core/config/app_config.dart';
 import '../../repositories/checkout_repository.dart';
 import '../../../cart/providers/cart_provider.dart';
 import '../../../profile/providers/profile_provider.dart';
@@ -48,10 +49,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   Future<void> _initApplePay() async {
     try {
       TapApplePayFlutter.setupApplePayConfiguration(
-        sandboxKey: "pk_test_6aUaSuqvkbFwBQ8REGAgjYcUtT6Da",
-        productionKey: "pk_live_YOUR_PRODUCTION_KEY",
+        sandboxKey: AppConfig.tapPublishableSandboxKey,
+        productionKey: AppConfig.tapPublishableProductionKey,
         sdkMode: kReleaseMode ? SdkMode.production : SdkMode.sandbox,
-        merchantId: kReleaseMode ? "merchant.zouz.tap.production" : "merchant.tap.gosell",
+        merchantId: AppConfig.applePayMerchantId,
         applePayButtonRadius: 28,
       );
       final result = await TapApplePayFlutter.setupApplePay;
@@ -214,7 +215,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             AllowedCardNetworks.MASTERCARD,
             AllowedCardNetworks.MADA,
           ],
-          applePayMerchantId: kReleaseMode ? "merchant.zouz.tap.production" : "merchant.tap.gosell",
+          applePayMerchantId: kReleaseMode ? "merchant.zouz.tap.production" : "merchant.zouz.tap.sandbox",
           amount: total,
           merchantCapabilities: [
             MerchantCapabilities.ThreeDS,

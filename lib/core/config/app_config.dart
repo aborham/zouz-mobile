@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'secrets.dart';
 
 class AppConfig {
   // Local Development Options:
@@ -8,7 +9,7 @@ class AppConfig {
   //static const String host = '127.0.0.1';
   static const String host = '10.0.0.178';
   static const String port = '3000';
-  
+
   static const String _localBaseUrl = 'http://$host:$port';
   static const String _prodBaseUrl = 'https://dashboard.usezouz.com';
 
@@ -21,19 +22,25 @@ class AppConfig {
 
   static String get apiBaseUrl => '$baseUrl/api';
   static String get customerApiBaseUrl => '$apiBaseUrl/customer';
-  
+
   static const String crispWebsiteId = '1da3bb6b-9c97-4f51-8c65-41c4886a170b';
 
-  static const String _localApplePayMerchantId = 'merchant.zouz.tap.sandbox';
-  static const String _prodApplePayMerchantId = 'merchant.zouz.tap.production';
-  
-  static String get applePayMerchantId => kReleaseMode ? _prodApplePayMerchantId : _localApplePayMerchantId;
+  // ── Apple Pay ──────────────────────────────────────────────────────────────
+  // Apple Pay merchant identifiers (must match Xcode capability + Apple Developer portal)
+  static const String _sandboxApplePayMerchantId    = 'merchant.zouz.tap.sandbox';
+  static const String _productionApplePayMerchantId = 'merchant.zouz.tap.production';
 
-  // Tap Payments Mobile SDK Keys
-  // REPLACE these with the actual keys from your Tap Dashboard
-  static const String tapSandboxSecretKey = String.fromEnvironment('TAP_SANDBOX_KEY', defaultValue: 'sk_test_YOUR_SANDBOX_KEY');
-  static const String tapProductionSecretKey = String.fromEnvironment('TAP_PROD_KEY', defaultValue: 'sk_live_YOUR_PROD_KEY');
-  
-  static const String tapBundleIdIOS = 'com.zouz.mobile';
+  static String get applePayMerchantId =>
+      kReleaseMode ? _productionApplePayMerchantId : _sandboxApplePayMerchantId;
+
+  // Tap publishable keys (pk_test_ / pk_live_) — stored in git-ignored secrets.dart
+  static String get tapPublishableSandboxKey    => AppSecrets.tapSandboxPublishableKey;
+  static String get tapPublishableProductionKey => AppSecrets.tapProductionPublishableKey;
+
+  // Active key based on build mode
+  static String get tapPublishableKey =>
+      kReleaseMode ? tapPublishableProductionKey : tapPublishableSandboxKey;
+
+  static const String tapBundleIdIOS     = 'com.zouz.mobile';
   static const String tapBundleIdAndroid = 'com.zouz.mobile';
 }
