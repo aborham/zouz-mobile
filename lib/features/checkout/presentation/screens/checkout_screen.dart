@@ -108,7 +108,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       // Enforce profile completion before checkout
       try {
         final profile = await ref.read(profileProvider.future);
-        if (profile.name?.isEmpty ?? true) {
+        if ((profile.name?.isEmpty ?? true) || (profile.email?.isEmpty ?? true)) {
           setState(() => _isProcessingPayment = false);
           if (mounted) {
             context.push('/complete-profile');
@@ -117,7 +117,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         }
       } catch (e) {
         debugPrint('Failed to fetch profile before checkout: $e');
-        // If it fails, we can proceed, but ideally we show error. We'll proceed or redirect.
+        setState(() => _isProcessingPayment = false);
+        _showError('checkout.profile_error'.tr());
+        return;
       }
 
       List<Map<String, dynamic>> orderItems = [];
@@ -170,7 +172,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       // Enforce profile completion before checkout
       try {
         final profile = await ref.read(profileProvider.future);
-        if (profile.name?.isEmpty ?? true) {
+        if ((profile.name?.isEmpty ?? true) || (profile.email?.isEmpty ?? true)) {
           setState(() => _isProcessingPayment = false);
           if (mounted) {
             context.push('/complete-profile');
@@ -179,6 +181,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         }
       } catch (e) {
         debugPrint('Failed to fetch profile before checkout: $e');
+        setState(() => _isProcessingPayment = false);
+        _showError('checkout.profile_error'.tr());
+        return;
       }
 
       List<Map<String, dynamic>> orderItems = [];
@@ -257,6 +262,31 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         body: WebViewWidget(controller: _webViewController),
       );
     }
+
+    final profileAsync = ref.watch(profileProvider);
+
+    return profileAsync.when(
+      data: (profile) {
+        if ((profile.name?.isEmpty ?? true) || (profile.email?.isEmpty ?? true)) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            context.push('/complete-profile');
+          });
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        return _buildCheckoutContent(context);
+      },
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, stackTrace) => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+    );
+  }
+
+  Widget _buildCheckoutContent(BuildContext context) {
 
     final locale = context.locale.languageCode;
     double subtotal = 0;
