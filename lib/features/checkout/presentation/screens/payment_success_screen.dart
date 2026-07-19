@@ -169,7 +169,8 @@ class _PaymentSuccessScreenState extends ConsumerState<PaymentSuccessScreen> {
           const SizedBox(height: 40),
           ElevatedButton(
             onPressed: () {
-              context.go('/purchases');
+              // push keeps the back stack so the user can navigate back
+              context.push('/purchases');
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF224AFB),
