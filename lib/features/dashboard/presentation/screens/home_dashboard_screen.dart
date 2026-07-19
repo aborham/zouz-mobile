@@ -424,6 +424,7 @@ class HomeDashboardScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: 16),
                         Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Expanded(
                               child: ClipRRect(
@@ -437,20 +438,24 @@ class HomeDashboardScreen extends ConsumerWidget {
                               ),
                             ),
                             const SizedBox(width: 16),
-                            ElevatedButton.icon(
-                              onPressed: () => context.push('/purchase-details', extra: pkg.toMap()),
-                              icon: const Icon(Icons.qr_code_rounded, size: 16, color: Colors.white),
-                              label: Text(
-                                'dashboard.redeem_now'.tr(),
-                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                            // Bound the button width or wrap in IntrinsicWidth/Flexible
+                            Flexible(
+                              child: ElevatedButton.icon(
+                                onPressed: () => context.push('/purchase-details', extra: pkg.toMap()),
+                                icon: const Icon(Icons.qr_code_rounded, size: 16, color: Colors.white),
+                                label: Text(
+                                  'dashboard.redeem_now'.tr(),
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                 ),
                               ),
                             ),
