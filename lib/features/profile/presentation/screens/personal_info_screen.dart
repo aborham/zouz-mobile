@@ -45,6 +45,39 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
   Future<void> _handleSave() async {
     if (_isSaving) return;
 
+    final profile = ref.read(profileProvider).value;
+    if (profile == null) return;
+
+    final newEmail = _emailController.text.trim();
+    final oldEmail = profile.email ?? '';
+
+    // If email changed, we verify it first before executing the full update
+    if (newEmail.isNotEmpty && newEmail != oldEmail) {
+      setState(() => _isSaving = true);
+      try {
+        final repository = ref.read(profileRepositoryProvider);
+        
+        // Request code to the new email address
+        await repository.requestEmailVerification(newEmail);
+        
+        setState(() => _isSaving = false);
+
+        if (!mounted) return;
+        
+        // Display the OTP Verification modal
+        final isVerified = await _showEmailOtpBottomSheet(newEmail);
+        if (isVerified != true) return; // verification cancelled or failed
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: AppColors.error),
+          );
+        }
+        setState(() => _isSaving = false);
+        return;
+      }
+    }
+
     setState(() => _isSaving = true);
     try {
       String? uploadedUrl;
@@ -59,7 +92,8 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
       final repository = ref.read(profileRepositoryProvider);
       final updates = <String, dynamic>{
         'name': _nameController.text.trim().isEmpty ? null : _nameController.text.trim(),
-        'email': _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
+        // email is only sent if verified (or unchanged)
+        'email': newEmail.isEmpty ? null : newEmail,
       };
       if (uploadedUrl != null) {
         updates['avatarUrl'] = uploadedUrl;
@@ -70,14 +104,14 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
       ref.invalidate(profileProvider);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('common.success'.tr())),
+          SnackBar(content: Text('common.success'.tr()), backgroundColor: Colors.green),
         );
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
+          SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: AppColors.error),
         );
       }
     } finally {
@@ -85,6 +119,104 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
         setState(() => _isSaving = false);
       }
     }
+  }
+
+  Future<bool?> _showEmailOtpBottomSheet(String email) {
+    final codeController = TextEditingController();
+    bool isVerifyingCode = false;
+
+    return showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (sheetContext, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 24,
+                top: 24,
+                left: 24,
+                right: 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "profile.email_verify_title".tr(),
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "profile.email_verify_desc".tr(),
+                    style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF9FAFB),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFF3F4FB)),
+                    ),
+                    child: TextField(
+                      controller: codeController,
+                      keyboardType: TextInputType.number,
+                      maxLength: 6,
+                      style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 4, fontSize: 18),
+                      textAlign: TextAlign.center,
+                      decoration: const InputDecoration(
+                        hintText: "000000",
+                        counterText: "",
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(vertical: 16),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: isVerifyingCode
+                        ? null
+                        : () async {
+                            final code = codeController.text.trim();
+                            if (code.length != 6) return;
+
+                            setSheetState(() => isVerifyingCode = true);
+                            try {
+                              await ref.read(profileRepositoryProvider).confirmEmailVerification(email, code);
+                              if (sheetContext.mounted) {
+                                Navigator.pop(sheetContext, true);
+                              }
+                            } catch (e) {
+                              setSheetState(() => isVerifyingCode = false);
+                              if (sheetContext.mounted) {
+                                ScaffoldMessenger.of(sheetContext).showSnackBar(
+                                  SnackBar(
+                                    content: Text("profile.email_verify_error".tr()),
+                                    backgroundColor: AppColors.error,
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size.fromHeight(56),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    child: isVerifyingCode
+                        ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : Text("profile.email_verify_btn".tr(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   Future<void> _checkAndPickImage() async {

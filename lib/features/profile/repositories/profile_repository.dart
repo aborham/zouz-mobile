@@ -32,6 +32,25 @@ class ProfileRepository {
     }
   }
 
+  Future<void> requestEmailVerification(String email) async {
+    try {
+      await _dio.post('profile/email/request-verification', data: {'email': email});
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> confirmEmailVerification(String email, String code) async {
+    try {
+      await _dio.post('profile/email/confirm-verification', data: {
+        'email': email,
+        'code': code,
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   Future<List<SavedPaymentMethod>> fetchPaymentMethods() async {
     try {
       final response = await _dio.get('payment-methods');
