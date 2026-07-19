@@ -330,7 +330,8 @@
     "secure_vault": "Secure Vault",
     "secure_vault_desc": "Your card details are encrypted and securely stored.",
     "spending": "Smart Spending",
-    "spending_desc": "Track your purchases and manage your budget easily."
+    "spending_desc": "Track your purchases and manage your budget easily.",
+    "delete_confirm": "Are you sure you want to delete this payment method?"
   },
   "notifications": {
     "channels": "Notification Channels",

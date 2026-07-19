@@ -61,4 +61,24 @@ class ProfileRepository {
       rethrow;
     }
   }
+
+  Future<Map<String, dynamic>> verifyAndSaveCard(String token, bool isDefault) async {
+    try {
+      final response = await _dio.post('payment-methods', data: {
+        'token': token,
+        'isDefault': isDefault,
+      });
+      return Map<String, dynamic>.from(response.data);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> deletePaymentMethod(String id) async {
+    try {
+      await _dio.delete('payment-methods', queryParameters: {'id': id});
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

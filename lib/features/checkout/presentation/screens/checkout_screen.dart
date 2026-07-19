@@ -41,6 +41,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   bool _isNavigatingToStatus = false;
   String? _checkoutUrl;
   String _selectedPaymentMethod = 'card';
+  String? _selectedSavedCardToken;
   late final WebViewController _webViewController;
   bool _isShowingProfileDialog = false;
   // true once setupApplePay resolves successfully
@@ -185,8 +186,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
       if (!mounted) return;
 
-      // 2. Process Order (Initiate Tap Payment Hosted)
-      final processResponse = await repository.processOrder(orderId);
+      // 2. Process Order (Initiate Tap Payment Hosted or Token Charge)
+      final processResponse = await repository.processOrder(
+        orderId,
+        token: _selectedPaymentMethod == 'saved_card' ? _selectedSavedCardToken : null,
+      );
       final redirectUrl = processResponse['redirectUrl'];
 
       if (redirectUrl != null && redirectUrl.isNotEmpty) {
@@ -194,6 +198,18 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           _checkoutUrl = redirectUrl;
         });
         _webViewController.loadRequest(Uri.parse(redirectUrl));
+      } else if (processResponse['success'] == true) {
+        // Successful dynamic token charge without redirect (immediate CAPTURED)
+        _isNavigatingToStatus = true;
+        ref.read(cartProvider.notifier).clear();
+        ref.invalidate(homeDataProvider);
+        ref.invalidate(purchasesFutureProvider);
+        if (mounted) {
+          context.goNamed(
+            'payment-success',
+            queryParameters: {'orderId': orderId},
+          );
+        }
       } else {
         throw Exception('checkout.no_redirect'.tr());
       }
@@ -914,8 +930,70 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               const SizedBox(height: 12),
             ],
 
+            ref.watch(paymentMethodsProvider).when(
+              data: (methods) {
+                final cardMethods = methods.where((m) => m.type == 'CARD').toList();
+                if (cardMethods.isEmpty) return const SizedBox.shrink();
+
+                return Column(
+                  children: cardMethods.map((method) {
+                    final tapCardId = method.cardId;
+                    final isSelected = _selectedPaymentMethod == 'saved_card' && _selectedSavedCardToken == tapCardId;
+                    final title = "${method.brand ?? 'Card'} •••• ${method.last4 ?? '****'}";
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: GestureDetector(
+                        onTap: () => setState(() {
+                          _selectedPaymentMethod = 'saved_card';
+                          _selectedSavedCardToken = tapCardId;
+                        }),
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 16),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: isSelected
+                                  ? AppColors.primary
+                                  : Colors.grey.shade200,
+                              width: 1.5,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            color: isSelected
+                                ? AppColors.primary.withValues(alpha: 0.05)
+                                : Colors.white,
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.credit_card, color: AppColors.primary),
+                              const SizedBox(width: 12),
+                              Text(
+                                title,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              const Spacer(),
+                              if (isSelected)
+                                const Icon(Icons.check_circle, color: AppColors.primary),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
+              loading: () => const SizedBox.shrink(),
+              error: (err, stack) => const SizedBox.shrink(),
+            ),
+
             GestureDetector(
-              onTap: () => setState(() => _selectedPaymentMethod = 'card'),
+              onTap: () => setState(() {
+                _selectedPaymentMethod = 'card';
+                _selectedSavedCardToken = null;
+              }),
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 16),
                 padding: const EdgeInsets.all(16),
@@ -934,14 +1012,14 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 child: Row(
                   children: [
                     Icon(
-                      Icons.credit_card,
+                      Icons.add_card,
                       color: _selectedPaymentMethod == 'card'
                           ? AppColors.primary
                           : Colors.grey.shade600,
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      'checkout.card'.tr(),
+                      'payment.add_card'.tr(),
                       style: const TextStyle(
                         fontWeight: FontWeight.w700,
                         color: Colors.black87,
