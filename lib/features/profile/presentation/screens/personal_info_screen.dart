@@ -345,8 +345,6 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
             _phoneController.text = profile.phoneNumber!;
           }
 
-          final bool isEmailEmpty = profile.email == null || profile.email!.isEmpty;
-
           return SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
             child: Column(
@@ -400,7 +398,7 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
                   _emailController,
                   "john@example.com",
                   keyboardType: TextInputType.emailAddress,
-                  enabled: isEmailEmpty,
+                  enabled: true,
                 ),
                 const SizedBox(height: 24),
                 _buildFieldLabel('profile.phone_number'.tr()),
