@@ -58,8 +58,8 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
 
       final repository = ref.read(profileRepositoryProvider);
       final updates = <String, dynamic>{
-        'name': _nameController.text,
-        'email': _emailController.text,
+        'name': _nameController.text.trim().isEmpty ? null : _nameController.text.trim(),
+        'email': _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
       };
       if (uploadedUrl != null) {
         updates['avatarUrl'] = uploadedUrl;
@@ -201,11 +201,19 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
       ),
       body: profileAsync.when(
         data: (profile) {
-          if (_nameController.text.isEmpty) {
-            _nameController.text = profile.name ?? '';
-            _emailController.text = profile.email ?? '';
-            _phoneController.text = profile.phoneNumber ?? '';
+          // Set controllers if they are empty and profile has data.
+          // We check a separate initialized flag or controller text length.
+          if (_nameController.text.isEmpty && profile.name != null) {
+            _nameController.text = profile.name!;
           }
+          if (_emailController.text.isEmpty && profile.email != null) {
+            _emailController.text = profile.email!;
+          }
+          if (_phoneController.text.isEmpty && profile.phoneNumber != null) {
+            _phoneController.text = profile.phoneNumber!;
+          }
+
+          final bool isEmailEmpty = profile.email == null || profile.email!.isEmpty;
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
@@ -256,13 +264,18 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
                 const SizedBox(height: 24),
                 _buildFieldLabel('profile.email'.tr()),
                 const SizedBox(height: 8),
-                _buildTextField(_emailController, "john@example.com", keyboardType: TextInputType.emailAddress, enabled: false),
+                _buildTextField(
+                  _emailController,
+                  "john@example.com",
+                  keyboardType: TextInputType.emailAddress,
+                  enabled: isEmailEmpty,
+                ),
                 const SizedBox(height: 24),
                 _buildFieldLabel('profile.phone_number'.tr()),
-                _buildTextField(_phoneController, "+966 50 000 0000", keyboardType: TextInputType.phone),
+                _buildTextField(_phoneController, "+966 50 000 0000", keyboardType: TextInputType.phone, enabled: false),
                 const SizedBox(height: 40),
                 const Text(
-                  "Note: Changing your email or phone number will require verification.",
+                  "Note: Changing your email will require verification.",
                   style: TextStyle(color: Colors.grey, fontSize: 12),
                 ),
                 const SizedBox(height: 40),
