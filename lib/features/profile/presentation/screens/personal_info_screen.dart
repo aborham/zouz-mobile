@@ -404,9 +404,9 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
                 _buildFieldLabel('profile.phone_number'.tr()),
                 _buildTextField(_phoneController, "+966 50 000 0000", keyboardType: TextInputType.phone, enabled: false),
                 const SizedBox(height: 40),
-                const Text(
-                  "Note: Changing your email will require verification.",
-                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                Text(
+                  "profile.email_change_note".tr(),
+                  style: const TextStyle(color: Colors.grey, fontSize: 12),
                 ),
                 const SizedBox(height: 40),
                 ElevatedButton(

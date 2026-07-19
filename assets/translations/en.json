@@ -139,7 +139,8 @@
     "email_verify_title": "Verify Email",
     "email_verify_desc": "We sent a 6-digit verification code to your email. Enter it below to confirm changes.",
     "email_verify_btn": "Confirm Code",
-    "email_verify_error": "Invalid verification code. Please try again."
+    "email_verify_error": "Invalid verification code. Please try again.",
+    "email_change_note": "Note: Changing your email will require verification."
   },
   "scanner": {
     "align_qr": "Align the QR code within the frame to scan",
