@@ -261,7 +261,9 @@
     "complete_profile_btn": "إكمال الملف الشخصي",
     "profile_error": "لم نتمكن من التحقق من تفاصيل الملف الشخصي",
     "anonymous_user": "مستخدم مجهول",
-    "personal_details": "التفاصيل الشخصية"
+    "personal_details": "التفاصيل الشخصية",
+    "processing_title": "جارٍ معالجة الدفع",
+    "processing_desc": "يرجى الانتظار بينما نعالج دفعتك بأمان. لا تغلق التطبيق."
   },
   "cart": {
     "title": "سلة التسوق",

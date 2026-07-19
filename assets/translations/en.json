@@ -257,7 +257,9 @@
     "complete_profile_btn": "Complete Profile",
     "profile_error": "Could not verify profile details",
     "anonymous_user": "Anonymous User",
-    "personal_details": "Personal Details"
+    "personal_details": "Personal Details",
+    "processing_title": "Processing Payment",
+    "processing_desc": "Please wait while we securely process your payment. Do not close the app."
   },
   "cart": {
     "title": "Shopping Cart",

@@ -563,8 +563,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
     final total = subtotal;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F9),
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: const Color(0xFFF7F7F9),
       appBar: AppBar(
         title: Text(
           'checkout.title'.tr(),
@@ -1039,6 +1041,77 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           ),
         ),
       ),
+        ),
+
+        // ── Processing overlay ──────────────────────────────────────────────
+        // Blocks all interaction and shows a spinner while the payment is
+        // being processed (Apple Pay token → create order → charge).
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          child: _isProcessingPayment
+              ? Container(
+                  key: const ValueKey('processing'),
+                  color: Colors.black.withValues(alpha: 0.55),
+                  alignment: Alignment.center,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 36, vertical: 32),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.15),
+                              blurRadius: 30,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Animated ring
+                            const SizedBox(
+                              width: 56,
+                              height: 56,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 4,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Color(0xFF224AFB),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            Text(
+                              'checkout.processing_title'.tr(),
+                              style: const TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF1A1A2E),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'checkout.processing_desc'.tr(),
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey.shade600,
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : const SizedBox.shrink(key: ValueKey('idle')),
+        ),
+      ],
     );
   }
 }
