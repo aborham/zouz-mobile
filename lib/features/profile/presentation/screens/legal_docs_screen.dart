@@ -24,21 +24,27 @@ class _LegalDocsScreenState extends State<LegalDocsScreen> {
     // Assuming context.locale.languageCode is accessible here, but actually we can get it via context in didChangeDependencies
   }
 
+  // Keep track of the last loaded URL to prevent duplicate loads on identical renders
+  String? _lastLoadedUrl;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_isLoading) {
-      final lang = context.locale.languageCode;
-      final url = widget.type == 'terms' 
-          ? '${AppConfig.websiteUrl}/mobile-terms?lang=$lang' 
-          : '${AppConfig.websiteUrl}/mobile-privacy?lang=$lang';
+    final lang = context.locale.languageCode;
+    final url = widget.type == 'terms' 
+        ? '${AppConfig.websiteUrl}/mobile-terms?lang=$lang' 
+        : '${AppConfig.websiteUrl}/mobile-privacy?lang=$lang';
+
+    if (_lastLoadedUrl != url) {
+      _lastLoadedUrl = url;
+      debugPrint('LegalDocsScreen loading webview URL: $url');
       
       _controller = WebViewController()
         ..setJavaScriptMode(JavaScriptMode.unrestricted)
         ..setBackgroundColor(AppColors.homeBackground)
         ..setNavigationDelegate(
           NavigationDelegate(
-            onPageFinished: (String url) {
+            onPageFinished: (String finishedUrl) {
               if (mounted) {
                 setState(() {
                   _isLoading = false;
