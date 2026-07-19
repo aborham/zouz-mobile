@@ -232,20 +232,21 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         ),
       );
 
-      // getTapToken returns the raw Tap API response — no {success/data} wrapper.
-      // A successful response has result["id"] = "tok_..." and result["status"] = "ACTIVE".
-      // An error response has result["errors"] = [...].
+      // SDK response shape: {success: true, data: {token: "tok_...", ...}}
+      // The token ID field inside data is "token", NOT "id".
       debugPrint("getTapToken raw result: $result");
 
-      final errors = result["errors"];
-      if (errors != null && (errors as List).isNotEmpty) {
-        final desc = errors.first["description"] ?? "Apple Pay token failed";
-        throw Exception(desc);
+      if (result["success"] != true) {
+        // Error path — data may contain an error message or be absent
+        final data = result["data"];
+        final errMsg = (data != null ? data["sdk_result"] : null) ?? "Apple Pay token generation failed";
+        throw Exception(errMsg);
       }
 
-      final String? tapTokenId = result["id"] as String?;
+      final data = result["data"] as Map?;
+      final String? tapTokenId = data?["token"] as String?;
       if (tapTokenId == null || tapTokenId.isEmpty) {
-        throw Exception("Apple Pay token generation failed — no token ID returned");
+        throw Exception("Apple Pay token generation failed — no token returned");
       }
 
 
