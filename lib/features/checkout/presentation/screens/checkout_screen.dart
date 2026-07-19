@@ -64,7 +64,14 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       final result = await TapApplePayFlutter.setupApplePay;
       if (result["success"] == true) {
         debugPrint("Apple Pay SDK initialised successfully.");
-        if (mounted) setState(() => _applePayReady = true);
+        if (mounted) {
+          setState(() {
+            _applePayReady = true;
+            if (Platform.isIOS) {
+              _selectedPaymentMethod = 'apple_pay';
+            }
+          });
+        }
       } else {
         debugPrint("Apple Pay SDK init failed: ${result["error"]}");
       }
