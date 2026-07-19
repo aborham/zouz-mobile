@@ -14,6 +14,8 @@ import '../../repositories/checkout_repository.dart';
 import '../../../cart/providers/cart_provider.dart';
 import '../../../profile/providers/profile_provider.dart';
 import '../../../profile/models/profile_model.dart';
+import 'package:zouz_mobile/features/dashboard/providers/home_provider.dart';
+import 'package:zouz_mobile/features/purchases/presentation/screens/purchases_screen.dart';
 
 class CheckoutScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic>? package;
@@ -110,6 +112,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     if (url.contains('/checkout/success')) {
       _isNavigatingToStatus = true;
       ref.read(cartProvider.notifier).clear();
+      // Invalidate home data and purchases cache so fresh data is loaded
+      ref.invalidate(homeDataProvider);
+      ref.invalidate(purchasesFutureProvider);
       final uri = Uri.parse(url);
       final orderId = uri.queryParameters['orderId'];
       context.goNamed(
@@ -297,6 +302,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       if (processResponse['success'] == true) {
         _isNavigatingToStatus = true;
         ref.read(cartProvider.notifier).clear();
+        // Invalidate home data and purchases cache so fresh data is loaded
+        ref.invalidate(homeDataProvider);
+        ref.invalidate(purchasesFutureProvider);
         context.goNamed(
           'payment-success',
           queryParameters: {'orderId': orderId},
