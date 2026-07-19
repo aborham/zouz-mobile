@@ -47,8 +47,11 @@ class CheckoutRepository {
     Map<String, dynamic>? applePayToken,
   }) async {
     try {
+      // Payment processing can take 30-45 s when Tap's backend is charging
+      // the token — use a longer receive timeout for this call only.
       final response = await _dio.post(
         '/payment/process-order',
+        options: Options(receiveTimeout: const Duration(seconds: 60)),
         data: {
           'orderId': orderId,
           if (token != null) 'token': token,
