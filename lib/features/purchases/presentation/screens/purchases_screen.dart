@@ -28,13 +28,10 @@ class PurchasesScreen extends ConsumerWidget {
         backgroundColor: const Color(0xFFF9FAFB),
         // Show the OS back arrow when pushed onto the stack.
         // When there is no back route (direct entry from tab), show a home icon.
-        leading: context.canPop()
-            ? null // let GoRouter render its default back button
-            : IconButton(
-                icon: const Icon(Icons.home_outlined),
-                onPressed: () => context.go('/dashboard'),
-                tooltip: 'dashboard.home'.tr(),
-              ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/dashboard'),
+        ),
         title: Text(
           'dashboard.purchases'.tr(),
           style: const TextStyle(fontWeight: FontWeight.bold),
