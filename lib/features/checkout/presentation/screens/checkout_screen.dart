@@ -232,12 +232,22 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         ),
       );
 
-      if (result["success"] != true) {
-        throw Exception(result["error"] ?? "Apple Pay token generation failed");
+      // getTapToken returns the raw Tap API response — no {success/data} wrapper.
+      // A successful response has result["id"] = "tok_..." and result["status"] = "ACTIVE".
+      // An error response has result["errors"] = [...].
+      debugPrint("getTapToken raw result: $result");
+
+      final errors = result["errors"];
+      if (errors != null && (errors as List).isNotEmpty) {
+        final desc = errors.first["description"] ?? "Apple Pay token failed";
+        throw Exception(desc);
       }
 
-      final tapTokenData = result["data"];
-      final String tapTokenId = tapTokenData["id"];
+      final String? tapTokenId = result["id"] as String?;
+      if (tapTokenId == null || tapTokenId.isEmpty) {
+        throw Exception("Apple Pay token generation failed — no token ID returned");
+      }
+
 
       List<Map<String, dynamic>> orderItems = [];
 
