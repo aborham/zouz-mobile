@@ -132,10 +132,10 @@
     "privacy_policy": "Privacy Policy",
     "delete_account": "Delete Account",
     "delete_account_desc": "Permanently delete your account and data",
-    "delete_confirm": "Delete Account",
-    "delete_confirm_desc": "Are you sure you want to delete your account? This action cannot be undone.",
+    "delete_confirm": "Delete Your Account?",
+    "delete_confirm_desc": "Are you sure you want to delete your account? Under Saudi PDPL regulations:\n\n• Any remaining active packages or wallet balances will be permanently lost and cannot be refunded.\n• Your personal data will be completely anonymized.\n• Order history is retained anonymously for VAT and audit compliance.\n• You will NOT be eligible for welcome offers or promotions if you register again.",
     "wait_seconds": "Please wait {} seconds...",
-    "delete_btn": "Delete"
+    "delete_btn": "Confirm Permanent Deletion"
   },
   "scanner": {
     "align_qr": "Align the QR code within the frame to scan",

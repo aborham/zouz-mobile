@@ -357,9 +357,9 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) {
+      builder: (dialogContext) {
         return StatefulBuilder(
-          builder: (context, setState) {
+          builder: (dialogContext, setState) {
             timer ??= Timer.periodic(const Duration(seconds: 1), (t) {
               if (secondsRemaining > 0) {
                 setState(() {
@@ -375,6 +375,7 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
               title: Text("profile.delete_confirm".tr()),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text("profile.delete_confirm_desc".tr()),
                   const SizedBox(height: 16),
@@ -389,17 +390,56 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
                 TextButton(
                   onPressed: () {
                     timer?.cancel();
-                    Navigator.pop(context);
+                    Navigator.pop(dialogContext);
                   },
                   child: Text("common.cancel".tr()),
                 ),
                 TextButton(
                   onPressed: secondsRemaining > 0
                       ? null
-                      : () {
+                      : () async {
                           timer?.cancel();
-                          Navigator.pop(context);
-                          // Implement delete logic
+                          Navigator.pop(dialogContext); // close warning dialog
+
+                          // Show blocking loading dialog
+                          showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (BuildContext context) {
+                              return const Center(
+                                child: CircularProgressIndicator(),
+                              );
+                            },
+                          );
+
+                          try {
+                            // Call API to de-identify and purge device mappings
+                            await ref.read(profileRepositoryProvider).deleteProfile();
+
+                            if (context.mounted) {
+                              Navigator.pop(context); // close loader
+                              
+                              // Trigger logout and clean up state
+                              ref.read(authNotifierProvider.notifier).logout();
+                              
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text("common.success".tr()),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              Navigator.pop(context); // close loader
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(e.toString()),
+                                  backgroundColor: AppColors.error,
+                                ),
+                              );
+                            }
+                          }
                         },
                   child: Text(
                     "profile.delete_btn".tr(),

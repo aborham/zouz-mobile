@@ -24,6 +24,14 @@ class ProfileRepository {
     }
   }
 
+  Future<void> deleteProfile() async {
+    try {
+      await _dio.delete('profile/delete');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   Future<List<SavedPaymentMethod>> fetchPaymentMethods() async {
     try {
       final response = await _dio.get('payment-methods');
