@@ -13,7 +13,7 @@ class AppConfig {
   static const String _localBaseUrl = 'http://$host:$port';
   static const String _prodBaseUrl = 'https://dashboard.usezouz.com';
 
-  static const String _localWebsiteUrl = 'http://$host:$port';
+  static const String _localWebsiteUrl = 'http://$host:8080';
   static const String _prodWebsiteUrl = 'https://usezouz.com';
 
   // Automatically switches based on whether the app is running in debug or release mode
