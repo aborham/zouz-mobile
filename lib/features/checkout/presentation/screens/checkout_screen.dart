@@ -33,6 +33,9 @@ class CheckoutScreen extends ConsumerStatefulWidget {
 
 class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   bool _isProcessingPayment = false;
+  // Silent guard while Apple Pay sheet is open — no overlay shown.
+  // Overlay only shows after sheet dismisses via _isProcessingPayment.
+  bool _isApplePaySheetOpen = false;
   bool _isNavigatingToStatus = false;
   String? _checkoutUrl;
   String _selectedPaymentMethod = 'card';
@@ -197,8 +200,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   }
 
   Future<void> _processApplePayCheckout(double total) async {
-    if (_isProcessingPayment) return;
-    setState(() => _isProcessingPayment = true);
+    // Guard: prevent double-tap while sheet is open or payment is processing
+    if (_isApplePaySheetOpen || _isProcessingPayment) return;
+    setState(() => _isApplePaySheetOpen = true);
 
     try {
       final repository = ref.read(checkoutRepositoryProvider);
@@ -207,7 +211,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       try {
         final profile = await ref.read(profileProvider.future);
         if ((profile.name?.isEmpty ?? true) || (profile.email?.isEmpty ?? true)) {
-          setState(() => _isProcessingPayment = false);
+          setState(() => _isApplePaySheetOpen = false);
           if (mounted) {
             _showProfileIncompleteDialog(context);
           }
@@ -215,12 +219,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         }
       } catch (e) {
         debugPrint('Failed to fetch profile before checkout: $e');
-        setState(() => _isProcessingPayment = false);
+        setState(() => _isApplePaySheetOpen = false);
         _showError('checkout.profile_error'.tr());
         return;
       }
 
-      // 2. Request Tap Apple Pay Token
+      // Phase 1: Show Apple Pay sheet — no overlay yet.
       final result = await TapApplePayFlutter.getTapToken(
         config: ApplePayConfig(
           transactionCurrency: TapCurrencyCode.SAR,
@@ -239,12 +243,17 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         ),
       );
 
+      // Sheet dismissed — switch to processing overlay now.
+      if (!mounted) return;
+      setState(() {
+        _isApplePaySheetOpen = false;
+        _isProcessingPayment = true;
+      });
+
       // SDK response shape: {success: true, data: {token: "tok_...", ...}}
-      // The token ID field inside data is "token", NOT "id".
       debugPrint("getTapToken raw result: $result");
 
       if (result["success"] != true) {
-        // Error path — data may contain an error message or be absent
         final data = result["data"];
         final errMsg = (data != null ? data["sdk_result"] : null) ?? "Apple Pay token generation failed";
         throw Exception(errMsg);
@@ -255,7 +264,6 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       if (tapTokenId == null || tapTokenId.isEmpty) {
         throw Exception("Apple Pay token generation failed — no token returned");
       }
-
 
       List<Map<String, dynamic>> orderItems = [];
 
@@ -273,13 +281,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         throw Exception('checkout.no_items'.tr());
       }
 
-      // 3. Create Order
+      // Phase 2 (overlay visible): Create Order → Process with token
       final createResponse = await repository.createOrder(orderItems);
       final orderId = createResponse['orderId'];
 
       if (!mounted) return;
 
-      // 4. Process Order with Tap Token
       final processResponse = await repository.processOrder(
         orderId,
         token: tapTokenId,
@@ -300,7 +307,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      setState(() => _isProcessingPayment = false);
+      setState(() {
+        _isApplePaySheetOpen = false;
+        _isProcessingPayment = false;
+      });
       _showError(e.toString());
     }
   }
