@@ -106,13 +106,14 @@ class MyApp extends ConsumerWidget {
       }
     });
 
-    // Sync EasyLocalization locale to our Riverpod provider
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final currentLocale = context.locale.languageCode;
-      if (ref.read(appLocaleProvider) != currentLocale) {
+    // Sync EasyLocalization locale to our Riverpod provider reactively
+    final currentLocale = context.locale.languageCode;
+    if (ref.read(appLocaleProvider) != currentLocale) {
+      // Use microtask to avoid updating provider during layout/build phases
+      Future.microtask(() {
         ref.read(appLocaleProvider.notifier).setLocale(currentLocale);
-      }
-    });
+      });
+    }
 
     return MaterialApp.router(
       title: 'Zouz Customer App',

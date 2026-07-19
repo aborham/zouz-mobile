@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:zouz_mobile/core/theme/colors.dart';
+import 'package:zouz_mobile/features/dashboard/providers/home_provider.dart';
+import 'package:zouz_mobile/features/profile/providers/profile_provider.dart';
+import 'package:zouz_mobile/features/purchases/presentation/screens/purchases_screen.dart';
 
-class LanguageScreen extends StatelessWidget {
+class LanguageScreen extends ConsumerWidget {
   const LanguageScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final currentLocale = context.locale;
 
     return Scaffold(
@@ -31,6 +35,7 @@ class LanguageScreen extends StatelessWidget {
         children: [
           _buildLanguageTile(
             context,
+            ref,
             title: "English",
             locale: const Locale('en'),
             isSelected: currentLocale.languageCode == 'en',
@@ -38,6 +43,7 @@ class LanguageScreen extends StatelessWidget {
           const SizedBox(height: 12),
           _buildLanguageTile(
             context,
+            ref,
             title: "العربية",
             locale: const Locale('ar'),
             isSelected: currentLocale.languageCode == 'ar',
@@ -48,7 +54,8 @@ class LanguageScreen extends StatelessWidget {
   }
 
   Widget _buildLanguageTile(
-    BuildContext context, {
+    BuildContext context,
+    WidgetRef ref, {
     required String title,
     required Locale locale,
     required bool isSelected,
@@ -66,6 +73,10 @@ class LanguageScreen extends StatelessWidget {
         onTap: () {
           if (context.locale != locale) {
             context.setLocale(locale);
+            // Invalidate API cached states so they refetch using the new locale headers
+            ref.invalidate(homeDataProvider);
+            ref.invalidate(profileProvider);
+            ref.invalidate(purchasesFutureProvider);
           }
         },
         title: Text(
