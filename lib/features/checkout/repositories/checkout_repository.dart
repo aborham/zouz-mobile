@@ -45,6 +45,7 @@ class CheckoutRepository {
     String orderId, {
     String? token,
     Map<String, dynamic>? applePayToken,
+    String? paymentMethod,
   }) async {
     try {
       // Payment processing can take 30-45 s when Tap's backend is charging
@@ -56,6 +57,7 @@ class CheckoutRepository {
           'orderId': orderId,
           if (token != null) 'token': token,
           if (applePayToken != null) 'applePayToken': applePayToken,
+          if (paymentMethod != null) 'paymentMethod': paymentMethod,
         },
       );
       return Map<String, dynamic>.from(response.data);

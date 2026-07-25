@@ -122,9 +122,10 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
         if (index + 1 < uri.pathSegments.length) {
           tenantSlug = uri.pathSegments[index + 1];
         }
-        standId = uri.queryParameters['standId'];
+        standId = uri.queryParameters['standId'] ?? uri.queryParameters['stand'];
       } else if (isZouzDirect) {
         tenantSlug = uri.pathSegments.isNotEmpty ? uri.pathSegments.first : null;
+        standId = uri.queryParameters['standId'] ?? uri.queryParameters['stand'];
       }
 
       if (tenantSlug != null && tenantSlug.isNotEmpty) {

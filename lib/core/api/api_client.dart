@@ -62,7 +62,12 @@ class ApiClient {
     );
 
     _dio.interceptors.add(
-      LogInterceptor(responseBody: true, requestBody: true),
+      LogInterceptor(
+        requestHeader: !AppConfig.isProduction,
+        requestBody: !AppConfig.isProduction,
+        responseHeader: !AppConfig.isProduction,
+        responseBody: true,
+      ),
     );
   }
 

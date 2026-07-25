@@ -8,7 +8,6 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:tap_apple_pay_flutter/tap_apple_pay_flutter.dart';
 import 'package:tap_apple_pay_flutter/models/models.dart';
 import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart';
 import '../../../../core/config/app_config.dart';
 import '../../repositories/checkout_repository.dart';
 import '../../../cart/providers/cart_provider.dart';
@@ -63,7 +62,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       TapApplePayFlutter.setupApplePayConfiguration(
         sandboxKey: AppConfig.tapPublishableSandboxKey,
         productionKey: AppConfig.tapPublishableProductionKey,
-        sdkMode: kReleaseMode ? SdkMode.production : SdkMode.sandbox,
+        sdkMode: AppConfig.isProduction ? SdkMode.production : SdkMode.sandbox,
         merchantId: null,
         applePayButtonRadius: 28,
       );
@@ -311,6 +310,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       final processResponse = await repository.processOrder(
         orderId,
         token: tapTokenId,
+        paymentMethod: 'APPLE_PAY',
       );
 
       if (!mounted) return;

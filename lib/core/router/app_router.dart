@@ -47,7 +47,7 @@ final GoRouter appRouter = GoRouter(
       path: '/menu/:tenantSlug',
       builder: (context, state) {
         final tenantSlug = state.pathParameters['tenantSlug']!;
-        final standId = state.uri.queryParameters['standId'];
+        final standId = state.uri.queryParameters['standId'] ?? state.uri.queryParameters['stand'];
         return MenuScreen(tenantSlug: tenantSlug, standId: standId);
       },
     ),
@@ -55,7 +55,7 @@ final GoRouter appRouter = GoRouter(
       path: '/scan/:tenantSlug',
       builder: (context, state) {
         final tenantSlug = state.pathParameters['tenantSlug']!;
-        final standId = state.uri.queryParameters['standId'];
+        final standId = state.uri.queryParameters['standId'] ?? state.uri.queryParameters['stand'];
         // Reusing MenuScreen for scan results
         return MenuScreen(tenantSlug: tenantSlug, standId: standId);
       },

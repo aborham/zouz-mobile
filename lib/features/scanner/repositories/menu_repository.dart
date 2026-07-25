@@ -12,7 +12,14 @@ final menuDioProvider = Provider<Dio>((ref) {
       receiveTimeout: const Duration(seconds: 10),
     ),
   );
-  dio.interceptors.add(LogInterceptor(responseBody: true, requestBody: true));
+  dio.interceptors.add(
+    LogInterceptor(
+      requestHeader: !AppConfig.isProduction,
+      requestBody: !AppConfig.isProduction,
+      responseHeader: !AppConfig.isProduction,
+      responseBody: true,
+    ),
+  );
   return dio;
 });
 
