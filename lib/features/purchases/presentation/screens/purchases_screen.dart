@@ -6,7 +6,9 @@ import 'package:go_router/go_router.dart';
 import 'package:zouz_mobile/core/theme/colors.dart';
 import '../../repositories/purchases_repository.dart';
 
-final purchasesFilterProvider = StateProvider.autoDispose<String>((ref) => 'ALL');
+final purchasesFilterProvider = StateProvider.autoDispose<String>(
+  (ref) => 'ALL',
+);
 
 final purchasesFutureProvider =
     FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
@@ -45,8 +47,13 @@ class PurchasesScreen extends ConsumerWidget {
           final filteredPurchases = purchases.where((p) {
             final status = p['status'] ?? 'UNKNOWN';
             if (selectedFilter == 'ALL') return true;
-            if (selectedFilter == 'COMPLETED' && status == 'ACTIVE') return true; // Treating ACTIVE as COMPLETED in the UI for now
-            if (selectedFilter == 'EXPIRED' && (status == 'EXPIRED' || status == 'DEPLETED')) return true;
+            if (selectedFilter == 'COMPLETED' && status == 'ACTIVE') {
+              return true; // Treating ACTIVE as COMPLETED in the UI for now
+            }
+            if (selectedFilter == 'EXPIRED' &&
+                (status == 'EXPIRED' || status == 'DEPLETED')) {
+              return true;
+            }
             return false;
           }).toList();
 
@@ -64,21 +71,30 @@ class PurchasesScreen extends ConsumerWidget {
                       padding: const EdgeInsets.symmetric(vertical: 48),
                       child: Column(
                         children: [
-                          const Icon(Icons.receipt_long, size: 64, color: Colors.grey),
+                          const Icon(
+                            Icons.receipt_long,
+                            size: 64,
+                            color: Colors.grey,
+                          ),
                           const SizedBox(height: 16),
                           Text(
                             'purchases.empty'.tr(),
-                            style: const TextStyle(fontSize: 18, color: Colors.grey),
+                            style: const TextStyle(
+                              fontSize: 18,
+                              color: Colors.grey,
+                            ),
                           ),
                         ],
                       ),
                     ),
                   )
                 else
-                  ...filteredPurchases.map((package) => Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: _buildPurchaseCard(context, package),
-                  )),
+                  ...filteredPurchases.map(
+                    (package) => Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: _buildPurchaseCard(context, package),
+                    ),
+                  ),
               ],
             ),
           );
@@ -117,14 +133,20 @@ class PurchasesScreen extends ConsumerWidget {
           return Padding(
             padding: const EdgeInsets.only(right: 8),
             child: GestureDetector(
-              onTap: () => ref.read(purchasesFilterProvider.notifier).state = filter['id']!,
+              onTap: () => ref.read(purchasesFilterProvider.notifier).state =
+                  filter['id']!,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: isSelected ? AppColors.primary : Colors.white,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: isSelected ? AppColors.primary : Colors.grey.shade300,
+                    color: isSelected
+                        ? AppColors.primary
+                        : Colors.grey.shade300,
                   ),
                 ),
                 child: Text(
@@ -142,14 +164,13 @@ class PurchasesScreen extends ConsumerWidget {
     );
   }
 
-
   Widget _buildPurchaseCard(
     BuildContext context,
     Map<String, dynamic> package,
   ) {
     final status = package['status'] ?? 'UNKNOWN';
     final isDepleted = status == 'DEPLETED' || status == 'EXPIRED';
-    
+
     // Mapped properties based on design
     final title = package['businessName'] ?? 'Unknown Business';
     final subtitle = package['packageName'] ?? 'Unknown Package';
@@ -157,20 +178,22 @@ class PurchasesScreen extends ConsumerWidget {
     final price = paidAmount == null
         ? '—'
         : paidAmount == paidAmount.roundToDouble()
-            ? paidAmount.toStringAsFixed(0)
-            : paidAmount.toStringAsFixed(2);
+        ? paidAmount.toStringAsFixed(0)
+        : paidAmount.toStringAsFixed(2);
     final currency = package['currency']?.toString() ?? 'SAR';
-    
+
     final businessNameLower = title.toLowerCase();
     Color iconBgColor = const Color(0xFFFFF3E0);
     Color iconColor = const Color(0xFFEF6C00);
     IconData icon = Icons.coffee;
-    
-    if (businessNameLower.contains('salon') || businessNameLower.contains('beauty')) {
+
+    if (businessNameLower.contains('salon') ||
+        businessNameLower.contains('beauty')) {
       iconBgColor = const Color(0xFFFCE4EC);
       iconColor = const Color(0xFFC2185B);
       icon = Icons.spa;
-    } else if (businessNameLower.contains('restaurant') || businessNameLower.contains('مطعم')) {
+    } else if (businessNameLower.contains('restaurant') ||
+        businessNameLower.contains('مطعم')) {
       iconBgColor = const Color(0xFFFFEBEE);
       iconColor = const Color(0xFFD32F2F);
       icon = Icons.restaurant;
@@ -192,7 +215,8 @@ class PurchasesScreen extends ConsumerWidget {
     } else {
       tagBgColor = const Color(0xFFE8F5E9); // Light green
       tagTextColor = const Color(0xFF388E3C);
-      tagText = 'purchases.filter_completed'.tr(); // Treating active as completed in this view
+      tagText = 'purchases.filter_completed'
+          .tr(); // Treating active as completed in this view
     }
 
     return GestureDetector(
@@ -226,7 +250,7 @@ class PurchasesScreen extends ConsumerWidget {
                   child: Icon(icon, color: iconColor, size: 28),
                 ),
                 const SizedBox(width: 16),
-                
+
                 // Titles
                 Expanded(
                   child: Column(
@@ -248,10 +272,29 @@ class PurchasesScreen extends ConsumerWidget {
                           color: Colors.grey,
                         ),
                       ),
+                      if (package['redemptionMode'] == 'ITEMIZED') ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          (package['itemBalances'] as List<dynamic>? ??
+                                  const [])
+                              .map(
+                                (item) =>
+                                    '${item['name']}: ${item['remainingQuantity']}/${item['initialQuantity']}',
+                              )
+                              .join(' • '),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
-                
+
                 // Price
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -278,20 +321,25 @@ class PurchasesScreen extends ConsumerWidget {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 20),
-            
+
             // Bottom Row: Status and Date
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 // Status Tag
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: tagBgColor,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: tagTextColor.withValues(alpha: 0.2)),
+                    border: Border.all(
+                      color: tagTextColor.withValues(alpha: 0.2),
+                    ),
                   ),
                   child: Text(
                     tagText,
@@ -302,7 +350,7 @@ class PurchasesScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
-                
+
                 // Date
                 Text(
                   _formatDate(package['purchaseDate']),
@@ -314,25 +362,24 @@ class PurchasesScreen extends ConsumerWidget {
                 ),
               ],
             ),
-            
+
             // Extra info row for expired items (like 12 unredeemed meals)
-            if (isDepleted && package['remainingQuantity'] != null && package['remainingQuantity'] > 0) ...[
+            if (isDepleted &&
+                package['remainingQuantity'] != null &&
+                package['remainingQuantity'] > 0) ...[
               const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Text(
                     '${package['remainingQuantity']} ${package['packageType'] == 'QUANTITY' ? 'dashboard.items'.tr() : 'dashboard.visits'.tr()} غير مستردة', // Hardcoded fallback for edgecase
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                    ),
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                   const SizedBox(width: 6),
                   const Icon(Icons.info, color: Colors.grey, size: 14),
                 ],
               ),
-            ]
+            ],
           ],
         ),
       ),

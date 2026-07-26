@@ -208,7 +208,18 @@
     "no_redemptions": "No redemptions yet",
     "history_instruction": "Show QR code to start using this package",
     "usages_remaining": "usages remaining",
-    "from": "from"
+    "from": "from",
+    "select_items": "Select items to redeem",
+    "select_item_error": "Select at least one item",
+    "remaining_count": "{} remaining",
+    "redeem_one_use": "Redeem one use",
+    "generate_qr": "Generate secure QR",
+    "refresh_qr": "Refresh QR",
+    "qr_expired": "QR code expired",
+    "qr_expires_in": "Expires in {}",
+    "qr_refresh_instruction": "Generate a fresh code to continue",
+    "redemption_history": "Redemption history",
+    "details_load_error": "Could not load package details"
   },
   "packages": {
     "description": "Description",

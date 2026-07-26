@@ -212,7 +212,18 @@
     "no_redemptions": "لا توجد عمليات استبدال بعد",
     "history_instruction": "اعرض رمز QR لبدء استخدام هذه الباقة",
     "usages_remaining": "استخدامات متبقية",
-    "from": "من"
+    "from": "من",
+    "select_items": "اختر العناصر المراد استخدامها",
+    "select_item_error": "اختر عنصراً واحداً على الأقل",
+    "remaining_count": "{} متبقي",
+    "redeem_one_use": "استخدام مرة واحدة",
+    "generate_qr": "إنشاء رمز QR آمن",
+    "refresh_qr": "تحديث الرمز",
+    "qr_expired": "انتهت صلاحية رمز QR",
+    "qr_expires_in": "ينتهي خلال {}",
+    "qr_refresh_instruction": "أنشئ رمزاً جديداً للمتابعة",
+    "redemption_history": "سجل الاستخدام",
+    "details_load_error": "تعذر تحميل تفاصيل الباقة"
   },
   "packages": {
     "description": "الوصف",
