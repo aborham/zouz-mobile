@@ -153,8 +153,13 @@ class PurchasesScreen extends ConsumerWidget {
     // Mapped properties based on design
     final title = package['businessName'] ?? 'Unknown Business';
     final subtitle = package['packageName'] ?? 'Unknown Package';
-    // Provide a mocked random price between 30 and 150 for display if not found
-    final price = package['price'] ?? (package['packageName'].toString().length * 5).clamp(30, 150).toString();
+    final paidAmount = double.tryParse(package['price']?.toString() ?? '');
+    final price = paidAmount == null
+        ? '—'
+        : paidAmount == paidAmount.roundToDouble()
+            ? paidAmount.toStringAsFixed(0)
+            : paidAmount.toStringAsFixed(2);
+    final currency = package['currency']?.toString() ?? 'SAR';
     
     final businessNameLower = title.toLowerCase();
     Color iconBgColor = const Color(0xFFFFF3E0);
@@ -262,7 +267,7 @@ class PurchasesScreen extends ConsumerWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      'purchases.currency'.tr(),
+                      currency,
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,

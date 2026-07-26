@@ -55,10 +55,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
   Future<void> _initApplePay() async {
     try {
-      // NOTE: merchantId is required but nullable. We pass null here (SDK sends "")
-      // because passing a non-Tap-registered merchant ID causes server error 1164.
-      // The Apple Pay merchant ID used for the actual payment token is supplied
-      // per-transaction in ApplePayConfig inside _processApplePayCheckout().
+      // Tap's checkout-profile endpoint rejects the Apple Developer merchant
+      // identifier with error 1164. This setup field is optional; the actual
+      // Apple Pay request still uses AppConfig.applePayMerchantId below.
       TapApplePayFlutter.setupApplePayConfiguration(
         sandboxKey: AppConfig.tapPublishableSandboxKey,
         productionKey: AppConfig.tapPublishableProductionKey,
