@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:zouz_mobile/core/theme/colors.dart';
@@ -65,7 +67,7 @@ class _PurchaseDetailScreenState extends ConsumerState<PurchaseDetailScreen> {
   Future<void> _createIntent() async {
     final details = _details;
     if (details == null) return;
-    final isItemized = details['redemptionMode'] == 'ITEMIZED';
+    final isItemized = _isItemized(details);
     final selected = _selectedQuantities.entries
         .where((entry) => entry.value > 0)
         .map((entry) => {'balanceId': entry.key, 'quantity': entry.value})
@@ -211,10 +213,10 @@ class _PurchaseDetailScreenState extends ConsumerState<PurchaseDetailScreen> {
 
   Widget _selectionCard() {
     final details = _details!;
-    final isItemized = details['redemptionMode'] == 'ITEMIZED';
     final balances = List<Map<String, dynamic>>.from(
       details['itemBalances'] ?? const [],
     );
+    final isItemized = _isItemized(details);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: _cardDecoration(),
@@ -308,6 +310,7 @@ class _PurchaseDetailScreenState extends ConsumerState<PurchaseDetailScreen> {
 
   Widget _qrCard() {
     final expired = _secondsRemaining <= 0;
+    final manualCode = _intent?['manualCode']?.toString().trim() ?? '';
     final minutes = (_secondsRemaining ~/ 60).toString().padLeft(2, '0');
     final seconds = (_secondsRemaining % 60).toString().padLeft(2, '0');
     return Container(
@@ -328,6 +331,57 @@ class _PurchaseDetailScreenState extends ConsumerState<PurchaseDetailScreen> {
             )
           else
             const Icon(Icons.timer_off_outlined, size: 100, color: Colors.grey),
+          if (!expired && manualCode.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Text(
+              'purchases.manual_code_instruction'.tr(),
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsetsDirectional.fromSTEB(16, 10, 8, 10),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.08),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.25),
+                ),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Directionality(
+                      textDirection: ui.TextDirection.ltr,
+                      child: SelectableText(
+                        manualCode,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 4,
+                        ),
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'purchases.copy_manual_code'.tr(),
+                    onPressed: () => _copyManualCode(manualCode),
+                    icon: const Icon(Icons.copy_rounded),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'purchases.manual_code_expiry'.tr(),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
           Text(
             expired
@@ -358,6 +412,16 @@ class _PurchaseDetailScreenState extends ConsumerState<PurchaseDetailScreen> {
     );
   }
 
+  Future<void> _copyManualCode(String code) async {
+    await Clipboard.setData(ClipboardData(text: code));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(content: Text('purchases.manual_code_copied'.tr())),
+      );
+  }
+
   Widget _packageSummary() {
     final details = _details!;
     final balances = List<Map<String, dynamic>>.from(
@@ -374,7 +438,7 @@ class _PurchaseDetailScreenState extends ConsumerState<PurchaseDetailScreen> {
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 12),
-          if (details['redemptionMode'] == 'ITEMIZED')
+          if (_isItemized(details))
             ...balances.map(
               (item) => ListTile(
                 contentPadding: EdgeInsets.zero,
@@ -448,6 +512,13 @@ class _PurchaseDetailScreenState extends ConsumerState<PurchaseDetailScreen> {
         ],
       ),
     );
+  }
+
+  bool _isItemized(Map<String, dynamic> details) {
+    final balances = details['itemBalances'];
+    return details['redemptionMode'] == 'ITEMIZED' &&
+        balances is List &&
+        balances.isNotEmpty;
   }
 
   Widget _errorBanner() => Container(

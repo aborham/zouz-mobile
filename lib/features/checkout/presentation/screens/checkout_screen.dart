@@ -148,7 +148,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       // Enforce profile completion before checkout
       try {
         final profile = await ref.read(profileProvider.future);
-        if ((profile.name?.isEmpty ?? true) || (profile.email?.isEmpty ?? true)) {
+        if ((profile.name?.isEmpty ?? true) ||
+            (profile.email?.isEmpty ?? true)) {
           setState(() => _isProcessingPayment = false);
           if (mounted) {
             context.push('/complete-profile');
@@ -187,7 +188,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       // 2. Process Order (Initiate Tap Payment Hosted or Token Charge)
       final processResponse = await repository.processOrder(
         orderId,
-        token: _selectedPaymentMethod == 'saved_card' ? _selectedSavedCardToken : null,
+        token: _selectedPaymentMethod == 'saved_card'
+            ? _selectedSavedCardToken
+            : null,
       );
       final redirectUrl = processResponse['redirectUrl'];
 
@@ -229,7 +232,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       // Enforce profile completion before checkout
       try {
         final profile = await ref.read(profileProvider.future);
-        if ((profile.name?.isEmpty ?? true) || (profile.email?.isEmpty ?? true)) {
+        if ((profile.name?.isEmpty ?? true) ||
+            (profile.email?.isEmpty ?? true)) {
           setState(() => _isApplePaySheetOpen = false);
           if (mounted) {
             _showProfileIncompleteDialog(context);
@@ -274,14 +278,18 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
       if (result["success"] != true) {
         final data = result["data"];
-        final errMsg = (data != null ? data["sdk_result"] : null) ?? "Apple Pay token generation failed";
+        final errMsg =
+            (data != null ? data["sdk_result"] : null) ??
+            "Apple Pay token generation failed";
         throw Exception(errMsg);
       }
 
       final data = result["data"] as Map?;
       final String? tapTokenId = data?["token"] as String?;
       if (tapTokenId == null || tapTokenId.isEmpty) {
-        throw Exception("Apple Pay token generation failed — no token returned");
+        throw Exception(
+          "Apple Pay token generation failed — no token returned",
+        );
       }
 
       List<Map<String, dynamic>> orderItems = [];
@@ -359,14 +367,23 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       builder: (dialogContext) => PopScope(
         canPop: false,
         child: AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
           title: Row(
             children: [
-              const Icon(Icons.account_circle_outlined, color: AppColors.primary, size: 28),
+              const Icon(
+                Icons.account_circle_outlined,
+                color: AppColors.primary,
+                size: 28,
+              ),
               const SizedBox(width: 10),
               Text(
                 'checkout.profile_incomplete_title'.tr(),
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
               ),
             ],
           ),
@@ -374,7 +391,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             'checkout.profile_incomplete_desc'.tr(),
             style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
           ),
-          actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          actionsPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
           actions: [
             TextButton(
               onPressed: () {
@@ -384,7 +404,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               },
               child: Text(
                 'common.cancel'.tr(),
-                style: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  color: Colors.grey.shade500,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
             ElevatedButton(
@@ -395,7 +418,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 elevation: 0,
               ),
               child: Text(
@@ -431,7 +456,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
     return profileAsync.when(
       data: (profile) {
-        if ((profile.name?.isEmpty ?? true) || (profile.email?.isEmpty ?? true)) {
+        if ((profile.name?.isEmpty ?? true) ||
+            (profile.email?.isEmpty ?? true)) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             _showProfileIncompleteDialog(context);
           });
@@ -441,17 +467,14 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         }
         return _buildCheckoutContent(context, profile);
       },
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      ),
-      error: (error, stackTrace) => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      ),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (error, stackTrace) =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
     );
   }
 
   Widget _buildCheckoutContent(BuildContext context, UserProfile profile) {
-
     final locale = context.locale.languageCode;
     double subtotal = 0;
     List<Widget> itemWidgets = [];
@@ -607,220 +630,492 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       children: [
         Scaffold(
           backgroundColor: const Color(0xFFF7F7F9),
-      appBar: AppBar(
-        title: Text(
-          'checkout.title'.tr(),
-          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.white,
-        elevation: 0,
-        foregroundColor: Colors.black,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.only(bottom: 120),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Profile Card (User Information)
-            Container(
-              margin: const EdgeInsets.fromLTRB(16, 20, 16, 8),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade100),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.02),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 24,
-                    backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                    backgroundImage: profile.avatarUrl != null && profile.avatarUrl!.isNotEmpty
-                        ? NetworkImage(profile.avatarUrl!)
-                        : null,
-                    child: profile.avatarUrl == null || profile.avatarUrl!.isEmpty
-                        ? Text(
-                            (profile.name?.isNotEmpty ?? false)
-                                ? profile.name![0].toUpperCase()
-                                : 'U',
-                            style: const TextStyle(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                          )
-                        : null,
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          profile.name?.isNotEmpty ?? false
-                              ? profile.name!
-                              : 'checkout.anonymous_user'.tr(),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          profile.email ?? '',
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: 13,
-                          ),
-                        ),
-                        if (profile.phoneNumber != null) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            profile.phoneNumber!,
-                            style: TextStyle(
-                              color: Colors.grey.shade500,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => context.push('/complete-profile'),
-                    icon: const Icon(Icons.edit_outlined, color: AppColors.primary),
-                  ),
-                ],
-              ),
+          appBar: AppBar(
+            title: Text(
+              'checkout.title'.tr(),
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
             ),
-
-            // Order Summary Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-              child: Text(
-                'checkout.summary'.tr(),
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-
-            // Items Card
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade100),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.02),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
+            centerTitle: true,
+            backgroundColor: Colors.white,
+            elevation: 0,
+            foregroundColor: Colors.black,
+          ),
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.only(bottom: 120),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Profile Card (User Information)
+                Container(
+                  margin: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.grey.shade100),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Merchant Header
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          backgroundColor: Colors.grey.shade100,
-                          radius: 20,
-                          backgroundImage: tenantLogoUrl != null
-                              ? NetworkImage(tenantLogoUrl)
-                              : null,
-                          child: tenantLogoUrl == null
-                              ? const Icon(
-                                  Icons.store_rounded,
-                                  color: Colors.black54,
-                                  size: 20,
-                                )
-                              : null,
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 24,
+                        backgroundColor: AppColors.primary.withValues(
+                          alpha: 0.1,
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                tenantName ?? 'checkout.store_label'.tr(),
+                        backgroundImage:
+                            profile.avatarUrl != null &&
+                                profile.avatarUrl!.isNotEmpty
+                            ? NetworkImage(profile.avatarUrl!)
+                            : null,
+                        child:
+                            profile.avatarUrl == null ||
+                                profile.avatarUrl!.isEmpty
+                            ? Text(
+                                (profile.name?.isNotEmpty ?? false)
+                                    ? profile.name![0].toUpperCase()
+                                    : 'U',
                                 style: const TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 15,
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
                                 ),
+                              )
+                            : null,
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              profile.name?.isNotEmpty ?? false
+                                  ? profile.name!
+                                  : 'checkout.anonymous_user'.tr(),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 16,
+                                color: Colors.black87,
                               ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              profile.email ?? '',
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 13,
+                              ),
+                            ),
+                            if (profile.phoneNumber != null) ...[
                               const SizedBox(height: 2),
                               Text(
-                                '${widget.items?.length ?? 1} ${'packages.items'.tr()}',
+                                profile.phoneNumber!,
                                 style: TextStyle(
                                   color: Colors.grey.shade500,
-                                  fontSize: 13,
+                                  fontSize: 12,
                                 ),
                               ),
                             ],
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => context.push('/complete-profile'),
+                        icon: const Icon(
+                          Icons.edit_outlined,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Order Summary Header
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+                  child: Text(
+                    'checkout.summary'.tr(),
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+
+                // Items Card
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.grey.shade100),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Merchant Header
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              backgroundColor: Colors.grey.shade100,
+                              radius: 20,
+                              backgroundImage: tenantLogoUrl != null
+                                  ? NetworkImage(tenantLogoUrl)
+                                  : null,
+                              child: tenantLogoUrl == null
+                                  ? const Icon(
+                                      Icons.store_rounded,
+                                      color: Colors.black54,
+                                      size: 20,
+                                    )
+                                  : null,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    tenantName ?? 'checkout.store_label'.tr(),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '${widget.items?.length ?? 1} ${'packages.items'.tr()}',
+                                    style: TextStyle(
+                                      color: Colors.grey.shade500,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Divider(height: 1, color: Colors.grey.shade100),
+
+                      // Items List
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(children: itemWidgets),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Order Totals Header
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                  child: Text(
+                    'checkout.total'.tr(),
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+
+                // Totals Card
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.grey.shade100),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'checkout.total'.tr(),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 18,
+                            ),
+                          ),
+                          SaudiCurrencySymbol(
+                            price: total,
+                            priceStyle: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 18,
+                              color: Colors.black,
+                            ),
+                            symbolFontColor: Colors.black,
+                            isOldPrice: false,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'purchases.vat_included'.tr(),
+                        style: TextStyle(
+                          color: Colors.grey.shade500,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+
+                // Payment Method Header
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
+                    'checkout.payment_method'.tr(),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                if (Platform.isIOS) ...[
+                  GestureDetector(
+                    // Only allow selection after SDK is ready
+                    onTap: _applePayReady
+                        ? () => setState(
+                            () => _selectedPaymentMethod = 'apple_pay',
+                          )
+                        : null,
+                    child: Opacity(
+                      opacity: _applePayReady ? 1.0 : 0.55,
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 16),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: _selectedPaymentMethod == 'apple_pay'
+                                ? Colors.black
+                                : Colors.grey.shade200,
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          color: _selectedPaymentMethod == 'apple_pay'
+                              ? Colors.black.withValues(alpha: 0.05)
+                              : Colors.white,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.apple,
+                              color: _selectedPaymentMethod == 'apple_pay'
+                                  ? Colors.black
+                                  : Colors.grey.shade600,
+                              size: 28,
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Apple Pay',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: Colors.black87,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const Spacer(),
+                            if (!_applePayReady)
+                              const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.black54,
+                                ),
+                              )
+                            else if (_selectedPaymentMethod == 'apple_pay')
+                              const Icon(
+                                Icons.check_circle,
+                                color: Colors.black,
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+
+                ref
+                    .watch(paymentMethodsProvider)
+                    .when(
+                      data: (methods) {
+                        final cardMethods = methods
+                            .where((m) => m.type == 'CARD')
+                            .toList();
+                        if (cardMethods.isEmpty) return const SizedBox.shrink();
+
+                        return Column(
+                          children: cardMethods.map((method) {
+                            final tapCardId = method.cardId;
+                            final isSelected =
+                                _selectedPaymentMethod == 'saved_card' &&
+                                _selectedSavedCardToken == tapCardId;
+                            final title =
+                                "${method.brand ?? 'Card'} •••• ${method.last4 ?? '****'}";
+
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: GestureDetector(
+                                onTap: () => setState(() {
+                                  _selectedPaymentMethod = 'saved_card';
+                                  _selectedSavedCardToken = tapCardId;
+                                }),
+                                child: Container(
+                                  margin: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? AppColors.primary
+                                          : Colors.grey.shade200,
+                                      width: 1.5,
+                                    ),
+                                    borderRadius: BorderRadius.circular(16),
+                                    color: isSelected
+                                        ? AppColors.primary.withValues(
+                                            alpha: 0.05,
+                                          )
+                                        : Colors.white,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.credit_card,
+                                        color: AppColors.primary,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Text(
+                                        title,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      if (isSelected)
+                                        const Icon(
+                                          Icons.check_circle,
+                                          color: AppColors.primary,
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        );
+                      },
+                      loading: () => const SizedBox.shrink(),
+                      error: (err, stack) => const SizedBox.shrink(),
+                    ),
+
+                GestureDetector(
+                  onTap: () => setState(() {
+                    _selectedPaymentMethod = 'card';
+                    _selectedSavedCardToken = null;
+                  }),
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: _selectedPaymentMethod == 'card'
+                            ? AppColors.primary
+                            : Colors.grey.shade200,
+                        width: 1.5,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      color: _selectedPaymentMethod == 'card'
+                          ? AppColors.primary.withValues(alpha: 0.05)
+                          : Colors.white,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.add_card,
+                          color: _selectedPaymentMethod == 'card'
+                              ? AppColors.primary
+                              : Colors.grey.shade600,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'payment.add_card'.tr(),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black87,
                           ),
                         ),
+                        const Spacer(),
+                        if (_selectedPaymentMethod == 'card')
+                          const Icon(
+                            Icons.check_circle,
+                            color: AppColors.primary,
+                          ),
                       ],
                     ),
                   ),
-                  Divider(height: 1, color: Colors.grey.shade100),
-
-                  // Items List
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(children: itemWidgets),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Order Totals Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-              child: Text(
-                'checkout.total'.tr(),
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
                 ),
-              ),
-            ),
 
-            // Totals Card
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade100),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.02),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
+                const SizedBox(height: 24),
+                Text(
+                  'checkout.security_hint'.tr(),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+          bottomSheet: Container(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, -5),
+                ),
+              ],
+            ),
+            child: SafeArea(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -828,321 +1123,89 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                       Text(
                         'checkout.total'.tr(),
                         style: const TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: Colors.black87,
                         ),
                       ),
                       SaudiCurrencySymbol(
                         price: total,
                         priceStyle: const TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 18,
-                          color: Colors.black,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 20,
+                          color: Color(0xFF2C3E50),
                         ),
-                        symbolFontColor: Colors.black,
+                        symbolFontColor: const Color(0xFF2C3E50),
                         isOldPrice: false,
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'packages.vat_included'.tr(),
-                    style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 32),
-
-            // Payment Method Header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                'checkout.payment_method'.tr(),
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            if (Platform.isIOS) ...[
-              GestureDetector(
-                // Only allow selection after SDK is ready
-                onTap: _applePayReady
-                    ? () => setState(() => _selectedPaymentMethod = 'apple_pay')
-                    : null,
-                child: Opacity(
-                  opacity: _applePayReady ? 1.0 : 0.55,
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 16),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: _selectedPaymentMethod == 'apple_pay'
-                            ? Colors.black
-                            : Colors.grey.shade200,
-                        width: 1.5,
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                      color: _selectedPaymentMethod == 'apple_pay'
-                          ? Colors.black.withValues(alpha: 0.05)
-                          : Colors.white,
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.apple,
-                          color: _selectedPaymentMethod == 'apple_pay'
-                              ? Colors.black
-                              : Colors.grey.shade600,
-                          size: 28,
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Apple Pay',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            color: Colors.black87,
-                            fontSize: 16,
-                          ),
-                        ),
-                        const Spacer(),
-                        if (!_applePayReady)
-                          const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.black54,
-                            ),
-                          )
-                        else if (_selectedPaymentMethod == 'apple_pay')
-                          const Icon(Icons.check_circle, color: Colors.black),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
-
-            ref.watch(paymentMethodsProvider).when(
-              data: (methods) {
-                final cardMethods = methods.where((m) => m.type == 'CARD').toList();
-                if (cardMethods.isEmpty) return const SizedBox.shrink();
-
-                return Column(
-                  children: cardMethods.map((method) {
-                    final tapCardId = method.cardId;
-                    final isSelected = _selectedPaymentMethod == 'saved_card' && _selectedSavedCardToken == tapCardId;
-                    final title = "${method.brand ?? 'Card'} •••• ${method.last4 ?? '****'}";
-
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: GestureDetector(
-                        onTap: () => setState(() {
-                          _selectedPaymentMethod = 'saved_card';
-                          _selectedSavedCardToken = tapCardId;
-                        }),
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 16),
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                              color: isSelected
-                                  ? AppColors.primary
-                                  : Colors.grey.shade200,
-                              width: 1.5,
-                            ),
-                            borderRadius: BorderRadius.circular(16),
-                            color: isSelected
-                                ? AppColors.primary.withValues(alpha: 0.05)
-                                : Colors.white,
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.credit_card, color: AppColors.primary),
-                              const SizedBox(width: 12),
-                              Text(
-                                title,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.black87,
+                  _selectedPaymentMethod == 'apple_pay'
+                      ? SizedBox(
+                          width: double.infinity,
+                          height: 54,
+                          child: _applePayReady
+                              ? TapApplePayFlutter.buildApplePayButton(
+                                  applePayButtonType:
+                                      ApplePayButtonType.appleLogoOnly,
+                                  applePayButtonStyle:
+                                      ApplePayButtonStyle.black,
+                                  onPress: () =>
+                                      _processApplePayCheckout(total),
+                                )
+                              : Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.black87,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: const SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2.5,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                              const Spacer(),
-                              if (isSelected)
-                                const Icon(Icons.check_circle, color: AppColors.primary),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                );
-              },
-              loading: () => const SizedBox.shrink(),
-              error: (err, stack) => const SizedBox.shrink(),
-            ),
-
-            GestureDetector(
-              onTap: () => setState(() {
-                _selectedPaymentMethod = 'card';
-                _selectedSavedCardToken = null;
-              }),
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: _selectedPaymentMethod == 'card'
-                        ? AppColors.primary
-                        : Colors.grey.shade200,
-                    width: 1.5,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  color: _selectedPaymentMethod == 'card'
-                      ? AppColors.primary.withValues(alpha: 0.05)
-                      : Colors.white,
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.add_card,
-                      color: _selectedPaymentMethod == 'card'
-                          ? AppColors.primary
-                          : Colors.grey.shade600,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'payment.add_card'.tr(),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const Spacer(),
-                    if (_selectedPaymentMethod == 'card')
-                      const Icon(Icons.check_circle, color: AppColors.primary),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 24),
-            Text(
-              'checkout.security_hint'.tr(),
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
-            ),
-          ],
-        ),
-      ),
-      bottomSheet: Container(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -5),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'checkout.total'.tr(),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  SaudiCurrencySymbol(
-                    price: total,
-                    priceStyle: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 20,
-                      color: Color(0xFF2C3E50),
-                    ),
-                    symbolFontColor: const Color(0xFF2C3E50),
-                    isOldPrice: false,
-                  ),
-                ],
-              ),
-              _selectedPaymentMethod == 'apple_pay'
-                  ? SizedBox(
-                      width: double.infinity,
-                      height: 54,
-                      child: _applePayReady
-                          ? TapApplePayFlutter.buildApplePayButton(
-                              applePayButtonType: ApplePayButtonType.appleLogoOnly,
-                              applePayButtonStyle: ApplePayButtonStyle.black,
-                              onPress: () => _processApplePayCheckout(total),
-                            )
-                          : Container(
-                              decoration: BoxDecoration(
-                                color: Colors.black87,
+                        )
+                      : SizedBox(
+                          width: double.infinity,
+                          height: 54,
+                          child: ElevatedButton(
+                            onPressed: _isProcessingPayment
+                                ? null
+                                : () => _processCheckout(total),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              alignment: Alignment.center,
-                              child: const SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2.5,
-                                ),
-                              ),
+                              elevation: 0,
                             ),
-                    )
-                  : SizedBox(
-                      width: double.infinity,
-                      height: 54,
-                      child: ElevatedButton(
-                        onPressed: _isProcessingPayment
-                            ? null
-                            : () => _processCheckout(total),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            child: _isProcessingPayment
+                                ? const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2.5,
+                                    ),
+                                  )
+                                : Text(
+                                    'checkout.pay_button'.tr(args: ['']).trim(),
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                           ),
-                          elevation: 0,
                         ),
-                        child: _isProcessingPayment
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2.5,
-                                ),
-                              )
-                            : Text(
-                                'checkout.pay_button'.tr(args: ['']).trim(),
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                      ),
-                    ),
-            ],
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
         ),
 
         // ── Processing overlay ──────────────────────────────────────────────
@@ -1160,7 +1223,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 36, vertical: 32),
+                          horizontal: 36,
+                          vertical: 32,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(24),

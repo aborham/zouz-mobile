@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zouz_mobile/core/theme/colors.dart';
+import '../../../auth/providers/auth_provider.dart';
 import '../../repositories/purchases_repository.dart';
 
 final purchasesFilterProvider = StateProvider.autoDispose<String>(
@@ -12,6 +13,12 @@ final purchasesFilterProvider = StateProvider.autoDispose<String>(
 
 final purchasesFutureProvider =
     FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
+      final authState = ref.watch(authNotifierProvider);
+      if (!authState.isInitialized ||
+          authState.status != AuthStatus.authenticated) {
+        return <Map<String, dynamic>>[];
+      }
+
       final repository = ref.watch(purchasesRepositoryProvider);
       return await repository.fetchPurchases();
     });
@@ -43,18 +50,11 @@ class PurchasesScreen extends ConsumerWidget {
       ),
       body: purchasesAsync.when(
         data: (purchases) {
-          // Filter logic
-          final filteredPurchases = purchases.where((p) {
+          final sortedPurchases = [...purchases]..sort(_comparePurchases);
+          final filteredPurchases = sortedPurchases.where((p) {
             final status = p['status'] ?? 'UNKNOWN';
             if (selectedFilter == 'ALL') return true;
-            if (selectedFilter == 'COMPLETED' && status == 'ACTIVE') {
-              return true; // Treating ACTIVE as COMPLETED in the UI for now
-            }
-            if (selectedFilter == 'EXPIRED' &&
-                (status == 'EXPIRED' || status == 'DEPLETED')) {
-              return true;
-            }
-            return false;
+            return selectedFilter == status;
           }).toList();
 
           return RefreshIndicator(
@@ -121,8 +121,10 @@ class PurchasesScreen extends ConsumerWidget {
   Widget _buildFilterTabs(WidgetRef ref, String selectedFilter) {
     final filters = [
       {'id': 'ALL', 'label': 'purchases.filter_all'.tr()},
-      {'id': 'COMPLETED', 'label': 'purchases.filter_completed'.tr()},
+      {'id': 'ACTIVE', 'label': 'purchases.filter_active'.tr()},
+      {'id': 'DEPLETED', 'label': 'purchases.filter_fully_used'.tr()},
       {'id': 'EXPIRED', 'label': 'purchases.filter_expired'.tr()},
+      {'id': 'REFUNDED', 'label': 'purchases.filter_refunded'.tr()},
     ];
 
     return SingleChildScrollView(
@@ -169,7 +171,7 @@ class PurchasesScreen extends ConsumerWidget {
     Map<String, dynamic> package,
   ) {
     final status = package['status'] ?? 'UNKNOWN';
-    final isDepleted = status == 'DEPLETED' || status == 'EXPIRED';
+    final isExpired = status == 'EXPIRED';
 
     // Mapped properties based on design
     final title = package['businessName'] ?? 'Unknown Business';
@@ -208,15 +210,18 @@ class PurchasesScreen extends ConsumerWidget {
       tagBgColor = const Color(0xFFE3F2FD); // Light blue
       tagTextColor = const Color(0xFF1976D2);
       tagText = 'purchases.filter_refunded'.tr();
-    } else if (isDepleted) {
+    } else if (status == 'DEPLETED') {
+      tagBgColor = const Color(0xFFF3E8FF);
+      tagTextColor = const Color(0xFF7E22CE);
+      tagText = 'purchases.filter_fully_used'.tr();
+    } else if (isExpired) {
       tagBgColor = const Color(0xFFFFEBEE); // Light red
       tagTextColor = const Color(0xFFD32F2F);
       tagText = 'purchases.filter_expired'.tr();
     } else {
       tagBgColor = const Color(0xFFE8F5E9); // Light green
       tagTextColor = const Color(0xFF388E3C);
-      tagText = 'purchases.filter_completed'
-          .tr(); // Treating active as completed in this view
+      tagText = 'purchases.filter_active'.tr();
     }
 
     return GestureDetector(
@@ -277,10 +282,21 @@ class PurchasesScreen extends ConsumerWidget {
                         Text(
                           (package['itemBalances'] as List<dynamic>? ??
                                   const [])
-                              .map(
-                                (item) =>
-                                    '${item['name']}: ${item['remainingQuantity']}/${item['initialQuantity']}',
-                              )
+                              .map((item) {
+                                final total =
+                                    (item['initialQuantity'] as num?)
+                                        ?.toInt() ??
+                                    0;
+                                final remaining =
+                                    (item['remainingQuantity'] as num?)
+                                        ?.toInt() ??
+                                    0;
+                                final used = (total - remaining).clamp(
+                                  0,
+                                  total,
+                                );
+                                return '${item['name']}: $used/$total';
+                              })
                               .join(' • '),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -364,15 +380,15 @@ class PurchasesScreen extends ConsumerWidget {
             ),
 
             // Extra info row for expired items (like 12 unredeemed meals)
-            if (isDepleted &&
-                package['remainingQuantity'] != null &&
-                package['remainingQuantity'] > 0) ...[
+            if (isExpired && _remainingUnits(package) > 0) ...[
               const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Text(
-                    '${package['remainingQuantity']} ${package['packageType'] == 'QUANTITY' ? 'dashboard.items'.tr() : 'dashboard.visits'.tr()} غير مستردة', // Hardcoded fallback for edgecase
+                    'purchases.expired_with_unused'.tr(
+                      args: [_remainingUnits(package).toString()],
+                    ),
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                   const SizedBox(width: 6),
@@ -394,5 +410,59 @@ class PurchasesScreen extends ConsumerWidget {
     } catch (_) {
       return isoString.split('T').first;
     }
+  }
+
+  int _remainingUnits(Map<String, dynamic> package) {
+    if (package['redemptionMode'] == 'ITEMIZED') {
+      return (package['itemBalances'] as List<dynamic>? ?? const []).fold<int>(
+        0,
+        (total, item) =>
+            total + ((item['remainingQuantity'] as num?)?.toInt() ?? 0),
+      );
+    }
+    return (package['remainingQuantity'] as num?)?.toInt() ?? 0;
+  }
+
+  int _comparePurchases(
+    Map<String, dynamic> first,
+    Map<String, dynamic> second,
+  ) {
+    const priority = {
+      'ACTIVE': 0,
+      'PENDING_ACTIVATION': 0,
+      'PENDING_PAYMENT': 0,
+      'DEPLETED': 1,
+      'EXPIRED': 2,
+      'REFUNDED': 3,
+    };
+    final statusComparison = (priority[first['status']] ?? 4).compareTo(
+      priority[second['status']] ?? 4,
+    );
+    if (statusComparison != 0) return statusComparison;
+
+    if (first['status'] == 'ACTIVE') {
+      final firstExpiry = DateTime.tryParse(
+        first['expiresAt']?.toString() ?? '',
+      );
+      final secondExpiry = DateTime.tryParse(
+        second['expiresAt']?.toString() ?? '',
+      );
+      if (firstExpiry != null && secondExpiry != null) {
+        final expiryComparison = firstExpiry.compareTo(secondExpiry);
+        if (expiryComparison != 0) return expiryComparison;
+      } else if (firstExpiry != null) {
+        return -1;
+      } else if (secondExpiry != null) {
+        return 1;
+      }
+    }
+
+    final firstPurchase =
+        DateTime.tryParse(first['purchaseDate']?.toString() ?? '') ??
+        DateTime.fromMillisecondsSinceEpoch(0);
+    final secondPurchase =
+        DateTime.tryParse(second['purchaseDate']?.toString() ?? '') ??
+        DateTime.fromMillisecondsSinceEpoch(0);
+    return secondPurchase.compareTo(firstPurchase);
   }
 }

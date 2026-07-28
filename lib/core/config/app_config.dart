@@ -16,10 +16,10 @@ class AppConfig {
   // - Android Emulator: '10.0.2.2'
   // - Physical Device: Your computer's local IP (e.g. '192.168.1.50')
   // Override when the Mac's Wi-Fi address changes:
-  // flutter run --dart-define=DEV_HOST=10.67.210.16
+  // flutter run --dart-define=DEV_HOST=10.0.0.178
   static const String host = String.fromEnvironment(
     'DEV_HOST',
-    defaultValue: '10.67.210.16',
+    defaultValue: '10.0.0.178',
   );
   static const String port = '3000';
 

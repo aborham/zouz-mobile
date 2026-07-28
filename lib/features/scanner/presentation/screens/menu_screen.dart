@@ -7,7 +7,8 @@ import 'package:zouz_mobile/core/utils/image_utils.dart';
 import 'package:saudi_riyal_symbol/saudi_riyal_symbol.dart';
 import 'package:zouz_mobile/features/scanner/providers/menu_provider.dart';
 import 'package:zouz_mobile/features/cart/providers/cart_provider.dart';
-import 'package:zouz_mobile/features/cart/providers/cart_provider.dart' as cart_models;
+import 'package:zouz_mobile/features/cart/providers/cart_provider.dart'
+    as cart_models;
 
 class MenuScreen extends ConsumerStatefulWidget {
   final String tenantSlug;
@@ -24,7 +25,9 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(menuNotifierProvider.notifier).fetchMenu(widget.tenantSlug, widget.standId);
+      ref
+          .read(menuNotifierProvider.notifier)
+          .fetchMenu(widget.tenantSlug, widget.standId);
     });
   }
 
@@ -45,15 +48,19 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
 
     if (menuState.isLoading && menuState.tenant == null) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
       );
     }
 
     final tenant = menuState.tenant;
     final packages = menuState.packages ?? [];
-    
+
     if (tenant == null) {
-      return Scaffold(body: Center(child: Text('scanner.tenant_not_found'.tr())));
+      return Scaffold(
+        body: Center(child: Text('scanner.tenant_not_found'.tr())),
+      );
     }
 
     return Scaffold(
@@ -67,7 +74,8 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                 padding: const EdgeInsets.fromLTRB(20, 24, 20, 120),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
-                    (context, index) => _buildPackageCard(packages[index], tenant, locale),
+                    (context, index) =>
+                        _buildPackageCard(packages[index], tenant, locale),
                     childCount: packages.length,
                   ),
                 ),
@@ -98,7 +106,11 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
           child: CircleAvatar(
             backgroundColor: Colors.white.withValues(alpha: 0.3),
             child: IconButton(
-              icon: const Icon(Icons.arrow_forward, color: Colors.white, size: 20),
+              icon: const Icon(
+                Icons.arrow_forward,
+                color: Colors.white,
+                size: 20,
+              ),
               onPressed: () => context.pop(),
             ),
           ),
@@ -121,11 +133,12 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                     Image.network(
                       ImageUtils.getFullUrl(tenant['coverImageUrl'])!,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(color: const Color(0xFF6B4226)),
+                      errorBuilder: (_, __, ___) =>
+                          Container(color: const Color(0xFF6B4226)),
                     )
                   else
                     Container(color: const Color(0xFF6B4226)),
-                  
+
                   Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -158,7 +171,10 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                         ),
                         const SizedBox(height: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.95),
                             borderRadius: BorderRadius.circular(20),
@@ -166,7 +182,11 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.star_rounded, color: Color(0xFFFBBF24), size: 16),
+                              Icon(
+                                Icons.star_rounded,
+                                color: Color(0xFFFBBF24),
+                                size: 16,
+                              ),
                               SizedBox(width: 4),
                               Text(
                                 "4.5",
@@ -185,7 +205,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                 ],
               ),
             ),
-            
+
             // 2. Curved bottom matching scaffold background
             Positioned(
               bottom: 0,
@@ -231,12 +251,18 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) => Container(
                               color: Colors.grey[100],
-                              child: const Icon(Icons.store_rounded, color: Colors.grey),
+                              child: const Icon(
+                                Icons.store_rounded,
+                                color: Colors.grey,
+                              ),
                             ),
                           )
                         : Container(
                             color: Colors.grey[100],
-                            child: const Icon(Icons.store_rounded, color: Colors.grey),
+                            child: const Icon(
+                              Icons.store_rounded,
+                              color: Colors.grey,
+                            ),
                           ),
                   ),
                 ),
@@ -248,9 +274,15 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
     );
   }
 
-  Widget _buildPackageCard(Map<String, dynamic> pkg, Map<String, dynamic> tenant, String locale) {
+  Widget _buildPackageCard(
+    Map<String, dynamic> pkg,
+    Map<String, dynamic> tenant,
+    String locale,
+  ) {
     final cart = ref.watch(cartProvider);
-    final cartItemIndex = cart.items.indexWhere((i) => i.packageId == pkg['id']);
+    final cartItemIndex = cart.items.indexWhere(
+      (i) => i.packageId == pkg['id'],
+    );
     final isInCart = cartItemIndex >= 0;
     final quantity = isInCart ? cart.items[cartItemIndex].quantity : 0;
 
@@ -262,7 +294,14 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
 
     return InkWell(
       onTap: () {
-        context.push('/package', extra: pkg);
+        context.push(
+          '/package',
+          extra: {
+            ...pkg,
+            if (widget.standId != null && widget.standId!.isNotEmpty)
+              'standId': widget.standId,
+          },
+        );
       },
       borderRadius: BorderRadius.circular(20),
       child: Container(
@@ -298,7 +337,11 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                     const SizedBox(height: 4),
                     Text(
                       _getLocalizedValue(pkg['description'], locale),
-                      style: TextStyle(fontSize: 12, color: Colors.grey[500], height: 1.4),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[500],
+                        height: 1.4,
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -306,7 +349,9 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                     _buildPriceRow(price, originalPrice, hasDiscount),
                     const SizedBox(height: 12),
                     if (!isInCart)
-                      _buildAddToCartButton(() => _addToCart(pkg, tenant, locale))
+                      _buildAddToCartButton(
+                        () => _addToCart(pkg, tenant, locale),
+                      )
                     else
                       _buildQuantityStepper(pkg['id'], quantity),
                   ],
@@ -326,7 +371,10 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                       ? Image.network(
                           ImageUtils.getFullUrl(pkg['imageUrl'])!,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const Icon(Icons.fastfood_outlined, color: Colors.grey),
+                          errorBuilder: (_, __, ___) => const Icon(
+                            Icons.fastfood_outlined,
+                            color: Colors.grey,
+                          ),
                         )
                       : const Icon(Icons.fastfood_outlined, color: Colors.grey),
                 ),
@@ -393,7 +441,9 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           InkWell(
-            onTap: () => ref.read(cartProvider.notifier).updateQuantity(packageId, quantity - 1),
+            onTap: () => ref
+                .read(cartProvider.notifier)
+                .updateQuantity(packageId, quantity - 1),
             borderRadius: BorderRadius.circular(14),
             child: const Padding(
               padding: EdgeInsets.all(8.0),
@@ -404,11 +454,17 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 8),
             child: Text(
               '$quantity',
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF1A1A1A)),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF1A1A1A),
+              ),
             ),
           ),
           InkWell(
-            onTap: () => ref.read(cartProvider.notifier).updateQuantity(packageId, quantity + 1),
+            onTap: () => ref
+                .read(cartProvider.notifier)
+                .updateQuantity(packageId, quantity + 1),
             borderRadius: BorderRadius.circular(14),
             child: const Padding(
               padding: EdgeInsets.all(8.0),
@@ -420,8 +476,14 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
     );
   }
 
-  void _addToCart(Map<String, dynamic> pkg, Map<String, dynamic> tenant, String locale) {
-    ref.read(cartProvider.notifier).addItem(
+  void _addToCart(
+    Map<String, dynamic> pkg,
+    Map<String, dynamic> tenant,
+    String locale,
+  ) {
+    ref
+        .read(cartProvider.notifier)
+        .addItem(
           cart_models.CartItem(
             packageId: pkg['id'],
             packageName: _getLocalizedValue(pkg['name'], locale),
@@ -461,20 +523,31 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
               ),
               child: Text(
                 '${cart.totalPrice.toStringAsFixed(2)} ${'dashboard.currency'.tr()}',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 16,
+                ),
               ),
             ),
             const Spacer(),
             Text(
               '${'cart.view_cart'.tr()} (${cart.totalItems} ${'cart.items_count'.tr().replaceAll('{}', '').trim()})',
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
             ),
             const SizedBox(width: 12),
-            const Icon(Icons.shopping_cart_rounded, color: Colors.white, size: 22),
+            const Icon(
+              Icons.shopping_cart_rounded,
+              color: Colors.white,
+              size: 22,
+            ),
           ],
         ),
       ),
     );
   }
 }
-

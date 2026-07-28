@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -82,14 +84,31 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       final token = await _storage.read(key: 'jwt_token');
       final isOnboardingDone = _prefs.getBool('onboarding_completed') ?? false;
-      
+
       if (token != null) {
         ref.read(authTokenProvider.notifier).updateToken(token);
-        state = state.copyWith(
-          status: AuthStatus.authenticated,
-          onboardingCompleted: isOnboardingDone,
-          isInitialized: true,
-        );
+
+        try {
+          await _repository.validateSession();
+          state = state.copyWith(
+            status: AuthStatus.authenticated,
+            onboardingCompleted: isOnboardingDone,
+            isInitialized: true,
+          );
+        } on DioException catch (error) {
+          final statusCode = error.response?.statusCode;
+          if (statusCode == 401 || statusCode == 403 || statusCode == 404) {
+            await _clearStoredSession(isOnboardingDone);
+          } else {
+            // Do not destroy a valid session when the phone is temporarily
+            // offline. Protected API requests will validate it when retried.
+            state = state.copyWith(
+              status: AuthStatus.authenticated,
+              onboardingCompleted: isOnboardingDone,
+              isInitialized: true,
+            );
+          }
+        }
       } else {
         state = state.copyWith(
           status: AuthStatus.unauthenticated,
@@ -103,6 +122,16 @@ class AuthNotifier extends Notifier<AuthState> {
         isInitialized: true,
       );
     }
+  }
+
+  Future<void> _clearStoredSession(bool onboardingCompleted) async {
+    await _storage.delete(key: 'jwt_token');
+    ref.read(authTokenProvider.notifier).updateToken(null);
+    state = AuthState(
+      status: AuthStatus.unauthenticated,
+      onboardingCompleted: onboardingCompleted,
+      isInitialized: true,
+    );
   }
 
   Future<void> completeOnboarding() async {
@@ -140,7 +169,7 @@ class AuthNotifier extends Notifier<AuthState> {
 
       try {
         deviceToken = await FirebaseMessaging.instance.getToken();
-        
+
         final packageInfo = await PackageInfo.fromPlatform();
         appVersion = packageInfo.version;
 
@@ -148,7 +177,8 @@ class AuthNotifier extends Notifier<AuthState> {
         if (Platform.isIOS) {
           deviceType = 'IOS';
           final iosInfo = await deviceInfo.iosInfo;
-          deviceModel = iosInfo.model; // e.g., 'iPhone' or specifically 'iPhone 15 Pro Max'
+          deviceModel = iosInfo
+              .model; // e.g., 'iPhone' or specifically 'iPhone 15 Pro Max'
           osVersion = iosInfo.systemVersion;
         } else if (Platform.isAndroid) {
           deviceType = 'ANDROID';
@@ -158,11 +188,11 @@ class AuthNotifier extends Notifier<AuthState> {
         }
       } catch (e) {
         // Silently ignore device info failures
-        print('Failed to get device info: $e');
+        debugPrint('Failed to get device info: $e');
       }
 
       final response = await _repository.verifyOtp(
-        state.phoneNumber!, 
+        state.phoneNumber!,
         code,
         deviceToken: deviceToken,
         deviceType: deviceType,
@@ -175,7 +205,7 @@ class AuthNotifier extends Notifier<AuthState> {
       if (token != null) {
         await _storage.write(key: 'jwt_token', value: token);
         ref.read(authTokenProvider.notifier).updateToken(token);
-        
+
         final needsProfile = response['needsProfile'] == true;
         final userId = response['customer']['id'];
 
@@ -202,7 +232,10 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       return await _repository.uploadAvatar(file);
     } catch (e) {
-      state = state.copyWith(status: AuthStatus.error, errorMessage: e.toString());
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: e.toString(),
+      );
       return null;
     }
   }
@@ -214,7 +247,7 @@ class AuthNotifier extends Notifier<AuthState> {
     String? avatarUrl,
   }) async {
     if (state.userId == null) return;
-    
+
     state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
     try {
       await _repository.completeProfile(
@@ -241,7 +274,11 @@ class AuthNotifier extends Notifier<AuthState> {
     if (state.status == AuthStatus.unauthenticated) return;
     await _storage.delete(key: 'jwt_token');
     ref.read(authTokenProvider.notifier).updateToken(null);
-    state = AuthState(status: AuthStatus.unauthenticated, isInitialized: true, onboardingCompleted: true);
+    state = AuthState(
+      status: AuthStatus.unauthenticated,
+      isInitialized: true,
+      onboardingCompleted: true,
+    );
   }
 }
 

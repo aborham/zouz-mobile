@@ -7,7 +7,8 @@ import 'package:zouz_mobile/core/utils/image_utils.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:saudi_riyal_symbol/saudi_riyal_symbol.dart';
 import 'package:zouz_mobile/features/cart/providers/cart_provider.dart';
-import 'package:zouz_mobile/features/cart/providers/cart_provider.dart' as cart_models;
+import 'package:zouz_mobile/features/cart/providers/cart_provider.dart'
+    as cart_models;
 
 class PackageDetailScreen extends ConsumerWidget {
   final Map<String, dynamic> package;
@@ -28,10 +29,20 @@ class PackageDetailScreen extends ConsumerWidget {
     final locale = context.locale.languageCode;
     final name = _getLocalizedValue(package['name'], locale);
     final description = _getLocalizedValue(package['description'], locale);
-    final price = package['price']?.toString() ?? 'N/A';
     final type = package['type'] ?? 'QUANTITY'; // QUANTITY or DURATION
     final validityDays = package['validityDays']?.toString() ?? 'N/A';
-    final initialQuantity = package['initialQuantity']?.toString() ?? 'Unlimited';
+    final initialQuantity =
+        package['initialQuantity']?.toString() ?? 'Unlimited';
+    final isItemized = package['redemptionMode'] == 'ITEMIZED';
+    final packageItems = (package['items'] as List? ?? const [])
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+    final totalIncluded = packageItems.fold<int>(
+      0,
+      (total, item) =>
+          total + ((item['includedQuantity'] as num?)?.toInt() ?? 0),
+    );
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -50,7 +61,11 @@ class PackageDetailScreen extends ConsumerWidget {
                   shape: BoxShape.circle,
                 ),
                 child: IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+                  icon: const Icon(
+                    Icons.arrow_back,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                   onPressed: () => context.pop(),
                 ),
               ),
@@ -114,7 +129,7 @@ class PackageDetailScreen extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    
+
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
@@ -136,9 +151,9 @@ class PackageDetailScreen extends ConsumerWidget {
                           ),
                       ],
                     ),
-                    
+
                     const SizedBox(height: 32),
-                    
+
                     if (description.isNotEmpty) ...[
                       Text(
                         'packages.description'.tr(),
@@ -159,21 +174,44 @@ class PackageDetailScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 32),
                     ],
-                    
+
+                    if (isItemized && packageItems.isNotEmpty) ...[
+                      Text(
+                        'packages.includes'.tr(),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      ...packageItems.map(
+                        (item) => _buildIncludedItem(item, locale),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+
                     Row(
                       children: [
                         Expanded(
                           child: _buildInfoCard(
                             icon: Icons.inventory_2_rounded,
                             title: 'packages.items'.tr(),
-                            value: type == 'QUANTITY' ? initialQuantity : 'packages.unlimited'.tr(),
+                            value: isItemized
+                                ? totalIncluded.toString()
+                                : type == 'QUANTITY'
+                                ? initialQuantity
+                                : 'packages.unlimited'.tr(),
                           ),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
                           child: _buildInfoCard(
                             icon: Icons.timer_rounded,
-                            title: 'packages.days_validity'.tr().replaceAll('{}', '').trim(),
+                            title: 'packages.days_validity'
+                                .tr()
+                                .replaceAll('{}', '')
+                                .trim(),
                             value: '$validityDays ${'packages.days'.tr()}',
                           ),
                         ),
@@ -228,7 +266,11 @@ class PackageDetailScreen extends ConsumerWidget {
                         textBaseline: TextBaseline.alphabetic,
                         children: [
                           SaudiCurrencySymbol(
-                            price: double.tryParse(package['price']?.toString() ?? '0') ?? 0,
+                            price:
+                                double.tryParse(
+                                  package['price']?.toString() ?? '0',
+                                ) ??
+                                0,
                             priceStyle: const TextStyle(
                               color: AppColors.primary,
                               fontWeight: FontWeight.w900,
@@ -241,7 +283,11 @@ class PackageDetailScreen extends ConsumerWidget {
                           if (package['originalPrice'] != null) ...[
                             const SizedBox(width: 8),
                             SaudiCurrencySymbol(
-                              price: double.tryParse(package['originalPrice'].toString()) ?? 0,
+                              price:
+                                  double.tryParse(
+                                    package['originalPrice'].toString(),
+                                  ) ??
+                                  0,
                               priceStyle: TextStyle(
                                 color: Colors.grey.shade400,
                                 fontWeight: FontWeight.w600,
@@ -265,21 +311,27 @@ class PackageDetailScreen extends ConsumerWidget {
                       final cartItem = cart_models.CartItem(
                         packageId: package['id'],
                         packageName: name,
-                        price: double.tryParse(package['price'].toString()) ?? 0.0,
+                        price:
+                            double.tryParse(package['price'].toString()) ?? 0.0,
                         imageUrl: package['imageUrl'],
                         quantity: 1,
                         tenantId: package['tenantId'],
                         type: package['type'] ?? 'QUANTITY',
-                        tenantName: package['tenantName'] is Map 
-                          ? (package['tenantName'][locale] ?? package['tenantName']['en'] ?? '')
-                          : package['tenantName']?.toString(),
+                        tenantName: package['tenantName'] is Map
+                            ? (package['tenantName'][locale] ??
+                                  package['tenantName']['en'] ??
+                                  '')
+                            : package['tenantName']?.toString(),
                         tenantLogoUrl: package['tenantLogoUrl'],
+                        standId: package['standId'],
                       );
-                      
+
                       ref.read(cartProvider.notifier).addItem(cartItem);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Added to cart'), // Fallback text, ideally localized
+                          content: Text(
+                            'Added to cart',
+                          ), // Fallback text, ideally localized
                           backgroundColor: Colors.green,
                           duration: const Duration(seconds: 2),
                           behavior: SnackBarBehavior.floating,
@@ -288,12 +340,18 @@ class PackageDetailScreen extends ConsumerWidget {
                     },
                     borderRadius: BorderRadius.circular(20),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 18,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.blue.shade50,
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: const Icon(Icons.add_shopping_cart_rounded, color: AppColors.primary),
+                      child: const Icon(
+                        Icons.add_shopping_cart_rounded,
+                        color: AppColors.primary,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -338,7 +396,12 @@ class PackageDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildBadge({required IconData icon, required String label, required Color color, required Color bgColor}) {
+  Widget _buildBadge({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required Color bgColor,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
@@ -363,7 +426,11 @@ class PackageDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildInfoCard({required IconData icon, required String title, required String value}) {
+  Widget _buildInfoCard({
+    required IconData icon,
+    required String title,
+    required String value,
+  }) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -398,6 +465,90 @@ class PackageDetailScreen extends ConsumerWidget {
               color: AppColors.textPrimary,
               fontWeight: FontWeight.w800,
               fontSize: 18,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIncludedItem(Map<String, dynamic> item, String locale) {
+    final itemName = _getLocalizedValue(item['name'], locale);
+    final itemDescription = _getLocalizedValue(item['description'], locale);
+    final imageUrl = ImageUtils.getFullUrl(item['imageUrl']);
+    final quantity = (item['includedQuantity'] as num?)?.toInt() ?? 0;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: SizedBox(
+              width: 64,
+              height: 64,
+              child: imageUrl != null
+                  ? Image.network(
+                      imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const Icon(
+                        Icons.inventory_2_outlined,
+                        color: AppColors.textSecondary,
+                      ),
+                    )
+                  : const Icon(
+                      Icons.inventory_2_outlined,
+                      color: AppColors.textSecondary,
+                    ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  itemName,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                if (itemDescription.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    itemDescription,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              '${'packages.quantity'.tr()} $quantity',
+              style: const TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
         ],

@@ -11,11 +11,18 @@ class CheckoutRepository {
     List<Map<String, dynamic>> items,
   ) async {
     try {
+      final normalizedItems = items.map((item) {
+        final normalized = Map<String, dynamic>.from(item);
+        final standId = normalized['standId'];
+        if (standId == null || (standId is String && standId.trim().isEmpty)) {
+          normalized.remove('standId');
+        }
+        return normalized;
+      }).toList();
+
       final response = await _dio.post(
         '/orders/create',
-        data: {
-          'items': items,
-        },
+        data: {'items': normalizedItems},
       );
       return Map<String, dynamic>.from(response.data);
     } on DioException catch (e) {
@@ -30,10 +37,7 @@ class CheckoutRepository {
     try {
       final response = await _dio.post(
         '/orders/confirm',
-        data: {
-          'orderId': orderId,
-          'tapChargeId': tapChargeId,
-        },
+        data: {'orderId': orderId, 'tapChargeId': tapChargeId},
       );
       return Map<String, dynamic>.from(response.data);
     } on DioException catch (e) {
