@@ -1,286 +1,544 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
+import 'dart:ui' as ui;
+
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:zouz_mobile/core/theme/colors.dart';
-import 'package:zouz_mobile/core/utils/image_utils.dart';
+import 'package:zouz_mobile/features/purchases/repositories/purchases_repository.dart';
 
-class PurchaseDetailScreen extends StatelessWidget {
+class PurchaseDetailScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic> package;
 
   const PurchaseDetailScreen({super.key, required this.package});
 
   @override
+  ConsumerState<PurchaseDetailScreen> createState() =>
+      _PurchaseDetailScreenState();
+}
+
+class _PurchaseDetailScreenState extends ConsumerState<PurchaseDetailScreen> {
+  Map<String, dynamic>? _details;
+  final Map<String, int> _selectedQuantities = {};
+  Map<String, dynamic>? _intent;
+  Timer? _timer;
+  int _secondsRemaining = 0;
+  bool _loading = true;
+  bool _submitting = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDetails();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadDetails() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final data = await ref
+          .read(purchasesRepositoryProvider)
+          .fetchPurchaseDetails(widget.package['id'].toString());
+      if (!mounted) return;
+      setState(() {
+        _details = data;
+        _loading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _error = error.toString().replaceFirst('Exception: ', '');
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _createIntent() async {
+    final details = _details;
+    if (details == null) return;
+    final isItemized = _isItemized(details);
+    final selected = _selectedQuantities.entries
+        .where((entry) => entry.value > 0)
+        .map((entry) => {'balanceId': entry.key, 'quantity': entry.value})
+        .toList();
+    if (isItemized && selected.isEmpty) {
+      setState(() => _error = 'purchases.select_item_error'.tr());
+      return;
+    }
+
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
+    try {
+      final intent = await ref
+          .read(purchasesRepositoryProvider)
+          .createRedemptionIntent(
+            orderItemId: details['id'].toString(),
+            items: selected,
+          );
+      if (!mounted) return;
+      setState(() {
+        _intent = intent;
+        _submitting = false;
+      });
+      _startCountdown(DateTime.parse(intent['expiresAt'].toString()));
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _error = error.toString().replaceFirst('Exception: ', '');
+        _submitting = false;
+      });
+    }
+  }
+
+  void _startCountdown(DateTime expiresAt) {
+    _timer?.cancel();
+    void update() {
+      final seconds = expiresAt.difference(DateTime.now()).inSeconds;
+      if (!mounted) return;
+      setState(() => _secondsRemaining = seconds.clamp(0, 3600));
+      if (seconds <= 0) _timer?.cancel();
+    }
+
+    update();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) => update());
+  }
+
+  Future<void> _cancelIntent() async {
+    final intentId = _intent?['intentId']?.toString();
+    _timer?.cancel();
+    setState(() {
+      _intent = null;
+      _secondsRemaining = 0;
+      _error = null;
+    });
+    if (intentId == null) return;
+    try {
+      await ref
+          .read(purchasesRepositoryProvider)
+          .cancelRedemptionIntent(intentId);
+    } catch (error) {
+      if (mounted) {
+        setState(
+          () => _error = error.toString().replaceFirst('Exception: ', ''),
+        );
+      }
+    }
+  }
+
+  Future<void> _refreshIntent() async {
+    await _cancelIntent();
+    if (mounted) await _createIntent();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final locale = context.locale.languageCode;
-    final isRtl = locale == 'ar';
-    
-    final packageName = isRtl ? (package['packageNameAr'] ?? package['packageName']) : package['packageName'];
-    final businessName = isRtl ? (package['businessNameAr'] ?? package['businessName']) : package['businessName'];
-
-    final remainingUsages = package['remainingQuantity'] ?? 0;
-    final initialUsages = package['initialQuantity'] ?? 0;
-    final usagePercent = initialUsages > 0 ? (initialUsages - remainingUsages) / initialUsages : 0.0;
-
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF9FAFB),
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: AppColors.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
+        backgroundColor: const Color(0xFFF9FAFB),
         title: Text(
           'purchases.details_title'.tr(),
-          style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w800, fontSize: 18),
+          style: const TextStyle(fontWeight: FontWeight.w800),
         ),
-        centerTitle: true,
-        elevation: 0,
-        backgroundColor: Colors.transparent,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          children: [
-            // Header Card
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.surface.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Row(
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _details == null
+          ? _errorState()
+          : RefreshIndicator(
+              onRefresh: _loadDetails,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(20),
                 children: [
-                  Container(
-                    height: 56,
-                    width: 56,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.03),
-                          blurRadius: 10,
-                        )
-                      ],
-                    ),
-                    padding: const EdgeInsets.all(8),
-                    child: package['businessLogo'] != null && package['businessLogo'] != ""
-                        ? Image.network(
-                            ImageUtils.getFullUrl(package['businessLogo'])!,
-                            errorBuilder: (context, error, stackTrace) => 
-                                const Icon(Icons.business, color: AppColors.primary),
-                          )
-                        : const Icon(Icons.business, color: AppColors.primary),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          packageName ?? '',
-                          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: AppColors.textPrimary),
-                        ),
-                        Text(
-                          businessName ?? '',
-                          style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Icon(Icons.more_horiz, color: AppColors.textSecondary),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // QR Section
-            Container(
-              padding: const EdgeInsets.all(32),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(32),
-                border: Border.all(color: AppColors.surface, width: 2),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  )
-                ],
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    'purchases.qr_title'.tr(),
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'purchases.qr_instruction'.tr(),
-                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 32),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface.withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: QrImageView(
-                      data: package['id'] ?? 'N/A',
-                      version: QrVersions.auto,
-                      size: 200.0,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '# ${package['id']?.toString().substring(0, 8).toUpperCase() ?? "N/A"}',
-                      style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary, letterSpacing: 1.5),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Package Info & History Grid
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: AppColors.surface.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(32),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                   Text(
-                    'purchases.package_details'.tr(),
-                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: AppColors.textPrimary),
-                  ),
-                  const SizedBox(height: 20),
-                   // Grid
-                  Row(
-                    children: [
-                      _buildInfoItem('purchases.order_number'.tr(), '#${package['orderNumber'] ?? "N/A"}'),
-                      _buildInfoItem('purchases.type'.tr(), package['packageType'] ?? 'ITEM'),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      _buildInfoItem('purchases.purchase_date'.tr(), _formatDate(package['purchaseDate'])),
-                      _buildInfoItem('dashboard.valid_until'.tr(), _formatDate(package['expiresAt'])),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  const Divider(color: Colors.black12),
-                  const SizedBox(height: 24),
-                  // Progress
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                       Text(
-                        'dashboard.usage'.tr(),
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary),
-                      ),
-                      RichText(
-                        text: TextSpan(
-                          children: [
-                            TextSpan(
-                              text: '$remainingUsages ',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.primary),
-                            ),
-                            TextSpan(
-                              text: '${'purchases.from'.tr()} $initialUsages ',
-                              style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14, color: AppColors.textSecondary),
-                            ),
-                             TextSpan(
-                              text: 'purchases.usages_remaining'.tr(),
-                              style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14, color: AppColors.textSecondary),
-                            ),
-                          ]
-                        )
-                      )
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: LinearProgressIndicator(
-                      value: usagePercent,
-                      minHeight: 8,
-                      backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                      valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Empty History Section
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(32),
-                border: Border.all(color: AppColors.surface, width: 2),
-              ),
-              child: Column(
-                children: [
-                  Opacity(
-                    opacity: 0.5,
-                    child: const Icon(Icons.history, size: 60, color: Colors.grey),
-                  ),
+                  _header(),
                   const SizedBox(height: 16),
-                  Text(
-                    'purchases.no_redemptions'.tr(),
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'purchases.history_instruction'.tr(),
-                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
-                    textAlign: TextAlign.center,
-                  ),
+                  if (_error != null) _errorBanner(),
+                  if (_error != null) const SizedBox(height: 12),
+                  if (_intent != null) _qrCard() else _selectionCard(),
+                  const SizedBox(height: 16),
+                  _packageSummary(),
+                  const SizedBox(height: 16),
+                  _historyCard(),
                 ],
               ),
             ),
-            const SizedBox(height: 32),
-          ],
-        ),
-      ),
     );
   }
 
-  Widget _buildInfoItem(String label, String value) {
-    return Expanded(
+  Widget _errorState() => Center(
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(_error ?? 'purchases.details_load_error'.tr()),
+        TextButton(onPressed: _loadDetails, child: Text('common.retry'.tr())),
+      ],
+    ),
+  );
+
+  Widget _header() {
+    final details = _details!;
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+          Text(
+            details['packageName']?.toString() ?? '',
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+          ),
           const SizedBox(height: 4),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textPrimary)),
+          Text(
+            details['businessName']?.toString() ?? '',
+            style: const TextStyle(color: AppColors.textSecondary),
+          ),
         ],
       ),
     );
   }
 
-  String _formatDate(String? isoString) {
-    if (isoString == null || isoString == 'N/A') return 'N/A';
-    try {
-      final date = DateTime.parse(isoString);
-      return DateFormat('dd MMM yyyy').format(date);
-    } catch (_) {
-      return isoString;
-    }
+  Widget _selectionCard() {
+    final details = _details!;
+    final balances = List<Map<String, dynamic>>.from(
+      details['itemBalances'] ?? const [],
+    );
+    final isItemized = _isItemized(details);
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: _cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            isItemized
+                ? 'purchases.select_items'.tr()
+                : 'purchases.redeem_one_use'.tr(),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          ),
+          if (isItemized) ...[
+            const SizedBox(height: 12),
+            ...balances.map(_itemSelector),
+          ],
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: details['status'] == 'ACTIVE' && !_submitting
+                ? _createIntent
+                : null,
+            icon: _submitting
+                ? const SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.qr_code_2),
+            label: Text('purchases.generate_qr'.tr()),
+          ),
+        ],
+      ),
+    );
   }
+
+  Widget _itemSelector(Map<String, dynamic> item) {
+    final id = item['id'].toString();
+    final remaining = (item['remainingQuantity'] as num?)?.toInt() ?? 0;
+    final quantity = _selectedQuantities[id] ?? 0;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: quantity > 0 ? AppColors.primary : Colors.grey.shade200,
+        ),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item['name']?.toString() ?? '',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                Text(
+                  'purchases.remaining_count'.tr(args: ['$remaining']),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: quantity > 0
+                ? () => setState(() => _selectedQuantities[id] = quantity - 1)
+                : null,
+            icon: const Icon(Icons.remove_circle_outline),
+          ),
+          Text(
+            '$quantity',
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+          IconButton(
+            onPressed: quantity < remaining
+                ? () => setState(() => _selectedQuantities[id] = quantity + 1)
+                : null,
+            icon: const Icon(Icons.add_circle_outline),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _qrCard() {
+    final expired = _secondsRemaining <= 0;
+    final manualCode = _intent?['manualCode']?.toString().trim() ?? '';
+    final minutes = (_secondsRemaining ~/ 60).toString().padLeft(2, '0');
+    final seconds = (_secondsRemaining % 60).toString().padLeft(2, '0');
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: _cardDecoration(),
+      child: Column(
+        children: [
+          Text(
+            expired ? 'purchases.qr_expired'.tr() : 'purchases.qr_title'.tr(),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 16),
+          if (!expired)
+            QrImageView(
+              data: _intent!['qrData'].toString(),
+              version: QrVersions.auto,
+              size: 220,
+            )
+          else
+            const Icon(Icons.timer_off_outlined, size: 100, color: Colors.grey),
+          if (!expired && manualCode.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Text(
+              'purchases.manual_code_instruction'.tr(),
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsetsDirectional.fromSTEB(16, 10, 8, 10),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.08),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.25),
+                ),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Directionality(
+                      textDirection: ui.TextDirection.ltr,
+                      child: SelectableText(
+                        manualCode,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 4,
+                        ),
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'purchases.copy_manual_code'.tr(),
+                    onPressed: () => _copyManualCode(manualCode),
+                    icon: const Icon(Icons.copy_rounded),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'purchases.manual_code_expiry'.tr(),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          Text(
+            expired
+                ? 'purchases.qr_refresh_instruction'.tr()
+                : 'purchases.qr_expires_in'.tr(args: ['$minutes:$seconds']),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _cancelIntent,
+                  child: Text('common.cancel'.tr()),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton(
+                  onPressed: _submitting ? null : _refreshIntent,
+                  child: Text('purchases.refresh_qr'.tr()),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _copyManualCode(String code) async {
+    await Clipboard.setData(ClipboardData(text: code));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(content: Text('purchases.manual_code_copied'.tr())),
+      );
+  }
+
+  Widget _packageSummary() {
+    final details = _details!;
+    final balances = List<Map<String, dynamic>>.from(
+      details['itemBalances'] ?? const [],
+    );
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: _cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'purchases.package_details'.tr(),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 12),
+          if (_isItemized(details))
+            ...balances.map(
+              (item) => ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(item['name']?.toString() ?? ''),
+                subtitle: item['description']?.toString().isNotEmpty == true
+                    ? Text(item['description'].toString())
+                    : null,
+                trailing: Text(
+                  '${item['remainingQuantity']} / ${item['initialQuantity']}',
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
+            )
+          else
+            Text(
+              '${details['remainingQuantity'] ?? '—'} / ${details['initialQuantity'] ?? '—'} ${'purchases.usages_remaining'.tr()}',
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _historyCard() {
+    final history = List<Map<String, dynamic>>.from(
+      _details!['redemptions'] ?? const [],
+    );
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: _cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'purchases.redemption_history'.tr(),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 12),
+          if (history.isEmpty)
+            Text(
+              'purchases.no_redemptions'.tr(),
+              style: const TextStyle(color: AppColors.textSecondary),
+            )
+          else
+            ...history.map((redemption) {
+              final items = List<Map<String, dynamic>>.from(
+                redemption['items'] ?? const [],
+              );
+              final date = DateTime.tryParse(
+                redemption['redeemedAt']?.toString() ?? '',
+              );
+              return ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.check_circle, color: Colors.green),
+                title: Text(
+                  items.isEmpty
+                      ? 'purchases.redeem_one_use'.tr()
+                      : items
+                            .map(
+                              (item) => '${item['name']} × ${item['quantity']}',
+                            )
+                            .join(', '),
+                ),
+                subtitle: Text(
+                  [
+                    if (date != null) DateFormat.yMMMd().add_jm().format(date),
+                    redemption['standName']?.toString() ?? '',
+                  ].where((value) => value.isNotEmpty).join(' • '),
+                ),
+              );
+            }),
+        ],
+      ),
+    );
+  }
+
+  bool _isItemized(Map<String, dynamic> details) {
+    final balances = details['itemBalances'];
+    return details['redemptionMode'] == 'ITEMIZED' &&
+        balances is List &&
+        balances.isNotEmpty;
+  }
+
+  Widget _errorBanner() => Container(
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: Colors.red.shade50,
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Text(_error!, style: TextStyle(color: Colors.red.shade800)),
+  );
+
+  BoxDecoration _cardDecoration() => BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(22),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withValues(alpha: 0.04),
+        blurRadius: 14,
+        offset: const Offset(0, 5),
+      ),
+    ],
+  );
 }

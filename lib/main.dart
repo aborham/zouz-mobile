@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'features/dashboard/providers/home_provider.dart';
 import 'features/profile/providers/profile_provider.dart';
+import 'features/purchases/presentation/screens/purchases_screen.dart';
 
 import 'firebase_options.dart';
 
@@ -27,7 +28,7 @@ void main() async {
   try {
     // Read the locale from EasyLocalization's SharedPreferences
     final String savedLocale = sharedPrefs.getString('locale') ?? 'en';
-    // The savedLocale might be a full language tag like "en-US" or JSON, we can safely just take the first two letters. 
+    // The savedLocale might be a full language tag like "en-US" or JSON, we can safely just take the first two letters.
     // Wait, EasyLocalization saves locale as languageCode. Let's just fallback to "en" if null.
     // If it's a JSON string (like '{"languageCode":"en"}'), we might need to be careful.
     // However, since we'll just send it to backend, extracting a simple string is fine.
@@ -39,7 +40,7 @@ void main() async {
     } else if (savedLocale.contains('en')) {
       currentLang = 'en';
     }
-    
+
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
@@ -55,9 +56,7 @@ void main() async {
 
   runApp(
     ProviderScope(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(sharedPrefs),
-      ],
+      overrides: [sharedPreferencesProvider.overrideWithValue(sharedPrefs)],
       child: EasyLocalization(
         supportedLocales: const [Locale('en'), Locale('ar')],
         path: 'assets/translations',
@@ -81,6 +80,7 @@ class MyApp extends ConsumerWidget {
       // Invalidate cached data so stale responses don't persist to the next session
       ref.invalidate(homeDataProvider);
       ref.invalidate(profileProvider);
+      ref.invalidate(purchasesFutureProvider);
       // Trigger logout (deletes JWT from secure storage + clears token state)
       ref.read(authNotifierProvider.notifier).logout();
     };
@@ -88,7 +88,8 @@ class MyApp extends ConsumerWidget {
     // Global Reactive Auth Guard
     ref.listen<AuthState>(authNotifierProvider, (previous, next) {
       if (next.isInitialized) {
-        final currentPath = appRouter.routerDelegate.currentConfiguration.uri.path;
+        final currentPath =
+            appRouter.routerDelegate.currentConfiguration.uri.path;
         final isAuth = next.status == AuthStatus.authenticated;
 
         if (!next.onboardingCompleted) {
@@ -129,6 +130,5 @@ class MyApp extends ConsumerWidget {
       routerConfig: appRouter,
       debugShowCheckedModeBanner: false,
     );
-
   }
 }

@@ -164,9 +164,11 @@
     "total_spent": "Total Spent",
     "savings": "Savings",
     "filter_all": "All",
-    "filter_completed": "Completed",
+    "filter_active": "Active",
+    "filter_fully_used": "Fully used",
     "filter_refunded": "Refunded",
     "filter_expired": "Expired",
+    "expired_with_unused": "Expired with {} unused",
     "currency": "⃁",
     "empty": "No purchases found.",
     "purchased": "Purchased",
@@ -208,7 +210,22 @@
     "no_redemptions": "No redemptions yet",
     "history_instruction": "Show QR code to start using this package",
     "usages_remaining": "usages remaining",
-    "from": "from"
+    "from": "from",
+    "select_items": "Select items to redeem",
+    "select_item_error": "Select at least one item",
+    "remaining_count": "{} remaining",
+    "redeem_one_use": "Redeem one use",
+    "generate_qr": "Generate secure QR",
+    "refresh_qr": "Refresh QR",
+    "qr_expired": "QR code expired",
+    "qr_expires_in": "Expires in {}",
+    "qr_refresh_instruction": "Generate a fresh code to continue",
+    "manual_code_instruction": "If the QR won't scan, tell the cashier this 8-digit code",
+    "manual_code_expiry": "This code expires at the same time as the QR",
+    "copy_manual_code": "Copy manual code",
+    "manual_code_copied": "Redemption code copied",
+    "redemption_history": "Redemption history",
+    "details_load_error": "Could not load package details"
   },
   "packages": {
     "description": "Description",
@@ -219,7 +236,9 @@
     "price_unset": "Price Unset",
     "total_price": "Total Price",
     "trending": "Trending",
-    "days": "Days"
+    "days": "Days",
+    "includes": "Package includes",
+    "quantity": "Qty"
   },
   "checkout": {
     "checkout": "Checkout",

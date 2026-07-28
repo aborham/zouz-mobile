@@ -8,6 +8,14 @@ class AuthRepository {
 
   AuthRepository(this._apiClient);
 
+  /// Verifies that a stored token still belongs to an active customer.
+  ///
+  /// Keep the DioException intact so startup auth can distinguish an invalid
+  /// session from a temporary connectivity problem.
+  Future<void> validateSession() async {
+    await _apiClient.dio.get('/profile');
+  }
+
   Future<void> requestOtp(String phoneNumber) async {
     try {
       await _apiClient.dio.post(
