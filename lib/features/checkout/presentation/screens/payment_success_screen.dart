@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../../core/api/api_client.dart';
 
 class PaymentSuccessScreen extends ConsumerStatefulWidget {
@@ -51,6 +52,35 @@ class _PaymentSuccessScreenState extends ConsumerState<PaymentSuccessScreen> {
       return data[locale]?.toString() ?? data['en']?.toString() ?? data.values.firstOrNull?.toString() ?? '';
     }
     return data.toString();
+  }
+
+  Future<void> _sharePurchase(BuildContext context) async {
+    final merchantName = _getLocalizedString(_orderData?['tenantName']);
+    final packageName = _getLocalizedString(
+      _orderData?['items']?[0]?['packageName'],
+    );
+    final amount = _orderData?['totalAmount']?.toString() ?? '';
+    final currency = _orderData?['currency']?.toString() ?? 'SAR';
+    final renderBox = context.findRenderObject() as RenderBox?;
+
+    try {
+      await SharePlus.instance.share(
+        ShareParams(
+          subject: 'checkout.share_subject'.tr(),
+          text: 'checkout.share_message'.tr(
+            args: [packageName, merchantName, amount, currency],
+          ),
+          sharePositionOrigin: renderBox == null
+              ? null
+              : renderBox.localToGlobal(Offset.zero) & renderBox.size,
+        ),
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('checkout.share_failed'.tr())),
+      );
+    }
   }
 
   @override
@@ -193,7 +223,7 @@ class _PaymentSuccessScreenState extends ConsumerState<PaymentSuccessScreen> {
           ),
           const SizedBox(height: 24),
           TextButton.icon(
-            onPressed: () {},
+            onPressed: () => _sharePurchase(context),
             icon: const Icon(Icons.share, size: 20),
             label: Text('checkout.share'.tr()),
             style: TextButton.styleFrom(foregroundColor: const Color(0xFF224AFB)),

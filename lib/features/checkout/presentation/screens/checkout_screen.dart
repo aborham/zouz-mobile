@@ -878,7 +878,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'purchases.vat_included'.tr(),
+                        'checkout.vat_included'.tr(),
                         style: TextStyle(
                           color: Colors.grey.shade500,
                           fontSize: 13,
@@ -1216,64 +1216,112 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           child: _isProcessingPayment
               ? Container(
                   key: const ValueKey('processing'),
-                  color: Colors.black.withValues(alpha: 0.55),
-                  alignment: Alignment.center,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
+                  color: const Color(0xFF101828).withValues(alpha: 0.62),
+                  child: SafeArea(
+                    child: Center(
+                      child: SingleChildScrollView(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 36,
+                          horizontal: 24,
                           vertical: 32,
                         ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(24),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.15),
-                              blurRadius: 30,
-                              offset: const Offset(0, 8),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Animated ring
-                            const SizedBox(
-                              width: 56,
-                              height: 56,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 4,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Color(0xFF224AFB),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 420),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.fromLTRB(24, 28, 24, 26),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(24),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.18),
+                                  blurRadius: 32,
+                                  offset: const Offset(0, 12),
                                 ),
-                              ),
+                              ],
                             ),
-                            const SizedBox(height: 20),
-                            Text(
-                              'checkout.processing_title'.tr(),
-                              style: const TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF1A1A2E),
-                              ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 72,
+                                  height: 72,
+                                  padding: const EdgeInsets.all(14),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFF0F4FF),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const CircularProgressIndicator(
+                                    strokeWidth: 4,
+                                    strokeCap: StrokeCap.round,
+                                    color: AppColors.primary,
+                                    backgroundColor: Color(0xFFDCE5FF),
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+                                Text(
+                                  'checkout.processing_title'.tr(),
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    height: 1.2,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF101828),
+                                    decoration: TextDecoration.none,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  'checkout.processing_desc'.tr(),
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    height: 1.5,
+                                    fontWeight: FontWeight.w400,
+                                    color: Color(0xFF667085),
+                                    decoration: TextDecoration.none,
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF8FAFC),
+                                    borderRadius: BorderRadius.circular(99),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.lock_outline_rounded,
+                                        size: 16,
+                                        color: Color(0xFF667085),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Flexible(
+                                        child: Text(
+                                          'checkout.security_hint'.tr(),
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            height: 1.3,
+                                            color: Color(0xFF667085),
+                                            decoration: TextDecoration.none,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'checkout.processing_desc'.tr(),
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey.shade600,
-                                height: 1.4,
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 )
               : const SizedBox.shrink(key: ValueKey('idle')),

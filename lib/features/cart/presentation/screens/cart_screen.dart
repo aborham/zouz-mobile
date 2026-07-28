@@ -108,7 +108,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'cart.empty_subtitle'.tr(),
+            'cart.empty_description'.tr(),
             style: const TextStyle(fontSize: 14, color: Colors.grey),
           ),
         ],

@@ -38,6 +38,7 @@ dependencies:
   firebase_app_installations: ^0.4.2+4
   url_launcher: ^6.3.2
   tap_apple_pay_flutter: 1.0.32
+  share_plus: ^12.0.2
 
 dev_dependencies:
   flutter_test:

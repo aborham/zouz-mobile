@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -18,6 +19,12 @@ import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  assert(() {
+    // Keep Flutter Inspector's text-baseline overlay from obscuring labels
+    // during local debug sessions.
+    debugPaintBaselinesEnabled = false;
+    return true;
+  }());
   await EasyLocalization.ensureInitialized();
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,

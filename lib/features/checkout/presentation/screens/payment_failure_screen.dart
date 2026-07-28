@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:go_router/go_router.dart';
+import 'package:crisp_chat/crisp_chat.dart';
+import 'package:zouz_mobile/core/config/app_config.dart';
 
 class PaymentFailureScreen extends StatelessWidget {
   final String? reason;
@@ -13,6 +15,28 @@ class PaymentFailureScreen extends StatelessWidget {
     this.package,
     this.items,
   });
+
+  void _openSupportChat() {
+    FlutterCrispChat.openCrispChat(
+      config: CrispConfig(websiteID: AppConfig.crispWebsiteId),
+    );
+  }
+
+  void _retryCheckout(BuildContext context) {
+    if (package != null || items != null) {
+      context.go(
+        '/checkout',
+        extra: {
+          'package': package,
+          'items': items,
+          'fromCart': items != null,
+        },
+      );
+      return;
+    }
+
+    context.go('/cart');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +63,8 @@ class PaymentFailureScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.help_outline, color: Colors.black),
-            onPressed: () {},
+            tooltip: 'checkout.need_help'.tr(),
+            onPressed: _openSupportChat,
           ),
         ],
       ),
@@ -126,7 +151,7 @@ class PaymentFailureScreen extends StatelessWidget {
             ),
             const SizedBox(height: 32),
             TextButton(
-              onPressed: () {},
+              onPressed: _openSupportChat,
               child: Text(
                 'checkout.need_help'.tr(),
                 style: const TextStyle(color: Color(0xFF224AFB), fontWeight: FontWeight.w600),
@@ -134,19 +159,7 @@ class PaymentFailureScreen extends StatelessWidget {
             ),
             const SizedBox(height: 40),
             ElevatedButton(
-              onPressed: () {
-                if (package != null || items != null) {
-                   context.goNamed('checkout', extra: {
-                    'package': package,
-                    'items': items,
-                    'fromCart': items != null,
-                  });
-                } else if (context.canPop()) {
-                  context.pop();
-                } else {
-                  context.go('/dashboard');
-                }
-              },
+              onPressed: () => _retryCheckout(context),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF224AFB),
                 foregroundColor: Colors.white,
@@ -155,35 +168,6 @@ class PaymentFailureScreen extends StatelessWidget {
                 elevation: 0,
               ),
               child: Text('checkout.try_again'.tr(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton(
-              onPressed: () {
-                if (package != null || items != null) {
-                  context.goNamed('checkout', extra: {
-                    'package': package,
-                    'items': items,
-                    'fromCart': items != null,
-                  });
-                } else if (context.canPop()) {
-                  context.pop();
-                } else {
-                  context.go('/dashboard');
-                }
-              },
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(double.infinity, 56),
-                side: BorderSide(color: Colors.grey[300]!),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.credit_card, color: Colors.black, size: 20),
-                  const SizedBox(width: 8),
-                  Text('checkout.other_payment'.tr(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black)),
-                ],
-              ),
             ),
             const SizedBox(height: 24),
             TextButton(
