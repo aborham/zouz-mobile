@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -33,6 +34,9 @@ class CheckoutScreen extends ConsumerStatefulWidget {
 }
 
 class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
+  static const _applePayDiagnosticsChannel = MethodChannel(
+    'zouz/apple_pay_diagnostics',
+  );
   bool _isProcessingPayment = false;
   // Silent guard while Apple Pay sheet is open — no overlay shown.
   // Overlay only shows after sheet dismisses via _isProcessingPayment.
@@ -68,10 +72,48 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       final result = await TapApplePayFlutter.setupApplePay;
       if (result["success"] == true) {
         debugPrint("Apple Pay SDK initialised successfully.");
+        var deviceCanUseApplePay = true;
+        if (Platform.isIOS) {
+          final diagnostics = await _applePayDiagnosticsChannel
+              .invokeMapMethod<String, dynamic>('check');
+          final configuredMerchantId =
+              diagnostics?['configuredMerchantIdentifier'] as String? ?? '';
+          final hasExpectedMerchantId =
+              configuredMerchantId == AppConfig.applePayMerchantId;
+          final canMakePayments = diagnostics?['canMakePayments'] == true;
+          final canUseSupportedCard =
+              diagnostics?['canMakePaymentsWithNetworks'] == true;
+          deviceCanUseApplePay =
+              hasExpectedMerchantId && canMakePayments && canUseSupportedCard;
+
+          debugPrint(
+            'Apple Pay diagnostics: '
+            'mode=${AppConfig.isProduction ? 'production' : 'sandbox'}, '
+            'requestedMerchantId=${AppConfig.applePayMerchantId}, '
+            'configuredMerchantId=$configuredMerchantId, '
+            'canMakePayments=$canMakePayments, '
+            'canUseVisaMastercardMada=$canUseSupportedCard',
+          );
+
+          if (!hasExpectedMerchantId) {
+            debugPrint(
+              'Apple Pay unavailable: the iOS build is not configured with '
+              '${AppConfig.applePayMerchantId}.',
+            );
+          } else if (!canMakePayments) {
+            debugPrint(
+              'Apple Pay unavailable: Wallet/Apple Pay is not enabled on this device.',
+            );
+          } else if (!canUseSupportedCard) {
+            debugPrint(
+              'Apple Pay unavailable: Wallet has no supported Visa, Mastercard, or Mada card.',
+            );
+          }
+        }
         if (mounted) {
           setState(() {
-            _applePayReady = true;
-            if (Platform.isIOS) {
+            _applePayReady = deviceCanUseApplePay;
+            if (Platform.isIOS && deviceCanUseApplePay) {
               _selectedPaymentMethod = 'apple_pay';
             }
           });
@@ -275,6 +317,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
       // SDK response shape: {success: true, data: {token: "tok_...", ...}}
       debugPrint("getTapToken raw result: $result");
+
+      if (result["cancelled"] == true) {
+        setState(() => _isProcessingPayment = false);
+        return;
+      }
 
       if (result["success"] != true) {
         final data = result["data"];

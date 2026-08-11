@@ -1,4 +1,5 @@
 import Flutter
+import PassKit
 import UIKit
 
 @main
@@ -13,6 +14,30 @@ import UIKit
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+
+    let applePayDiagnostics = FlutterMethodChannel(
+      name: "zouz/apple_pay_diagnostics",
+      binaryMessenger: engineBridge.applicationRegistrar.messenger()
+    )
+    applePayDiagnostics.setMethodCallHandler { call, result in
+      guard call.method == "check" else {
+        result(FlutterMethodNotImplemented)
+        return
+      }
+
+      let merchantIdentifier = Bundle.main.object(
+        forInfoDictionaryKey: "ApplePayMerchantIdentifier"
+      ) as? String
+      let supportedNetworks: [PKPaymentNetwork] = [.visa, .masterCard, .mada]
+
+      result([
+        "canMakePayments": PKPaymentAuthorizationController.canMakePayments(),
+        "canMakePaymentsWithNetworks": PKPaymentAuthorizationController.canMakePayments(
+          usingNetworks: supportedNetworks
+        ),
+        "configuredMerchantIdentifier": merchantIdentifier ?? "",
+      ])
+    }
   }
   override func userNotificationCenter(
     _ center: UNUserNotificationCenter,

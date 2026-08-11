@@ -16,17 +16,17 @@ class AppConfig {
   // - Android Emulator: '10.0.2.2'
   // - Physical Device: Your computer's local IP (e.g. '192.168.1.50')
   // Override when the Mac's Wi-Fi address changes:
-  // flutter run --dart-define=DEV_HOST=10.0.0.178
+  // flutter run --dart-define=DEV_HOST=192.168.1.15
   static const String host = String.fromEnvironment(
     'DEV_HOST',
-    defaultValue: '10.0.0.178',
+    defaultValue: '192.168.1.15',
   );
   static const String port = '3000';
 
   static const String _localBaseUrl = 'http://$host:$port';
   static const String _prodBaseUrl = 'https://dashboard.usezouz.com';
 
-  static const String _localWebsiteUrl = 'http://$host:8080';
+  static const String _localWebsiteUrl = _localBaseUrl;
   static const String _prodWebsiteUrl = 'https://usezouz.com';
 
   // Release builds always use production. Debug/profile builds can opt in.

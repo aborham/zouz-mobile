@@ -40,12 +40,11 @@ class OnboardingRepository {
 
   Future<List<OnboardingSlide>> getSlides() async {
     try {
-      // Relative to baseUrl: http://192.168.1.8:3000/api/customer/
+      // Relative to the centrally configured customer API base URL.
       final response = await _apiClient.dio.get('onboarding');
       final List<dynamic> data = response.data;
       return data.map((json) => OnboardingSlide.fromJson(json)).toList();
     } catch (e) {
-
       // Return empty list or handle error appropriately
       rethrow;
     }
@@ -57,7 +56,9 @@ final onboardingRepositoryProvider = Provider<OnboardingRepository>((ref) {
   return OnboardingRepository(apiClient);
 });
 
-final onboardingSlidesProvider = FutureProvider<List<OnboardingSlide>>((ref) async {
+final onboardingSlidesProvider = FutureProvider<List<OnboardingSlide>>((
+  ref,
+) async {
   final repository = ref.watch(onboardingRepositoryProvider);
   return repository.getSlides();
 });
