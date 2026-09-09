@@ -7,6 +7,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
 import 'core/services/push_notification_service.dart';
+import 'core/services/analytics_service.dart';
 import 'core/api/api_client.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -51,6 +52,7 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    await AnalyticsService.instance.initialize();
     // Setup Push Notifications and pass router to handle incoming intent
     PushNotificationService().initialize(appRouter, currentLang);
   } catch (e, stack) {

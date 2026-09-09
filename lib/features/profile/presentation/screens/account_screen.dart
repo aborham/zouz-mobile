@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:go_router/go_router.dart';
-import 'package:crisp_chat/crisp_chat.dart';
-import 'package:zouz_mobile/core/config/app_config.dart';
+import 'package:zouz_mobile/core/services/crisp_chat_service.dart';
 import 'package:zouz_mobile/core/theme/colors.dart';
 import 'package:zouz_mobile/core/utils/image_utils.dart';
 import 'package:zouz_mobile/features/auth/providers/auth_provider.dart';
@@ -118,7 +117,7 @@ class AccountScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 32),
-                  
+
                   // Menu Items
                   _buildMenuItem(
                     context,
@@ -131,7 +130,7 @@ class AccountScreen extends ConsumerWidget {
                     context,
                     icon: Icons.shopping_bag_outlined,
                     title: 'profile.order_history'.tr(),
-                    onTap: () => context.push('/purchases'),
+                    onTap: () => context.push('/purchases?view=history'),
                     iconColor: Colors.blue,
                   ),
                   _buildMenuItem(
@@ -175,29 +174,27 @@ class AccountScreen extends ConsumerWidget {
                     title: 'profile.language'.tr(),
                     onTap: () => context.push('/profile/language'),
                     iconColor: Colors.blue,
-                    trailingText: context.locale.languageCode == 'ar' ? 'العربية' : 'English',
+                    trailingText: context.locale.languageCode == 'ar'
+                        ? 'العربية'
+                        : 'English',
                   ),
                   _buildMenuItem(
                     context,
                     icon: Icons.support_agent_outlined,
                     title: 'profile.contact_us'.tr(),
-                    onTap: () {
-                      FlutterCrispChat.openCrispChat(
-                        config: CrispConfig(
-                          websiteID: AppConfig.crispWebsiteId,
-                          user: User(
-                            email: profile.email ?? '',
-                            nickName: profile.name ?? '',
-                            phone: profile.phoneNumber ?? '',
-                          ),
-                        ),
+                    onTap: () async {
+                      await CrispChatService.open(
+                        context,
+                        email: profile.email,
+                        name: profile.name,
+                        phone: profile.phoneNumber,
                       );
                     },
                     iconColor: Colors.blue,
                   ),
-                  
+
                   const SizedBox(height: 32),
-                  
+
                   // Logout Button
                   Container(
                     width: double.infinity,
@@ -232,7 +229,11 @@ class AccountScreen extends ConsumerWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                  const Icon(
+                    Icons.error_outline,
+                    size: 48,
+                    color: AppColors.error,
+                  ),
                   const SizedBox(height: 16),
                   Text('common.error'.tr()),
                   const SizedBox(height: 16),
@@ -294,10 +295,7 @@ class AccountScreen extends ConsumerWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Text(
                     trailingText,
-                    style: const TextStyle(
-                      color: Colors.grey,
-                      fontSize: 14,
-                    ),
+                    style: const TextStyle(color: Colors.grey, fontSize: 14),
                   ),
                 ),
               trailing ?? const Icon(Icons.chevron_right, color: Colors.grey),

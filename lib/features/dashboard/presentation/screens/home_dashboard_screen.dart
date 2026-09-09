@@ -23,13 +23,17 @@ class HomeDashboardScreen extends ConsumerWidget {
           data: (data) => RefreshIndicator(
             onRefresh: () => ref.refresh(homeDataProvider.future),
             child: CustomScrollView(
-              physics: const BouncingScrollPhysics(),
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
               slivers: [
                 _buildHeader(context, ref, data.user),
                 const SliverToBoxAdapter(child: SizedBox(height: 8)),
                 SliverToBoxAdapter(child: _buildScanStandBanner(context, ref)),
                 const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                SliverToBoxAdapter(child: _PromoCarousel(banners: data.banners)),
+                SliverToBoxAdapter(
+                  child: _PromoCarousel(banners: data.banners),
+                ),
                 _buildActiveRoutine(context, ref, data.activePackages),
                 const SliverToBoxAdapter(child: SizedBox(height: 32)),
               ],
@@ -69,11 +73,19 @@ class HomeDashboardScreen extends ConsumerWidget {
                   CircleAvatar(
                     radius: 18,
                     backgroundColor: AppColors.surface,
-                    backgroundImage: user.avatarUrl != null && !user.avatarUrl!.contains('svg')
+                    backgroundImage:
+                        user.avatarUrl != null &&
+                            !user.avatarUrl!.contains('svg')
                         ? NetworkImage(ImageUtils.getFullUrl(user.avatarUrl!)!)
                         : null,
-                    child: user.avatarUrl == null || user.avatarUrl!.contains('svg')
-                        ? const Icon(Icons.person, size: 20, color: AppColors.primary)
+                    child:
+                        user.avatarUrl == null ||
+                            user.avatarUrl!.contains('svg')
+                        ? const Icon(
+                            Icons.person,
+                            size: 20,
+                            color: AppColors.primary,
+                          )
                         : null,
                   ),
                   const SizedBox(width: 12),
@@ -150,10 +162,7 @@ class HomeDashboardScreen extends ConsumerWidget {
                   color: AppColors.error,
                   shape: BoxShape.circle,
                 ),
-                constraints: const BoxConstraints(
-                  minWidth: 8,
-                  minHeight: 8,
-                ),
+                constraints: const BoxConstraints(minWidth: 8, minHeight: 8),
               ),
             ),
         ],
@@ -237,7 +246,11 @@ class HomeDashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildActiveRoutine(BuildContext context, WidgetRef ref, List<ActivePackage> packages) {
+  Widget _buildActiveRoutine(
+    BuildContext context,
+    WidgetRef ref,
+    List<ActivePackage> packages,
+  ) {
     if (packages.isEmpty) {
       return SliverPadding(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
@@ -344,16 +357,21 @@ class HomeDashboardScreen extends ConsumerWidget {
               itemBuilder: (context, index) {
                 final pkg = packages[index];
                 final locale = context.locale.languageCode;
-                final packageName = pkg.packageName[locale] ?? pkg.packageName['en'] ?? '';
+                final packageName =
+                    pkg.packageName[locale] ?? pkg.packageName['en'] ?? '';
 
                 return GestureDetector(
-                  onTap: () => context.push('/purchase-details', extra: pkg.toMap()),
+                  onTap: () =>
+                      context.push('/purchase-details', extra: pkg.toMap()),
                   child: Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(32),
-                      border: Border.all(color: AppColors.secondary, width: 1.0),
+                      border: Border.all(
+                        color: AppColors.secondary,
+                        width: 1.0,
+                      ),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.03),
@@ -373,14 +391,19 @@ class HomeDashboardScreen extends ConsumerWidget {
                                 color: _getCategoryColor(packageName),
                                 borderRadius: BorderRadius.circular(20),
                               ),
-                              child: pkg.providerLogo != null && pkg.providerLogo!.isNotEmpty
+                              child:
+                                  pkg.providerLogo != null &&
+                                      pkg.providerLogo!.isNotEmpty
                                   ? ClipRRect(
                                       borderRadius: BorderRadius.circular(20),
                                       child: Image.network(
-                                        ImageUtils.getFullUrl(pkg.providerLogo!)!,
+                                        ImageUtils.getFullUrl(
+                                          pkg.providerLogo!,
+                                        )!,
                                         fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stackTrace) => 
-                                            _buildDefaultIcon(packageName),
+                                        errorBuilder:
+                                            (context, error, stackTrace) =>
+                                                _buildDefaultIcon(packageName),
                                       ),
                                     )
                                   : _buildDefaultIcon(packageName),
@@ -433,7 +456,10 @@ class HomeDashboardScreen extends ConsumerWidget {
                                   value: pkg.progress,
                                   minHeight: 8,
                                   backgroundColor: const Color(0xFFF3F4F6),
-                                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                                  valueColor:
+                                      const AlwaysStoppedAnimation<Color>(
+                                        AppColors.primary,
+                                      ),
                                 ),
                               ),
                             ),
@@ -441,18 +467,31 @@ class HomeDashboardScreen extends ConsumerWidget {
                             // Bound the button width or wrap in IntrinsicWidth/Flexible
                             Flexible(
                               child: ElevatedButton.icon(
-                                onPressed: () => context.push('/purchase-details', extra: pkg.toMap()),
-                                icon: const Icon(Icons.qr_code_rounded, size: 16, color: Colors.white),
+                                onPressed: () => context.push(
+                                  '/purchase-details',
+                                  extra: pkg.toMap(),
+                                ),
+                                icon: const Icon(
+                                  Icons.qr_code_rounded,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
                                 label: Text(
                                   'dashboard.redeem_now'.tr(),
-                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.primary,
                                   foregroundColor: Colors.white,
                                   elevation: 0,
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
@@ -473,22 +512,30 @@ class HomeDashboardScreen extends ConsumerWidget {
     );
   }
 
-
   Widget _buildDefaultIcon(String name) {
     final lName = name.toLowerCase();
     IconData iconData = Icons.inventory_2_outlined;
     Color iconColor = AppColors.primary;
 
-    if (lName.contains('gym') || lName.contains('fitness') || lName.contains('workout')) {
+    if (lName.contains('gym') ||
+        lName.contains('fitness') ||
+        lName.contains('workout')) {
       iconData = Icons.fitness_center;
       iconColor = const Color(0xFF2E7D32);
-    } else if (lName.contains('workspace') || lName.contains('office') || lName.contains('desk') || lName.contains('laptop')) {
+    } else if (lName.contains('workspace') ||
+        lName.contains('office') ||
+        lName.contains('desk') ||
+        lName.contains('laptop')) {
       iconData = Icons.laptop_mac;
       iconColor = const Color(0xFF4527A0);
-    } else if (lName.contains('coffee') || lName.contains('food') || lName.contains('cafe')) {
+    } else if (lName.contains('coffee') ||
+        lName.contains('food') ||
+        lName.contains('cafe')) {
       iconData = Icons.coffee;
       iconColor = const Color(0xFFEF6C00);
-    } else if (lName.contains('beauty') || lName.contains('spa') || lName.contains('salon')) {
+    } else if (lName.contains('beauty') ||
+        lName.contains('spa') ||
+        lName.contains('salon')) {
       iconData = Icons.spa;
       iconColor = const Color(0xFFC2185B);
     }
@@ -498,16 +545,25 @@ class HomeDashboardScreen extends ConsumerWidget {
 
   Color _getCategoryColor(String name) {
     final lName = name.toLowerCase();
-    if (lName.contains('gym') || lName.contains('fitness') || lName.contains('workout')) {
+    if (lName.contains('gym') ||
+        lName.contains('fitness') ||
+        lName.contains('workout')) {
       return const Color(0xFFE8F5E9);
     }
-    if (lName.contains('workspace') || lName.contains('office') || lName.contains('desk') || lName.contains('laptop')) {
+    if (lName.contains('workspace') ||
+        lName.contains('office') ||
+        lName.contains('desk') ||
+        lName.contains('laptop')) {
       return const Color(0xFFEDE7F6);
     }
-    if (lName.contains('coffee') || lName.contains('food') || lName.contains('cafe')) {
+    if (lName.contains('coffee') ||
+        lName.contains('food') ||
+        lName.contains('cafe')) {
       return const Color(0xFFFFF3E0);
     }
-    if (lName.contains('beauty') || lName.contains('spa') || lName.contains('salon')) {
+    if (lName.contains('beauty') ||
+        lName.contains('spa') ||
+        lName.contains('salon')) {
       return const Color(0xFFFCE4EC);
     }
     return const Color(0xFFF5F5F5);
@@ -515,14 +571,14 @@ class HomeDashboardScreen extends ConsumerWidget {
 
   Widget _buildExpiryRow(DateTime? expiresAt) {
     if (expiresAt == null) return const SizedBox.shrink();
-    
+
     final days = expiresAt.difference(DateTime.now()).inDays;
     final isExpiresTomorrow = days == 1;
     final color = isExpiresTomorrow ? AppColors.error : AppColors.textSecondary;
-    final text = isExpiresTomorrow 
-        ? 'purchases.expires_tomorrow'.tr() 
+    final text = isExpiresTomorrow
+        ? 'purchases.expires_tomorrow'.tr()
         : 'purchases.expires_in_days'.tr(args: [days.toString()]);
-    
+
     return Row(
       children: [
         Icon(
@@ -546,7 +602,9 @@ class HomeDashboardScreen extends ConsumerWidget {
   Widget _buildUsageText(BuildContext context, ActivePackage pkg) {
     final usedCount = pkg.initialQuantity! - pkg.remainingQuantity;
     final totalCount = pkg.initialQuantity;
-    final unitKey = pkg.type.toLowerCase() == 'quantity' ? 'dashboard.visits' : 'dashboard.items';
+    final unitKey = pkg.type.toLowerCase() == 'quantity'
+        ? 'dashboard.visits'
+        : 'dashboard.items';
 
     return RichText(
       text: TextSpan(
@@ -583,7 +641,11 @@ class HomeDashboardScreen extends ConsumerWidget {
               children: [
                 Row(
                   children: [
-                    const _SkeletonPlaceholder(width: 36, height: 36, borderRadius: 18),
+                    const _SkeletonPlaceholder(
+                      width: 36,
+                      height: 36,
+                      borderRadius: 18,
+                    ),
                     const SizedBox(width: 12),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -597,29 +659,61 @@ class HomeDashboardScreen extends ConsumerWidget {
                 ),
                 Row(
                   children: const [
-                    _SkeletonPlaceholder(width: 40, height: 40, borderRadius: 12),
+                    _SkeletonPlaceholder(
+                      width: 40,
+                      height: 40,
+                      borderRadius: 12,
+                    ),
                     SizedBox(width: 8),
-                    _SkeletonPlaceholder(width: 40, height: 40, borderRadius: 12),
+                    _SkeletonPlaceholder(
+                      width: 40,
+                      height: 40,
+                      borderRadius: 12,
+                    ),
                   ],
                 ),
               ],
             ),
             const SizedBox(height: 24),
-            const _SkeletonPlaceholder(width: double.infinity, height: 120, borderRadius: 24),
+            const _SkeletonPlaceholder(
+              width: double.infinity,
+              height: 120,
+              borderRadius: 24,
+            ),
             const SizedBox(height: 24),
-            const _SkeletonPlaceholder(width: double.infinity, height: 150, borderRadius: 24),
+            const _SkeletonPlaceholder(
+              width: double.infinity,
+              height: 150,
+              borderRadius: 24,
+            ),
             const SizedBox(height: 24),
             const _SkeletonPlaceholder(width: 140, height: 20),
             const SizedBox(height: 16),
-            const _SkeletonPlaceholder(width: double.infinity, height: 160, borderRadius: 32),
+            const _SkeletonPlaceholder(
+              width: double.infinity,
+              height: 160,
+              borderRadius: 32,
+            ),
             const SizedBox(height: 28),
             const _SkeletonPlaceholder(width: 160, height: 20),
             const SizedBox(height: 16),
             Row(
               children: const [
-                Expanded(child: _SkeletonPlaceholder(width: 150, height: 220, borderRadius: 24)),
+                Expanded(
+                  child: _SkeletonPlaceholder(
+                    width: 150,
+                    height: 220,
+                    borderRadius: 24,
+                  ),
+                ),
                 SizedBox(width: 16),
-                Expanded(child: _SkeletonPlaceholder(width: 150, height: 220, borderRadius: 24)),
+                Expanded(
+                  child: _SkeletonPlaceholder(
+                    width: 150,
+                    height: 220,
+                    borderRadius: 24,
+                  ),
+                ),
               ],
             ),
           ],
@@ -683,7 +777,6 @@ class _SkeletonPlaceholderState extends State<_SkeletonPlaceholder>
     );
   }
 }
-
 
 class _PromoCarousel extends StatefulWidget {
   final List<HomeBanner> banners;

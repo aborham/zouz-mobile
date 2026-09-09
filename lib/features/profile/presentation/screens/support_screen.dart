@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:crisp_chat/crisp_chat.dart';
 import 'package:zouz_mobile/core/theme/colors.dart';
-import 'package:zouz_mobile/core/config/app_config.dart';
+import 'package:zouz_mobile/core/services/crisp_chat_service.dart';
 import '../../providers/profile_provider.dart';
 
 class SupportScreen extends ConsumerWidget {
@@ -69,7 +68,7 @@ class SupportScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 32),
-            
+
             // Search Bar
             Container(
               decoration: BoxDecoration(
@@ -87,20 +86,16 @@ class SupportScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 40),
-            
+
             // Contact Cards
             GestureDetector(
-              onTap: () {
+              onTap: () async {
                 final profile = profileAsync.value;
-                FlutterCrispChat.openCrispChat(
-                  config: CrispConfig(
-                    websiteID: AppConfig.crispWebsiteId,
-                    user: profile != null ? User(
-                      email: profile.email ?? '',
-                      nickName: profile.name ?? '',
-                      phone: profile.phoneNumber ?? '',
-                    ) : null,
-                  ),
+                await CrispChatService.open(
+                  context,
+                  email: profile?.email,
+                  name: profile?.name,
+                  phone: profile?.phoneNumber,
                 );
               },
               child: _buildContactCard(
@@ -124,9 +119,9 @@ class SupportScreen extends ConsumerWidget {
               subtitle: 'support.direct_line'.tr(),
               color: Colors.blue,
             ),
-            
+
             const SizedBox(height: 48),
-            
+
             // FAQ Section
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -143,7 +138,10 @@ class SupportScreen extends ConsumerWidget {
                   onPressed: () {},
                   child: Text(
                     'support.view_all'.tr(),
-                    style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],
@@ -153,9 +151,9 @@ class SupportScreen extends ConsumerWidget {
             _buildFaqItem("support.faq_address_change".tr()),
             _buildFaqItem("support.faq_return_policy".tr()),
             _buildFaqItem("support.faq_subscription".tr()),
-            
+
             const SizedBox(height: 40),
-            
+
             // Concierge Banner
             Container(
               padding: const EdgeInsets.all(24),

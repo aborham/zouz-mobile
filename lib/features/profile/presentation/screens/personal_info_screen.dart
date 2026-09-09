@@ -563,7 +563,8 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
                               Navigator.pop(context); // close loader
                               
                               // Trigger logout and clean up state
-                              ref.read(authNotifierProvider.notifier).logout();
+                              await ref.read(authNotifierProvider.notifier).logout();
+                              if (!context.mounted) return;
                               
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(

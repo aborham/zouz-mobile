@@ -15,14 +15,9 @@ class LegalDocsScreen extends StatefulWidget {
 }
 
 class _LegalDocsScreenState extends State<LegalDocsScreen> {
-  late final WebViewController _controller;
+  WebViewController? _controller;
   bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    // Assuming context.locale.languageCode is accessible here, but actually we can get it via context in didChangeDependencies
-  }
+  bool _hasError = false;
 
   // Keep track of the last loaded URL to prevent duplicate loads on identical renders
   String? _lastLoadedUrl;
@@ -31,14 +26,16 @@ class _LegalDocsScreenState extends State<LegalDocsScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final lang = context.locale.languageCode;
-    final url = widget.type == 'terms' 
-        ? '${AppConfig.websiteUrl}/mobile-terms?lang=$lang' 
-        : '${AppConfig.websiteUrl}/mobile-privacy?lang=$lang';
+    final url = AppConfig.legalDocumentUrl(
+      type: widget.type,
+      language: lang,
+    ).toString();
 
     if (_lastLoadedUrl != url) {
       _lastLoadedUrl = url;
       debugPrint('LegalDocsScreen loading webview URL: $url');
-      
+      _isLoading = true;
+      _hasError = false;
       _controller = WebViewController()
         ..setJavaScriptMode(JavaScriptMode.unrestricted)
         ..setBackgroundColor(AppColors.homeBackground)
@@ -51,6 +48,14 @@ class _LegalDocsScreenState extends State<LegalDocsScreen> {
                 });
               }
             },
+            onWebResourceError: (error) {
+              if (error.isForMainFrame == true && mounted) {
+                setState(() {
+                  _isLoading = false;
+                  _hasError = true;
+                });
+              }
+            },
           ),
         )
         ..loadRequest(Uri.parse(url));
@@ -59,7 +64,10 @@ class _LegalDocsScreenState extends State<LegalDocsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.type == 'terms' ? 'profile.terms'.tr() : 'profile.privacy'.tr();
+    final title = widget.type == 'terms'
+        ? 'profile.terms'.tr()
+        : 'profile.privacy'.tr();
+    final controller = _controller;
 
     return Scaffold(
       backgroundColor: AppColors.homeBackground,
@@ -68,7 +76,11 @@ class _LegalDocsScreenState extends State<LegalDocsScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: AppColors.textPrimary),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            size: 20,
+            color: AppColors.textPrimary,
+          ),
           onPressed: () => context.pop(),
         ),
         title: Text(
@@ -83,10 +95,40 @@ class _LegalDocsScreenState extends State<LegalDocsScreen> {
       ),
       body: Stack(
         children: [
-          WebViewWidget(controller: _controller),
+          if (controller != null && !_hasError)
+            WebViewWidget(controller: controller),
           if (_isLoading)
             const Center(
               child: CircularProgressIndicator(color: AppColors.primary),
+            ),
+          if (_hasError)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.cloud_off_outlined, size: 48),
+                    const SizedBox(height: 12),
+                    Text(
+                      'profile.legal_load_error'.tr(),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _hasError = false;
+                          _isLoading = true;
+                        });
+                        controller?.reload();
+                      },
+                      icon: const Icon(Icons.refresh),
+                      label: Text('common.retry'.tr()),
+                    ),
+                  ],
+                ),
+              ),
             ),
         ],
       ),

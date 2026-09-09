@@ -7,6 +7,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zouz_mobile/core/theme/colors.dart';
+import 'package:zouz_mobile/core/services/analytics_service.dart';
 
 class QrScannerScreen extends ConsumerStatefulWidget {
   const QrScannerScreen({super.key});
@@ -35,7 +36,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
-    
+
     // Check permission and start camera immediately since this is a standalone screen
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkPermission();
@@ -56,7 +57,8 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
       Future.delayed(const Duration(milliseconds: 800), () {
         if (mounted) _checkPermission();
       });
-    } else if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
+    } else if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused) {
       if (cameraController.value.isRunning) {
         cameraController.stop();
       }
@@ -73,7 +75,8 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
 
     if (status.isGranted || status.isProvisional) {
       try {
-        if (!cameraController.value.isRunning && !cameraController.value.isStarting) {
+        if (!cameraController.value.isRunning &&
+            !cameraController.value.isStarting) {
           await cameraController.start();
         }
       } catch (e) {
@@ -86,10 +89,11 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
     final status = await Permission.camera.request();
     if (!mounted) return;
     setState(() => _cameraPermissionStatus = status);
-    
+
     if (status.isGranted || status.isProvisional) {
       try {
-        if (!cameraController.value.isRunning && !cameraController.value.isStarting) {
+        if (!cameraController.value.isRunning &&
+            !cameraController.value.isStarting) {
           await cameraController.start();
         }
       } catch (e) {
@@ -115,20 +119,26 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
 
       // Validation logic for Zouz QR codes
       final bool isZouzMenu = uri.pathSegments.contains('menu');
-      final bool isZouzDirect = uri.host == 'zouz.app' || uri.host == 'dev.zouzapp.com';
-      
+      final bool isZouzDirect =
+          uri.host == 'zouz.app' || uri.host == 'dev.zouzapp.com';
+
       if (isZouzMenu) {
         final index = uri.pathSegments.indexOf('menu');
         if (index + 1 < uri.pathSegments.length) {
           tenantSlug = uri.pathSegments[index + 1];
         }
-        standId = uri.queryParameters['standId'] ?? uri.queryParameters['stand'];
+        standId =
+            uri.queryParameters['standId'] ?? uri.queryParameters['stand'];
       } else if (isZouzDirect) {
-        tenantSlug = uri.pathSegments.isNotEmpty ? uri.pathSegments.first : null;
-        standId = uri.queryParameters['standId'] ?? uri.queryParameters['stand'];
+        tenantSlug = uri.pathSegments.isNotEmpty
+            ? uri.pathSegments.first
+            : null;
+        standId =
+            uri.queryParameters['standId'] ?? uri.queryParameters['stand'];
       }
 
       if (tenantSlug != null && tenantSlug.isNotEmpty) {
+        AnalyticsService.instance.qrScanned(valid: true);
         setState(() {
           _isProcessing = true;
           _showSuccess = true;
@@ -136,7 +146,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
         cameraController.stop();
 
         final query = standId != null ? '?standId=$standId' : '';
-        
+
         // Show success feedback for a moment before navigating
         Future.delayed(const Duration(milliseconds: 1500), () {
           if (!mounted) return;
@@ -166,9 +176,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
         title: const Text('Debug: Simulate QR Scan'),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(
-            hintText: 'Paste QR Code URL here',
-          ),
+          decoration: const InputDecoration(hintText: 'Paste QR Code URL here'),
         ),
         actions: [
           TextButton(
@@ -190,10 +198,11 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
   }
 
   void _handleInvalidQr() {
+    AnalyticsService.instance.qrScanned(valid: false);
     setState(() {
       _errorMessage = 'scanner.invalid_qr_subtitle'.tr();
     });
-    
+
     // Auto-hide error after 3 seconds
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
@@ -204,7 +213,9 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
 
   @override
   Widget build(BuildContext context) {
-    final bool isGranted = _cameraPermissionStatus.isGranted || _cameraPermissionStatus.isProvisional;
+    final bool isGranted =
+        _cameraPermissionStatus.isGranted ||
+        _cameraPermissionStatus.isProvisional;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -212,10 +223,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
         children: [
           // 1. Camera View
           if (isGranted)
-            MobileScanner(
-              controller: cameraController,
-              onDetect: _onDetect,
-            )
+            MobileScanner(controller: cameraController, onDetect: _onDetect)
           else
             _buildPermissionPlaceholder(),
 
@@ -281,19 +289,19 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
           // 4. Floating Guidance Card
           if (isGranted && !_showSuccess && _errorMessage == null)
             Positioned(
-              bottom: MediaQuery.of(context).padding.bottom + 100, // Adjusted for notch bottom bar
+              bottom:
+                  MediaQuery.of(context).padding.bottom +
+                  100, // Adjusted for notch bottom bar
               left: 24,
               right: 24,
               child: _buildGuidanceCard(),
             ),
 
           // 5. Success Overlay
-          if (_showSuccess)
-            _buildSuccessOverlay(),
+          if (_showSuccess) _buildSuccessOverlay(),
 
           // 6. Error Overlay
-          if (_errorMessage != null)
-            _buildErrorOverlay(),
+          if (_errorMessage != null) _buildErrorOverlay(),
         ],
       ),
     );
@@ -313,7 +321,11 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
                   color: Colors.white,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.check_rounded, color: Colors.green, size: 64),
+                child: const Icon(
+                  Icons.check_rounded,
+                  color: Colors.green,
+                  size: 64,
+                ),
               ),
               const SizedBox(height: 24),
               Text(
@@ -384,7 +396,10 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
     );
   }
 
-  Widget _buildGlassButton({required IconData icon, required VoidCallback onPressed}) {
+  Widget _buildGlassButton({
+    required IconData icon,
+    required VoidCallback onPressed,
+  }) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
       child: BackdropFilter(
@@ -427,7 +442,11 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
                   color: AppColors.primary.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.qr_code_2, color: AppColors.secondary, size: 28),
+                child: const Icon(
+                  Icons.qr_code_2,
+                  color: AppColors.secondary,
+                  size: 28,
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -464,7 +483,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
 
   Widget _buildPermissionPlaceholder() {
     final bool isDenied = _cameraPermissionStatus.isPermanentlyDenied;
-    
+
     return Container(
       color: Colors.white,
       width: double.infinity,
@@ -525,13 +544,17 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
                         ),
                       ],
                     ),
-                    child: const Icon(Icons.camera_alt, color: Colors.white, size: 24),
+                    child: const Icon(
+                      Icons.camera_alt,
+                      color: Colors.white,
+                      size: 24,
+                    ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 48),
-            
+
             // 2. Text Content
             Text(
               'scanner.premium_permission_title'.tr(),
@@ -555,7 +578,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
               ),
             ),
             const SizedBox(height: 40),
-            
+
             // 3. Feature Cards
             PermissionFeaturesCard(
               icon: Icons.privacy_tip_rounded,
@@ -569,23 +592,32 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
               description: 'scanner.instant_desc'.tr(),
             ),
             const SizedBox(height: 60),
-            
+
             // 4. Action Buttons
             SizedBox(
               width: double.infinity,
               height: 64,
               child: ElevatedButton(
-                onPressed: isDenied ? () => openAppSettings() : _requestPermission,
+                onPressed: isDenied
+                    ? () => openAppSettings()
+                    : _requestPermission,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                   shadowColor: AppColors.primary.withValues(alpha: 0.4),
                 ),
                 child: Text(
-                  isDenied ? 'scanner.open_settings'.tr() : 'scanner.grant_permission'.tr(),
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                  isDenied
+                      ? 'scanner.open_settings'.tr()
+                      : 'scanner.grant_permission'.tr(),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
             ),
@@ -622,7 +654,10 @@ class _ScannerOverlayPainter extends CustomPainter {
     // Cutout Dimensions (Optimized for Menu Stands)
     final scanAreaWidth = size.width * 0.75;
     final scanAreaHeight = scanAreaWidth; // Square
-    final center = Offset(size.width / 2, size.height * 0.45); // Centered slightly higher
+    final center = Offset(
+      size.width / 2,
+      size.height * 0.45,
+    ); // Centered slightly higher
 
     final cutOutRect = Rect.fromCenter(
       center: center,
@@ -635,25 +670,34 @@ class _ScannerOverlayPainter extends CustomPainter {
       Path.combine(
         PathOperation.difference,
         Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height)),
-        Path()..addRRect(RRect.fromRectAndRadius(cutOutRect, const Radius.circular(32))),
+        Path()..addRRect(
+          RRect.fromRectAndRadius(cutOutRect, const Radius.circular(32)),
+        ),
       ),
       paint,
     );
 
     // 2. Draw animated scan line
     final linePaint = Paint()
-      ..shader = LinearGradient(
-        colors: [
-          AppColors.secondary.withValues(alpha: 0.01),
-          AppColors.secondary.withValues(alpha: 0.6),
-          AppColors.secondary.withValues(alpha: 0.01),
-        ],
-      ).createShader(Rect.fromLTWH(cutOutRect.left, cutOutRect.top, cutOutRect.width, 2))
+      ..shader =
+          LinearGradient(
+            colors: [
+              AppColors.secondary.withValues(alpha: 0.01),
+              AppColors.secondary.withValues(alpha: 0.6),
+              AppColors.secondary.withValues(alpha: 0.01),
+            ],
+          ).createShader(
+            Rect.fromLTWH(cutOutRect.left, cutOutRect.top, cutOutRect.width, 2),
+          )
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.5;
 
     final lineY = cutOutRect.top + (cutOutRect.height * scanLinePosition);
-    canvas.drawLine(Offset(cutOutRect.left + 20, lineY), Offset(cutOutRect.right - 20, lineY), linePaint);
+    canvas.drawLine(
+      Offset(cutOutRect.left + 20, lineY),
+      Offset(cutOutRect.right - 20, lineY),
+      linePaint,
+    );
 
     // 3. Draw premium corner accents
     final cornerPaint = Paint()

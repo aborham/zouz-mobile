@@ -7,8 +7,8 @@ import 'package:zouz_mobile/core/theme/colors.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../repositories/purchases_repository.dart';
 
-final purchasesFilterProvider = StateProvider.autoDispose<String>(
-  (ref) => 'ALL',
+final purchasesFilterProvider = StateProvider.autoDispose.family<String, bool>(
+  (ref, historyMode) => 'ALL',
 );
 
 final purchasesFutureProvider =
@@ -24,12 +24,16 @@ final purchasesFutureProvider =
     });
 
 class PurchasesScreen extends ConsumerWidget {
-  const PurchasesScreen({super.key});
+  const PurchasesScreen({super.key, this.historyMode = false});
+
+  /// The middle navigation tab is for usable/current purchases. Account order
+  /// history is the complete financial record and includes refunded orders.
+  final bool historyMode;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final purchasesAsync = ref.watch(purchasesFutureProvider);
-    final selectedFilter = ref.watch(purchasesFilterProvider);
+    final selectedFilter = ref.watch(purchasesFilterProvider(historyMode));
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
@@ -39,10 +43,13 @@ class PurchasesScreen extends ConsumerWidget {
         // When there is no back route (direct entry from tab), show a home icon.
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/dashboard'),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/dashboard'),
         ),
         title: Text(
-          'dashboard.purchases'.tr(),
+          historyMode
+              ? 'profile.order_history'.tr()
+              : 'dashboard.purchases'.tr(),
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
@@ -50,7 +57,11 @@ class PurchasesScreen extends ConsumerWidget {
       ),
       body: purchasesAsync.when(
         data: (purchases) {
-          final sortedPurchases = [...purchases]..sort(_comparePurchases);
+          final visiblePurchases = historyMode
+              ? purchases
+              : purchases.where((purchase) => purchase['status'] != 'REFUNDED');
+          final sortedPurchases = [...visiblePurchases]
+            ..sort(_comparePurchases);
           final filteredPurchases = sortedPurchases.where((p) {
             final status = p['status'] ?? 'UNKNOWN';
             if (selectedFilter == 'ALL') return true;
@@ -63,7 +74,7 @@ class PurchasesScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(24),
               physics: const AlwaysScrollableScrollPhysics(),
               children: [
-                _buildFilterTabs(ref, selectedFilter),
+                _buildFilterTabs(ref, selectedFilter, historyMode),
                 const SizedBox(height: 24),
                 if (filteredPurchases.isEmpty)
                   Center(
@@ -118,13 +129,18 @@ class PurchasesScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildFilterTabs(WidgetRef ref, String selectedFilter) {
+  Widget _buildFilterTabs(
+    WidgetRef ref,
+    String selectedFilter,
+    bool includeRefunded,
+  ) {
     final filters = [
       {'id': 'ALL', 'label': 'purchases.filter_all'.tr()},
       {'id': 'ACTIVE', 'label': 'purchases.filter_active'.tr()},
       {'id': 'DEPLETED', 'label': 'purchases.filter_fully_used'.tr()},
       {'id': 'EXPIRED', 'label': 'purchases.filter_expired'.tr()},
-      {'id': 'REFUNDED', 'label': 'purchases.filter_refunded'.tr()},
+      if (includeRefunded)
+        {'id': 'REFUNDED', 'label': 'purchases.filter_refunded'.tr()},
     ];
 
     return SingleChildScrollView(
@@ -135,8 +151,13 @@ class PurchasesScreen extends ConsumerWidget {
           return Padding(
             padding: const EdgeInsets.only(right: 8),
             child: GestureDetector(
-              onTap: () => ref.read(purchasesFilterProvider.notifier).state =
-                  filter['id']!,
+              onTap: () =>
+                  ref
+                          .read(
+                            purchasesFilterProvider(includeRefunded).notifier,
+                          )
+                          .state =
+                      filter['id']!,
               child: Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 20,

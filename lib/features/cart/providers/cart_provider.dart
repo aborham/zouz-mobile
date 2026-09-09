@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/services/analytics_service.dart';
 
 class CartItem {
   final String packageId;
@@ -29,9 +30,7 @@ class CartItem {
     this.imageUrl,
   });
 
-  CartItem copyWith({
-    int? quantity,
-  }) {
+  CartItem copyWith({int? quantity}) {
     return CartItem(
       packageId: packageId,
       packageName: packageName,
@@ -81,25 +80,21 @@ class CartItem {
 
   String toJson() => json.encode(toMap());
 
-  factory CartItem.fromJson(String source) => CartItem.fromMap(json.decode(source));
+  factory CartItem.fromJson(String source) =>
+      CartItem.fromMap(json.decode(source));
 }
 
 class CartState {
   final List<CartItem> items;
   final bool isLoading;
 
-  CartState({
-    this.items = const [],
-    this.isLoading = false,
-  });
+  CartState({this.items = const [], this.isLoading = false});
 
-  double get totalPrice => items.fold(0, (sum, item) => sum + (item.price * item.quantity));
+  double get totalPrice =>
+      items.fold(0, (sum, item) => sum + (item.price * item.quantity));
   int get totalItems => items.fold(0, (sum, item) => sum + item.quantity);
 
-  CartState copyWith({
-    List<CartItem>? items,
-    bool? isLoading,
-  }) {
+  CartState copyWith({List<CartItem>? items, bool? isLoading}) {
     return CartState(
       items: items ?? this.items,
       isLoading: isLoading ?? this.isLoading,
@@ -120,7 +115,7 @@ class CartNotifier extends Notifier<CartState> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final String? cartData = prefs.getString(_storageKey);
-      
+
       if (cartData != null) {
         final List<dynamic> decoded = json.decode(cartData);
         final items = decoded.map((item) => CartItem.fromMap(item)).toList();
@@ -136,7 +131,9 @@ class CartNotifier extends Notifier<CartState> {
   Future<void> _saveCart() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final String encoded = json.encode(state.items.map((item) => item.toMap()).toList());
+      final String encoded = json.encode(
+        state.items.map((item) => item.toMap()).toList(),
+      );
       await prefs.setString(_storageKey, encoded);
     } catch (_) {}
   }
@@ -148,17 +145,26 @@ class CartNotifier extends Notifier<CartState> {
       // Or we could throw an error to be handled by the UI
       state = state.copyWith(items: [item]);
     } else {
-      final index = state.items.indexWhere((i) => i.packageId == item.packageId);
+      final index = state.items.indexWhere(
+        (i) => i.packageId == item.packageId,
+      );
       if (index >= 0) {
         final existingItem = state.items[index];
         final updatedItems = [...state.items];
-        updatedItems[index] = existingItem.copyWith(quantity: existingItem.quantity + 1);
+        updatedItems[index] = existingItem.copyWith(
+          quantity: existingItem.quantity + 1,
+        );
         state = state.copyWith(items: updatedItems);
       } else {
         state = state.copyWith(items: [...state.items, item]);
       }
     }
     _saveCart();
+    AnalyticsService.instance.addToCart(
+      itemType: item.type,
+      value: item.price * item.quantity,
+      quantity: item.quantity,
+    );
   }
 
   void updateQuantity(String packageId, int quantity) {
@@ -189,4 +195,6 @@ class CartNotifier extends Notifier<CartState> {
   }
 }
 
-final cartProvider = NotifierProvider<CartNotifier, CartState>(CartNotifier.new);
+final cartProvider = NotifierProvider<CartNotifier, CartState>(
+  CartNotifier.new,
+);

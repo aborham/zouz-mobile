@@ -16,10 +16,10 @@ class AppConfig {
   // - Android Emulator: '10.0.2.2'
   // - Physical Device: Your computer's local IP (e.g. '192.168.1.50')
   // Override when the Mac's Wi-Fi address changes:
-  // flutter run --dart-define=DEV_HOST=192.168.1.15
+  // flutter run --dart-define=DEV_HOST=192.168.1.8
   static const String host = String.fromEnvironment(
     'DEV_HOST',
-    defaultValue: '192.168.1.15',
+    defaultValue: '192.168.1.8',
   );
   static const String port = '3000';
 
@@ -36,6 +36,15 @@ class AppConfig {
 
   static String get apiBaseUrl => '$baseUrl/api';
   static String get customerApiBaseUrl => '$apiBaseUrl/customer';
+
+  static Uri legalDocumentUrl({
+    required String type,
+    required String language,
+  }) {
+    final safeType = type == 'privacy' ? 'privacy' : 'terms';
+    final safeLanguage = language == 'ar' ? 'ar' : 'en';
+    return Uri.parse('$baseUrl/$safeLanguage/legal/$safeType');
+  }
 
   static const String crispWebsiteId = '1da3bb6b-9c97-4f51-8c65-41c4886a170b';
 

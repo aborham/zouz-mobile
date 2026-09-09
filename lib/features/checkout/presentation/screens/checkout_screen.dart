@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/services/analytics_service.dart';
 import 'package:flutter/services.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -182,6 +183,13 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   }
 
   Future<void> _processCheckout(double totalAmount) async {
+    final analyticsPaymentMethod = _selectedPaymentMethod == 'saved_card'
+        ? 'saved_card'
+        : 'card';
+    AnalyticsService.instance.checkoutStarted(
+      paymentMethod: analyticsPaymentMethod,
+      value: totalAmount,
+    );
     setState(() => _isProcessingPayment = true);
 
     try {
@@ -242,6 +250,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         });
         _webViewController.loadRequest(Uri.parse(redirectUrl));
       } else if (processResponse['success'] == true) {
+        AnalyticsService.instance.paymentFinished(
+          paymentMethod: analyticsPaymentMethod,
+          success: true,
+          value: totalAmount,
+        );
         // Successful dynamic token charge without redirect (immediate CAPTURED)
         _isNavigatingToStatus = true;
         ref.read(cartProvider.notifier).clear();
@@ -257,6 +270,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         throw Exception('checkout.no_redirect'.tr());
       }
     } catch (e) {
+      AnalyticsService.instance.paymentFinished(
+        paymentMethod: analyticsPaymentMethod,
+        success: false,
+        value: totalAmount,
+      );
       if (!mounted) return;
       setState(() => _isProcessingPayment = false);
       _showError(e.toString());
@@ -267,6 +285,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     // Guard: prevent double-tap while sheet is open or payment is processing
     if (_isApplePaySheetOpen || _isProcessingPayment) return;
     setState(() => _isApplePaySheetOpen = true);
+    AnalyticsService.instance.checkoutStarted(
+      paymentMethod: 'apple_pay',
+      value: total,
+    );
 
     try {
       final repository = ref.read(checkoutRepositoryProvider);
@@ -370,6 +392,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       if (!mounted) return;
 
       if (processResponse['success'] == true) {
+        AnalyticsService.instance.paymentFinished(
+          paymentMethod: 'apple_pay',
+          success: true,
+          value: total,
+        );
         _isNavigatingToStatus = true;
         ref.read(cartProvider.notifier).clear();
         // Invalidate home data and purchases cache so fresh data is loaded
@@ -384,6 +411,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         setState(() => _isProcessingPayment = false);
       }
     } catch (e) {
+      AnalyticsService.instance.paymentFinished(
+        paymentMethod: 'apple_pay',
+        success: false,
+        value: total,
+      );
       if (!mounted) return;
       setState(() {
         _isApplePaySheetOpen = false;

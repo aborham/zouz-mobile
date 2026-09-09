@@ -56,9 +56,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _launchUrl(String path) async {
     final lang = context.locale.languageCode;
-    final url = Uri.parse('${AppConfig.websiteUrl}/$lang/$path');
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.inAppWebView);
+    final url = AppConfig.legalDocumentUrl(type: path, language: lang);
+    if (!await launchUrl(url, mode: LaunchMode.inAppWebView) && mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('profile.legal_load_error'.tr())));
     }
   }
 
@@ -106,14 +108,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                     ),
                   ),
-                  const Icon(Icons.arrow_forward_rounded, color: Colors.black54),
+                  const Icon(
+                    Icons.arrow_forward_rounded,
+                    color: Colors.black54,
+                  ),
                 ],
               ),
               const Spacer(flex: 1),
               // Logo
-              const Center(
-                child: ZouzLogo(size: 80, color: AppColors.primary),
-              ),
+              const Center(child: ZouzLogo(size: 80, color: AppColors.primary)),
               const SizedBox(height: 40),
               // Greeting
               Text(
@@ -147,67 +150,67 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: Directionality(
                     textDirection: ui.TextDirection.ltr,
                     child: Row(
-                    children: [
-                      const SizedBox(width: 16),
-                      // Saudi Flag & Code
-                      const Text(
-                        '🇸🇦',
-                        style: TextStyle(fontSize: 24),
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        '+966',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      const VerticalDivider(
-                        indent: 16,
-                        endIndent: 16,
-                        width: 32,
-                        thickness: 1,
-                        color: Colors.black12,
-                      ),
-                      // Input
-                      Expanded(
-                        child: TextFormField(
-                          controller: _phoneController,
-                          keyboardType: TextInputType.phone,
-                          style: const TextStyle(
-                            fontSize: 18,
+                      children: [
+                        const SizedBox(width: 16),
+                        // Saudi Flag & Code
+                        const Text('🇸🇦', style: TextStyle(fontSize: 24)),
+                        const SizedBox(width: 8),
+                        const Text(
+                          '+966',
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            letterSpacing: 1.2,
-                          ),
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                            LengthLimitingTextInputFormatter(9),
-                          ],
-                          decoration: InputDecoration(
-                            hintText: 'auth.phone_hint'.tr(),
-                            hintStyle: const TextStyle(
-                              color: Colors.black26,
-                              letterSpacing: 1.2,
-                              fontSize: 16,
-                            ),
-                            border: InputBorder.none,
-                            focusedBorder: InputBorder.none,
-                            contentPadding: EdgeInsets.zero,
+                            fontSize: 16,
                           ),
                         ),
-                      ),
-                    ],
+                        const VerticalDivider(
+                          indent: 16,
+                          endIndent: 16,
+                          width: 32,
+                          thickness: 1,
+                          color: Colors.black12,
+                        ),
+                        // Input
+                        Expanded(
+                          child: TextFormField(
+                            controller: _phoneController,
+                            keyboardType: TextInputType.phone,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.2,
+                            ),
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                              LengthLimitingTextInputFormatter(9),
+                            ],
+                            decoration: InputDecoration(
+                              hintText: 'auth.phone_hint'.tr(),
+                              hintStyle: const TextStyle(
+                                color: Colors.black26,
+                                letterSpacing: 1.2,
+                                fontSize: 16,
+                              ),
+                              border: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
                 ),
               ),
               const Spacer(flex: 3),
               // Submit Button
               ElevatedButton(
-                onPressed: (authState.status == AuthStatus.loading || !_isInputValid)
+                onPressed:
+                    (authState.status == AuthStatus.loading || !_isInputValid)
                     ? null
                     : () {
-                        ref.read(authNotifierProvider.notifier).requestOtp(_phoneController.text);
+                        ref
+                            .read(authNotifierProvider.notifier)
+                            .requestOtp(_phoneController.text);
                       },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
@@ -217,17 +220,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                   elevation: 0,
-                  disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.5),
+                  disabledBackgroundColor: AppColors.primary.withValues(
+                    alpha: 0.5,
+                  ),
                 ),
                 child: authState.status == AuthStatus.loading
                     ? const SizedBox(
                         height: 24,
                         width: 24,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
                       )
                     : Text(
                         'auth.send_otp'.tr(),
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
               ),
               const SizedBox(height: 16),
@@ -247,7 +258,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         fontWeight: FontWeight.bold,
                         decoration: TextDecoration.underline,
                       ),
-                      recognizer: TapGestureRecognizer()..onTap = () => _launchUrl('terms'),
+                      recognizer: TapGestureRecognizer()
+                        ..onTap = () => _launchUrl('terms'),
                     ),
                     TextSpan(text: 'auth.terms_consent_3'.tr()),
                     TextSpan(
@@ -257,7 +269,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         fontWeight: FontWeight.bold,
                         decoration: TextDecoration.underline,
                       ),
-                      recognizer: TapGestureRecognizer()..onTap = () => _launchUrl('privacy'),
+                      recognizer: TapGestureRecognizer()
+                        ..onTap = () => _launchUrl('privacy'),
                     ),
                   ],
                 ),

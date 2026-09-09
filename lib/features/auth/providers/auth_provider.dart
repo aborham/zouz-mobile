@@ -6,6 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import '../../../core/services/analytics_service.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import '../repositories/auth_repository.dart';
 import '../../../core/api/api_client.dart';
@@ -143,11 +144,13 @@ class AuthNotifier extends Notifier<AuthState> {
     state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
     try {
       await _repository.requestOtp(phoneNumber);
+      AnalyticsService.instance.otpRequested(success: true);
       state = state.copyWith(
         status: AuthStatus.otpSent,
         phoneNumber: phoneNumber,
       );
     } catch (e) {
+      AnalyticsService.instance.otpRequested(success: false);
       state = state.copyWith(
         status: AuthStatus.error,
         errorMessage: e.toString(),
@@ -217,10 +220,12 @@ class AuthNotifier extends Notifier<AuthState> {
         } else {
           state = state.copyWith(status: AuthStatus.authenticated);
         }
+        AnalyticsService.instance.login(success: true);
       } else {
         throw Exception('Token not found in response');
       }
     } catch (e) {
+      AnalyticsService.instance.login(success: false);
       state = state.copyWith(
         status: AuthStatus.error,
         errorMessage: e.toString(),

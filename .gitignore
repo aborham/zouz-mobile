@@ -44,5 +44,10 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# Android release signing — keep the upload key and passwords local only.
+/android/key.properties
+/android/app/*.jks
+/android/app/*.keystore
+
 # Tap Payments secret keys — never commit this file
 lib/core/config/secrets.dart

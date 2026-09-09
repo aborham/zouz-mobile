@@ -23,99 +23,140 @@ import '../../features/purchases/presentation/screens/purchase_details_screen.da
 
 import '../../features/splash/presentation/screens/splash_screen.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
-
+import '../services/analytics_service.dart';
 
 // Placeholder for screens until implemented
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/splash',
+  observers: [AnalyticsService.instance.observer],
   routes: [
-    GoRoute(path: '/splash', builder: (context, state) => const SplashScreen()),
-    GoRoute(path: '/onboarding', builder: (context, state) => const OnboardingScreen()),
-    GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
-    GoRoute(path: '/otp', builder: (context, state) => const OtpScreen()),
-    GoRoute(path: '/complete-profile', builder: (context, state) => const CompleteProfileScreen()),
+    GoRoute(
+      name: 'splash',
+      path: '/splash',
+      builder: (context, state) => const SplashScreen(),
+    ),
+    GoRoute(
+      path: '/onboarding',
+      name: 'onboarding',
+      builder: (context, state) => const OnboardingScreen(),
+    ),
+    GoRoute(
+      name: 'login',
+      path: '/login',
+      builder: (context, state) => const LoginScreen(),
+    ),
+    GoRoute(
+      name: 'otp',
+      path: '/otp',
+      builder: (context, state) => const OtpScreen(),
+    ),
+    GoRoute(
+      path: '/complete-profile',
+      name: 'complete-profile',
+      builder: (context, state) => const CompleteProfileScreen(),
+    ),
     GoRoute(
       path: '/dashboard',
+      name: 'dashboard',
       builder: (context, state) => const MainNavigationScreen(),
     ),
     GoRoute(
       path: '/scanner',
+      name: 'scanner',
       builder: (context, state) => const QrScannerScreen(),
     ),
     GoRoute(
       path: '/menu/:tenantSlug',
+      name: 'menu',
       builder: (context, state) {
         final tenantSlug = state.pathParameters['tenantSlug']!;
-        final standId = state.uri.queryParameters['standId'] ?? state.uri.queryParameters['stand'];
+        final standId =
+            state.uri.queryParameters['standId'] ??
+            state.uri.queryParameters['stand'];
         return MenuScreen(tenantSlug: tenantSlug, standId: standId);
       },
     ),
     GoRoute(
       path: '/scan/:tenantSlug',
+      name: 'scan-menu',
       builder: (context, state) {
         final tenantSlug = state.pathParameters['tenantSlug']!;
-        final standId = state.uri.queryParameters['standId'] ?? state.uri.queryParameters['stand'];
+        final standId =
+            state.uri.queryParameters['standId'] ??
+            state.uri.queryParameters['stand'];
         // Reusing MenuScreen for scan results
         return MenuScreen(tenantSlug: tenantSlug, standId: standId);
       },
     ),
     GoRoute(
       path: '/package',
+      name: 'package-detail',
       builder: (context, state) {
         final package = state.extra as Map<String, dynamic>;
         return PackageDetailScreen(package: package);
       },
     ),
     GoRoute(
+      name: 'cart',
       path: '/cart',
       builder: (context, state) => const CartScreen(),
     ),
     GoRoute(
       path: '/checkout',
+      name: 'checkout',
       builder: (context, state) {
         final extra = state.extra as Map<String, dynamic>;
         return CheckoutScreen(
           package: extra['package'],
-          items: extra['items'] != null ? List<Map<String, dynamic>>.from(extra['items']) : null,
+          items: extra['items'] != null
+              ? List<Map<String, dynamic>>.from(extra['items'])
+              : null,
           fromCart: extra['fromCart'] ?? false,
         );
       },
     ),
     GoRoute(
       path: '/settings',
+      name: 'settings',
       builder: (context, state) => const AccountScreen(),
     ),
     GoRoute(
       path: '/profile/personal-info',
+      name: 'personal-info',
       builder: (context, state) => const PersonalInfoScreen(),
     ),
     GoRoute(
       path: '/profile/payment-methods',
+      name: 'payment-methods',
       builder: (context, state) => const PaymentMethodsScreen(),
     ),
     GoRoute(
       path: '/profile/support',
+      name: 'support',
       builder: (context, state) => const SupportScreen(),
     ),
     GoRoute(
       path: '/profile/notifications',
+      name: 'notification-settings',
       builder: (context, state) => const NotificationsSettingsScreen(),
     ),
     GoRoute(
       path: '/profile/notifications-list',
+      name: 'notifications',
       builder: (context, state) => const NotificationsListScreen(),
     ),
 
     GoRoute(
       path: '/profile/language',
+      name: 'language',
       builder: (context, state) => const LanguageScreen(),
     ),
     GoRoute(
       path: '/profile/legal/:type',
-      builder: (context, state) => LegalDocsScreen(
-        type: state.pathParameters['type'] ?? 'terms',
-      ),
+      name: 'legal-document',
+      builder: (context, state) =>
+          LegalDocsScreen(type: state.pathParameters['type'] ?? 'terms'),
     ),
     GoRoute(
       path: '/payment-success',
@@ -140,10 +181,14 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: '/purchases',
-      builder: (context, state) => const PurchasesScreen(),
+      name: 'purchases',
+      builder: (context, state) => PurchasesScreen(
+        historyMode: state.uri.queryParameters['view'] == 'history',
+      ),
     ),
     GoRoute(
       path: '/purchase-details',
+      name: 'purchase-details',
       builder: (context, state) {
         final package = state.extra as Map<String, dynamic>;
         return PurchaseDetailScreen(package: package);

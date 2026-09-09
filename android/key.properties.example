@@ -1,0 +1,4 @@
+storePassword=REPLACE_WITH_A_STRONG_STORE_PASSWORD
+keyPassword=REPLACE_WITH_A_STRONG_KEY_PASSWORD
+keyAlias=zouz-upload
+storeFile=zouz-upload-key.jks

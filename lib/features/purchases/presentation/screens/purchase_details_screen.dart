@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:zouz_mobile/core/theme/colors.dart';
+import 'package:zouz_mobile/features/dashboard/providers/home_provider.dart';
 import 'package:zouz_mobile/features/purchases/repositories/purchases_repository.dart';
 
 class PurchaseDetailScreen extends ConsumerStatefulWidget {
@@ -19,42 +20,63 @@ class PurchaseDetailScreen extends ConsumerStatefulWidget {
       _PurchaseDetailScreenState();
 }
 
-class _PurchaseDetailScreenState extends ConsumerState<PurchaseDetailScreen> {
+class _PurchaseDetailScreenState extends ConsumerState<PurchaseDetailScreen>
+    with WidgetsBindingObserver {
   Map<String, dynamic>? _details;
   final Map<String, int> _selectedQuantities = {};
   Map<String, dynamic>? _intent;
   Timer? _timer;
+  Timer? _redemptionPoller;
   int _secondsRemaining = 0;
   bool _loading = true;
   bool _submitting = false;
+  bool _pollingDetails = false;
   String? _error;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadDetails();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
+    _redemptionPoller?.cancel();
     super.dispose();
   }
 
-  Future<void> _loadDetails() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadDetails(showLoading: false);
+    }
+  }
+
+  Future<void> _loadDetails({bool showLoading = true}) async {
+    if (showLoading) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
+      final previousRemaining = _remainingUnits(_details);
       final data = await ref
           .read(purchasesRepositoryProvider)
           .fetchPurchaseDetails(widget.package['id'].toString());
       if (!mounted) return;
+      final currentRemaining = _remainingUnits(data);
       setState(() {
         _details = data;
         _loading = false;
+        _error = null;
       });
+      if (previousRemaining != null && previousRemaining != currentRemaining) {
+        ref.invalidate(homeDataProvider);
+      }
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -94,6 +116,7 @@ class _PurchaseDetailScreenState extends ConsumerState<PurchaseDetailScreen> {
         _submitting = false;
       });
       _startCountdown(DateTime.parse(intent['expiresAt'].toString()));
+      _startRedemptionPolling();
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -119,6 +142,7 @@ class _PurchaseDetailScreenState extends ConsumerState<PurchaseDetailScreen> {
   Future<void> _cancelIntent() async {
     final intentId = _intent?['intentId']?.toString();
     _timer?.cancel();
+    _redemptionPoller?.cancel();
     setState(() {
       _intent = null;
       _secondsRemaining = 0;
@@ -143,6 +167,47 @@ class _PurchaseDetailScreenState extends ConsumerState<PurchaseDetailScreen> {
     if (mounted) await _createIntent();
   }
 
+  void _startRedemptionPolling() {
+    _redemptionPoller?.cancel();
+    _redemptionPoller = Timer.periodic(const Duration(seconds: 3), (_) {
+      _pollForCompletedRedemption();
+    });
+  }
+
+  Future<void> _pollForCompletedRedemption() async {
+    if (_pollingDetails || _intent == null || !mounted) return;
+    _pollingDetails = true;
+    try {
+      final previousRedemptions =
+          (_details?['redemptions'] as List?)?.length ?? 0;
+      final data = await ref
+          .read(purchasesRepositoryProvider)
+          .fetchPurchaseDetails(widget.package['id'].toString());
+      if (!mounted) return;
+
+      final currentRedemptions = (data['redemptions'] as List?)?.length ?? 0;
+      final redemptionCompleted = currentRedemptions > previousRedemptions;
+      setState(() {
+        _details = data;
+        if (redemptionCompleted) {
+          _intent = null;
+          _secondsRemaining = 0;
+          _selectedQuantities.clear();
+        }
+      });
+
+      if (redemptionCompleted) {
+        _timer?.cancel();
+        _redemptionPoller?.cancel();
+        ref.invalidate(homeDataProvider);
+      }
+    } catch (_) {
+      // A transient refresh failure must not interrupt the active QR flow.
+    } finally {
+      _pollingDetails = false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -159,7 +224,7 @@ class _PurchaseDetailScreenState extends ConsumerState<PurchaseDetailScreen> {
           : _details == null
           ? _errorState()
           : RefreshIndicator(
-              onRefresh: _loadDetails,
+              onRefresh: () => _loadDetails(showLoading: false),
               child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(20),
@@ -198,12 +263,12 @@ class _PurchaseDetailScreenState extends ConsumerState<PurchaseDetailScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            details['packageName']?.toString() ?? '',
+            _localizedValue(details['packageName']),
             style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 4),
           Text(
-            details['businessName']?.toString() ?? '',
+            _localizedValue(details['businessName']),
             style: const TextStyle(color: AppColors.textSecondary),
           ),
         ],
@@ -453,12 +518,46 @@ class _PurchaseDetailScreenState extends ConsumerState<PurchaseDetailScreen> {
               ),
             )
           else
-            Text(
-              '${details['remainingQuantity'] ?? '—'} / ${details['initialQuantity'] ?? '—'} ${'purchases.usages_remaining'.tr()}',
-            ),
+            _simpleUsageSummary(details),
         ],
       ),
     );
+  }
+
+  Widget _simpleUsageSummary(Map<String, dynamic> details) {
+    final initial = (details['initialQuantity'] as num?)?.toInt();
+    final remaining = (details['remainingQuantity'] as num?)?.toInt();
+    if (initial == null || remaining == null) {
+      return const Text('—');
+    }
+    final used = (initial - remaining).clamp(0, initial);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '$used / $initial ${'purchases.usages_used'.tr()}',
+          style: const TextStyle(fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'purchases.remaining_count'.tr(args: ['$remaining']),
+          style: const TextStyle(color: AppColors.textSecondary),
+        ),
+      ],
+    );
+  }
+
+  int? _remainingUnits(Map<String, dynamic>? details) {
+    if (details == null) return null;
+    final balances = details['itemBalances'];
+    if (details['redemptionMode'] == 'ITEMIZED' && balances is List) {
+      return balances.fold<int>(
+        0,
+        (sum, item) =>
+            sum + ((item as Map)['remainingQuantity'] as num? ?? 0).toInt(),
+      );
+    }
+    return (details['remainingQuantity'] as num?)?.toInt();
   }
 
   Widget _historyCard() {
@@ -497,14 +596,15 @@ class _PurchaseDetailScreenState extends ConsumerState<PurchaseDetailScreen> {
                       ? 'purchases.redeem_one_use'.tr()
                       : items
                             .map(
-                              (item) => '${item['name']} × ${item['quantity']}',
+                              (item) =>
+                                  '${_localizedValue(item['name'])} × ${item['quantity']}',
                             )
                             .join(', '),
                 ),
                 subtitle: Text(
                   [
                     if (date != null) DateFormat.yMMMd().add_jm().format(date),
-                    redemption['standName']?.toString() ?? '',
+                    _localizedValue(redemption['standName']),
                   ].where((value) => value.isNotEmpty).join(' • '),
                 ),
               );
@@ -519,6 +619,16 @@ class _PurchaseDetailScreenState extends ConsumerState<PurchaseDetailScreen> {
     return details['redemptionMode'] == 'ITEMIZED' &&
         balances is List &&
         balances.isNotEmpty;
+  }
+
+  String _localizedValue(dynamic value) {
+    if (value == null) return '';
+    if (value is String) return value;
+    if (value is Map) {
+      final locale = context.locale.languageCode;
+      return (value[locale] ?? value['en'] ?? value['ar'] ?? '').toString();
+    }
+    return value.toString();
   }
 
   Widget _errorBanner() => Container(

@@ -1,0 +1,24 @@
+{
+  "screenshots": [
+    {
+      "file": "raw/01-my-purchases.png",
+      "slug": "my-purchases",
+      "title": "All your offers, one place"
+    },
+    {
+      "file": "raw/02-purchase-details.png",
+      "slug": "purchase-details",
+      "title": "Your benefits are always ready"
+    },
+    {
+      "file": "raw/03-secure-qr.png",
+      "slug": "secure-qr",
+      "title": "Redeem instantly with a secure QR"
+    },
+    {
+      "file": "raw/04-redemption-success.png",
+      "slug": "redemption-success",
+      "title": "Simple, fast redemption"
+    }
+  ]
+}

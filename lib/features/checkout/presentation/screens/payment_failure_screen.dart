@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:go_router/go_router.dart';
-import 'package:crisp_chat/crisp_chat.dart';
-import 'package:zouz_mobile/core/config/app_config.dart';
+import 'package:zouz_mobile/core/services/crisp_chat_service.dart';
 
 class PaymentFailureScreen extends StatelessWidget {
   final String? reason;
@@ -16,21 +15,15 @@ class PaymentFailureScreen extends StatelessWidget {
     this.items,
   });
 
-  void _openSupportChat() {
-    FlutterCrispChat.openCrispChat(
-      config: CrispConfig(websiteID: AppConfig.crispWebsiteId),
-    );
+  Future<void> _openSupportChat(BuildContext context) async {
+    await CrispChatService.open(context);
   }
 
   void _retryCheckout(BuildContext context) {
     if (package != null || items != null) {
       context.go(
         '/checkout',
-        extra: {
-          'package': package,
-          'items': items,
-          'fromCart': items != null,
-        },
+        extra: {'package': package, 'items': items, 'fromCart': items != null},
       );
       return;
     }
@@ -57,14 +50,17 @@ class PaymentFailureScreen extends StatelessWidget {
         ),
         title: Text(
           'checkout.status_page_title'.tr(),
-          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.help_outline, color: Colors.black),
             tooltip: 'checkout.need_help'.tr(),
-            onPressed: _openSupportChat,
+            onPressed: () => _openSupportChat(context),
           ),
         ],
       ),
@@ -79,7 +75,10 @@ class PaymentFailureScreen extends StatelessWidget {
               height: 120,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.red.withValues(alpha: 0.2), width: 8),
+                border: Border.all(
+                  color: Colors.red.withValues(alpha: 0.2),
+                  width: 8,
+                ),
               ),
               child: Container(
                 margin: const EdgeInsets.all(8),
@@ -100,11 +99,14 @@ class PaymentFailureScreen extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                   Icon(Icons.error_outline, color: Colors.red[700], size: 18),
+                  Icon(Icons.error_outline, color: Colors.red[700], size: 18),
                   const SizedBox(width: 8),
                   Text(
                     'checkout.failure_title'.tr(),
-                    style: TextStyle(color: Colors.red[700], fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: Colors.red[700],
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
@@ -134,11 +136,18 @@ class PaymentFailureScreen extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.warning_amber, color: Colors.red, size: 20),
+                      const Icon(
+                        Icons.warning_amber,
+                        color: Colors.red,
+                        size: 20,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         'checkout.possible_reasons'.tr(),
-                        style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red,
+                        ),
                       ),
                     ],
                   ),
@@ -151,10 +160,13 @@ class PaymentFailureScreen extends StatelessWidget {
             ),
             const SizedBox(height: 32),
             TextButton(
-              onPressed: _openSupportChat,
+              onPressed: () => _openSupportChat(context),
               child: Text(
                 'checkout.need_help'.tr(),
-                style: const TextStyle(color: Color(0xFF224AFB), fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  color: Color(0xFF224AFB),
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
             const SizedBox(height: 40),
@@ -164,10 +176,18 @@ class PaymentFailureScreen extends StatelessWidget {
                 backgroundColor: const Color(0xFF224AFB),
                 foregroundColor: Colors.white,
                 minimumSize: const Size(double.infinity, 56),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(28),
+                ),
                 elevation: 0,
               ),
-              child: Text('checkout.try_again'.tr(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              child: Text(
+                'checkout.try_again'.tr(),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
             const SizedBox(height: 24),
             TextButton(
