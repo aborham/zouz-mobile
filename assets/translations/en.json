@@ -252,6 +252,7 @@
     "total": "Total Amount",
     "payment_method": "Payment Method",
     "card": "Mada / Debit or credit card",
+    "apple_pay_unavailable": "Apple Pay is unavailable on this device. You can pay by card instead.",
     "pay_button": "Pay {}",
     "pay_with": "Pay with ",
     "security_hint": "Your payment is secured and encrypted",

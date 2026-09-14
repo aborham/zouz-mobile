@@ -17,6 +17,7 @@ import '../../../profile/providers/profile_provider.dart';
 import '../../../profile/models/profile_model.dart';
 import 'package:zouz_mobile/features/dashboard/providers/home_provider.dart';
 import 'package:zouz_mobile/features/purchases/presentation/screens/purchases_screen.dart';
+import 'dart:async';
 
 class CheckoutScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic>? package;
@@ -44,18 +45,29 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   bool _isApplePaySheetOpen = false;
   bool _isNavigatingToStatus = false;
   String? _checkoutUrl;
-  String _selectedPaymentMethod = 'card';
+  String _selectedPaymentMethod = Platform.isIOS ? 'apple_pay' : 'card';
   String? _selectedSavedCardToken;
   late final WebViewController _webViewController;
   bool _isShowingProfileDialog = false;
-  // true once setupApplePay resolves successfully
-  bool _applePayReady = false;
+  // Render Apple's native control immediately on iOS. Capability checks run
+  // silently and remove it only when Wallet cannot make a supported payment.
+  bool _applePayReady = Platform.isIOS;
 
   @override
   void initState() {
     super.initState();
     _initWebViewController();
     _initApplePay();
+  }
+
+  void _markApplePayUnavailable() {
+    if (!mounted) return;
+    setState(() {
+      _applePayReady = false;
+      if (_selectedPaymentMethod == 'apple_pay') {
+        _selectedPaymentMethod = 'card';
+      }
+    });
   }
 
   Future<void> _initApplePay() async {
@@ -70,7 +82,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         merchantId: null,
         applePayButtonRadius: 28,
       );
-      final result = await TapApplePayFlutter.setupApplePay;
+      final result = await TapApplePayFlutter.setupApplePay.timeout(
+        const Duration(seconds: 12),
+      );
       if (result["success"] == true) {
         debugPrint("Apple Pay SDK initialised successfully.");
         var deviceCanUseApplePay = true;
@@ -121,9 +135,14 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         }
       } else {
         debugPrint("Apple Pay SDK init failed: ${result["error"]}");
+        _markApplePayUnavailable();
       }
+    } on TimeoutException {
+      debugPrint('Apple Pay SDK initialisation timed out.');
+      _markApplePayUnavailable();
     } catch (e) {
       debugPrint("Error initializing Apple Pay: $e");
+      _markApplePayUnavailable();
     }
   }
 
@@ -283,7 +302,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
   Future<void> _processApplePayCheckout(double total) async {
     // Guard: prevent double-tap while sheet is open or payment is processing
-    if (_isApplePaySheetOpen || _isProcessingPayment) return;
+    if (!_applePayReady || _isApplePaySheetOpen || _isProcessingPayment) {
+      return;
+    }
     setState(() => _isApplePaySheetOpen = true);
     AnalyticsService.instance.checkoutStarted(
       paymentMethod: 'apple_pay',
@@ -982,42 +1003,29 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 ),
                 const SizedBox(height: 12),
 
-                if (Platform.isIOS) ...[
+                if (Platform.isIOS && _applePayReady) ...[
                   GestureDetector(
-                    // Only allow selection after SDK is ready
-                    onTap: _applePayReady
-                        ? () => setState(
-                            () => _selectedPaymentMethod = 'apple_pay',
-                          )
-                        : null,
-                    child: Opacity(
-                      opacity: _applePayReady ? 1.0 : 0.55,
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 16),
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: _selectedPaymentMethod == 'apple_pay'
-                                ? Colors.black
-                                : Colors.grey.shade200,
-                            width: 1.5,
-                          ),
-                          borderRadius: BorderRadius.circular(16),
+                    onTap: () =>
+                        setState(() => _selectedPaymentMethod = 'apple_pay'),
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        border: Border.all(
                           color: _selectedPaymentMethod == 'apple_pay'
-                              ? Colors.black.withValues(alpha: 0.05)
-                              : Colors.white,
+                              ? Colors.black
+                              : Colors.grey.shade200,
+                          width: 1.5,
                         ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.apple,
-                              color: _selectedPaymentMethod == 'apple_pay'
-                                  ? Colors.black
-                                  : Colors.grey.shade600,
-                              size: 28,
-                            ),
-                            const SizedBox(width: 8),
-                            const Text(
+                        borderRadius: BorderRadius.circular(16),
+                        color: _selectedPaymentMethod == 'apple_pay'
+                            ? Colors.black.withValues(alpha: 0.05)
+                            : Colors.white,
+                      ),
+                      child: Row(
+                        children: [
+                          const Expanded(
+                            child: Text(
                               'Apple Pay',
                               style: TextStyle(
                                 fontWeight: FontWeight.w700,
@@ -1025,24 +1033,40 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                                 fontSize: 16,
                               ),
                             ),
-                            const Spacer(),
-                            if (!_applePayReady)
-                              const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.black54,
-                                ),
-                              )
-                            else if (_selectedPaymentMethod == 'apple_pay')
-                              const Icon(
-                                Icons.check_circle,
-                                color: Colors.black,
+                          ),
+                          SizedBox(
+                            width: 104,
+                            height: 45,
+                            child: TapApplePayFlutter.buildApplePayButton(
+                              applePayButtonType:
+                                  ApplePayButtonType.appleLogoOnly,
+                              applePayButtonStyle:
+                                  ApplePayButtonStyle.whiteoutline,
+                              onPress: () => setState(
+                                () => _selectedPaymentMethod = 'apple_pay',
                               ),
-                          ],
-                        ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          if (_selectedPaymentMethod == 'apple_pay')
+                            const Icon(Icons.check_circle, color: Colors.black),
+                        ],
                       ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ] else if (Platform.isIOS) ...[
+                  Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade200),
+                      borderRadius: BorderRadius.circular(16),
+                      color: Colors.grey.shade50,
+                    ),
+                    child: Text(
+                      'checkout.apple_pay_unavailable'.tr(),
+                      style: TextStyle(color: Colors.grey.shade700),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -1226,27 +1250,13 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                           child: _applePayReady
                               ? TapApplePayFlutter.buildApplePayButton(
                                   applePayButtonType:
-                                      ApplePayButtonType.appleLogoOnly,
+                                      ApplePayButtonType.buyWithApplePay,
                                   applePayButtonStyle:
                                       ApplePayButtonStyle.black,
                                   onPress: () =>
                                       _processApplePayCheckout(total),
                                 )
-                              : Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.black87,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: const SizedBox(
-                                    width: 22,
-                                    height: 22,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2.5,
-                                    ),
-                                  ),
-                                ),
+                              : const SizedBox.shrink(),
                         )
                       : SizedBox(
                           width: double.infinity,
