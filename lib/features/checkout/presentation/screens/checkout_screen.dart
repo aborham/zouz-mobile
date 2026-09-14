@@ -11,6 +11,7 @@ import 'package:tap_apple_pay_flutter/tap_apple_pay_flutter.dart';
 import 'package:tap_apple_pay_flutter/models/models.dart';
 import 'dart:io' show Platform;
 import '../../../../core/config/app_config.dart';
+import '../../../../core/utils/image_utils.dart';
 import '../../repositories/checkout_repository.dart';
 import '../../../cart/providers/cart_provider.dart';
 import '../../../profile/providers/profile_provider.dart';
@@ -644,6 +645,57 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   Widget _paymentDivider() =>
       Divider(height: 1, thickness: 1, color: Colors.grey.shade200);
 
+  Widget _checkoutImage(String? path, {double size = 58}) {
+    final imageUrl = ImageUtils.getFullUrl(path);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: size,
+        height: size,
+        color: Colors.grey.shade100,
+        child: imageUrl == null || imageUrl.isEmpty
+            ? Icon(Icons.inventory_2_outlined, color: Colors.grey.shade500)
+            : Image.network(
+                imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Icon(
+                  Icons.inventory_2_outlined,
+                  color: Colors.grey.shade500,
+                ),
+              ),
+      ),
+    );
+  }
+
+  Widget _priceDetailRow(String label, double amount, {bool total = false}) {
+    final weight = total ? FontWeight.w800 : FontWeight.w500;
+    final color = total ? Colors.black : Colors.grey.shade700;
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: total ? 16 : 14,
+              fontWeight: weight,
+              color: color,
+            ),
+          ),
+        ),
+        SaudiCurrencySymbol(
+          price: amount,
+          priceStyle: TextStyle(
+            fontSize: total ? 17 : 14,
+            fontWeight: total ? FontWeight.w800 : FontWeight.w600,
+            color: Colors.black,
+          ),
+          symbolFontColor: Colors.black,
+          isOldPrice: false,
+        ),
+      ],
+    );
+  }
+
   Widget _buildCheckoutContent(BuildContext context, UserProfile profile) {
     final locale = context.locale.languageCode;
     double subtotal = 0;
@@ -666,15 +718,29 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             padding: const EdgeInsets.symmetric(vertical: 12),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                _checkoutImage(item['imageUrl']?.toString()),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    '$qty × ${item['packageName']}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 15,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item['packageName']?.toString() ?? '',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        'checkout.item_quantity'.tr(args: [qty.toString()]),
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -744,15 +810,29 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           padding: const EdgeInsets.symmetric(vertical: 12),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              _checkoutImage(widget.package!['imageUrl']?.toString()),
+              const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  '1 × $name',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w500,
-                    fontSize: 15,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      'checkout.item_quantity'.tr(args: const ['1']),
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(width: 16),
@@ -795,6 +875,17 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     }
 
     final total = subtotal;
+    final amountBeforeVat = total / 1.15;
+    final vatAmount = total - amountBeforeVat;
+    final itemCount = widget.fromCart && widget.items != null
+        ? widget.items!.fold<int>(
+            0,
+            (count, item) =>
+                count +
+                (int.tryParse(item['quantity']?.toString() ?? '1') ?? 1),
+          )
+        : 1;
+    final resolvedTenantLogoUrl = ImageUtils.getFullUrl(tenantLogoUrl);
 
     return Stack(
       children: [
@@ -943,10 +1034,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                             CircleAvatar(
                               backgroundColor: Colors.grey.shade100,
                               radius: 20,
-                              backgroundImage: tenantLogoUrl != null
-                                  ? NetworkImage(tenantLogoUrl)
+                              backgroundImage: resolvedTenantLogoUrl != null
+                                  ? NetworkImage(resolvedTenantLogoUrl)
                                   : null,
-                              child: tenantLogoUrl == null
+                              child: resolvedTenantLogoUrl == null
                                   ? const Icon(
                                       Icons.store_rounded,
                                       color: Colors.black54,
@@ -968,7 +1059,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    '${widget.items?.length ?? 1} ${'packages.items'.tr()}',
+                                    'checkout.items_count'.tr(
+                                      args: [itemCount.toString()],
+                                    ),
                                     style: TextStyle(
                                       color: Colors.grey.shade500,
                                       fontSize: 13,
@@ -993,13 +1086,13 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
                 const SizedBox(height: 24),
 
-                // Order Totals Header
+                // Price details
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                   child: Text(
-                    'checkout.total'.tr(),
+                    'checkout.price_details'.tr(),
                     style: const TextStyle(
-                      fontSize: 20,
+                      fontSize: 18,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -1024,35 +1117,20 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'checkout.total'.tr(),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w800,
-                              fontSize: 18,
-                            ),
-                          ),
-                          SaudiCurrencySymbol(
-                            price: total,
-                            priceStyle: const TextStyle(
-                              fontWeight: FontWeight.w800,
-                              fontSize: 18,
-                              color: Colors.black,
-                            ),
-                            symbolFontColor: Colors.black,
-                            isOldPrice: false,
-                          ),
-                        ],
+                      _priceDetailRow(
+                        'checkout.amount_before_vat'.tr(),
+                        amountBeforeVat,
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'checkout.vat_included'.tr(),
-                        style: TextStyle(
-                          color: Colors.grey.shade500,
-                          fontSize: 13,
-                        ),
+                      const SizedBox(height: 14),
+                      _priceDetailRow('checkout.vat_amount'.tr(), vatAmount),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        child: Divider(height: 1),
+                      ),
+                      _priceDetailRow(
+                        'checkout.total'.tr(),
+                        total,
+                        total: true,
                       ),
                     ],
                   ),
