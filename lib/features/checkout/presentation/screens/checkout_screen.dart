@@ -574,6 +574,76 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     );
   }
 
+  Widget _paymentSelectionIndicator(bool selected) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 160),
+      width: 24,
+      height: 24,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: selected ? AppColors.primary : Colors.transparent,
+        border: Border.all(
+          color: selected ? AppColors.primary : Colors.grey.shade400,
+          width: 1.5,
+        ),
+      ),
+      child: selected
+          ? const Icon(Icons.check, size: 17, color: Colors.white)
+          : null,
+    );
+  }
+
+  Widget _paymentOption({
+    required String title,
+    required bool selected,
+    required VoidCallback onTap,
+    String? subtitle,
+    Widget? trailing,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 18),
+        child: Row(
+          children: [
+            _paymentSelectionIndicator(selected),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black,
+                    ),
+                  ),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 5),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 13,
+                        height: 1.25,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (trailing != null) ...[const SizedBox(width: 12), trailing],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _paymentDivider() =>
+      Divider(height: 1, thickness: 1, color: Colors.grey.shade200);
+
   Widget _buildCheckoutContent(BuildContext context, UserProfile profile) {
     final locale = context.locale.languageCode;
     double subtotal = 0;
@@ -990,51 +1060,62 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
                 const SizedBox(height: 32),
 
-                // Payment Method Header
+                // Payment details
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Text(
-                    'checkout.payment_method'.tr(),
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                if (Platform.isIOS && _applePayReady) ...[
-                  GestureDetector(
-                    onTap: () =>
-                        setState(() => _selectedPaymentMethod = 'apple_pay'),
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 16),
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: _selectedPaymentMethod == 'apple_pay'
-                              ? Colors.black
-                              : Colors.grey.shade200,
-                          width: 1.5,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        'checkout.payment_details'.tr(),
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
                         ),
-                        borderRadius: BorderRadius.circular(16),
-                        color: _selectedPaymentMethod == 'apple_pay'
-                            ? Colors.black.withValues(alpha: 0.05)
-                            : Colors.white,
                       ),
-                      child: Row(
+                      const SizedBox(height: 24),
+                      Row(
                         children: [
-                          const Expanded(
+                          Expanded(
                             child: Text(
-                              'Apple Pay',
-                              style: TextStyle(
+                              'checkout.pay_now_full'.tr(),
+                              style: const TextStyle(
+                                fontSize: 15,
                                 fontWeight: FontWeight.w700,
-                                color: Colors.black87,
-                                fontSize: 16,
                               ),
                             ),
                           ),
-                          SizedBox(
+                          SaudiCurrencySymbol(
+                            price: total,
+                            priceStyle: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.black,
+                            ),
+                            symbolFontColor: Colors.black,
+                            isOldPrice: false,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 18),
+                      _paymentDivider(),
+                    ],
+                  ),
+                ),
+
+                if (Platform.isIOS && _applePayReady) ...[
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      children: [
+                        _paymentOption(
+                          title: 'Apple Pay',
+                          subtitle: 'checkout.apple_pay_available'.tr(),
+                          selected: _selectedPaymentMethod == 'apple_pay',
+                          onTap: () => setState(
+                            () => _selectedPaymentMethod = 'apple_pay',
+                          ),
+                          trailing: SizedBox(
                             width: 104,
                             height: 45,
                             child: TapApplePayFlutter.buildApplePayButton(
@@ -1047,14 +1128,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 10),
-                          if (_selectedPaymentMethod == 'apple_pay')
-                            const Icon(Icons.check_circle, color: Colors.black),
-                        ],
-                      ),
+                        ),
+                        _paymentDivider(),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 12),
                 ] else if (Platform.isIOS) ...[
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -1081,116 +1159,67 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                             .toList();
                         if (cardMethods.isEmpty) return const SizedBox.shrink();
 
-                        return Column(
-                          children: cardMethods.map((method) {
-                            final tapCardId = method.cardId;
-                            final isSelected =
-                                _selectedPaymentMethod == 'saved_card' &&
-                                _selectedSavedCardToken == tapCardId;
-                            final title =
-                                "${method.brand ?? 'Card'} •••• ${method.last4 ?? '****'}";
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Column(
+                            children: cardMethods.map((method) {
+                              final tapCardId = method.cardId;
+                              final isSelected =
+                                  _selectedPaymentMethod == 'saved_card' &&
+                                  _selectedSavedCardToken == tapCardId;
+                              final title =
+                                  "${method.brand ?? 'Card'} •••• ${method.last4 ?? '****'}";
 
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: GestureDetector(
-                                onTap: () => setState(() {
-                                  _selectedPaymentMethod = 'saved_card';
-                                  _selectedSavedCardToken = tapCardId;
-                                }),
-                                child: Container(
-                                  margin: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                  ),
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    border: Border.all(
-                                      color: isSelected
-                                          ? AppColors.primary
-                                          : Colors.grey.shade200,
-                                      width: 1.5,
+                              return Column(
+                                children: [
+                                  _paymentOption(
+                                    title: title,
+                                    selected: isSelected,
+                                    onTap: () => setState(() {
+                                      _selectedPaymentMethod = 'saved_card';
+                                      _selectedSavedCardToken = tapCardId;
+                                    }),
+                                    trailing: Icon(
+                                      Icons.credit_card,
+                                      color: Colors.grey.shade700,
                                     ),
-                                    borderRadius: BorderRadius.circular(16),
-                                    color: isSelected
-                                        ? AppColors.primary.withValues(
-                                            alpha: 0.05,
-                                          )
-                                        : Colors.white,
                                   ),
-                                  child: Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.credit_card,
-                                        color: AppColors.primary,
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Text(
-                                        title,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w700,
-                                          color: Colors.black87,
-                                        ),
-                                      ),
-                                      const Spacer(),
-                                      if (isSelected)
-                                        const Icon(
-                                          Icons.check_circle,
-                                          color: AppColors.primary,
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            );
-                          }).toList(),
+                                  _paymentDivider(),
+                                ],
+                              );
+                            }).toList(),
+                          ),
                         );
                       },
                       loading: () => const SizedBox.shrink(),
                       error: (err, stack) => const SizedBox.shrink(),
                     ),
 
-                GestureDetector(
-                  onTap: () => setState(() {
-                    _selectedPaymentMethod = 'card';
-                    _selectedSavedCardToken = null;
-                  }),
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 16),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: _selectedPaymentMethod == 'card'
-                            ? AppColors.primary
-                            : Colors.grey.shade200,
-                        width: 1.5,
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: _paymentOption(
+                    title: 'checkout.bank_card'.tr(),
+                    selected: _selectedPaymentMethod == 'card',
+                    onTap: () => setState(() {
+                      _selectedPaymentMethod = 'card';
+                      _selectedSavedCardToken = null;
+                    }),
+                    trailing: SizedBox(
+                      width: 142,
+                      height: 38,
+                      child: ClipRect(
+                        child: OverflowBox(
+                          alignment: AlignmentDirectional.centerStart,
+                          minWidth: 185,
+                          maxWidth: 185,
+                          child: Image.asset(
+                            'assets/images/payment_methods.png',
+                            width: 185,
+                            height: 38,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
                       ),
-                      borderRadius: BorderRadius.circular(16),
-                      color: _selectedPaymentMethod == 'card'
-                          ? AppColors.primary.withValues(alpha: 0.05)
-                          : Colors.white,
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.add_card,
-                          color: _selectedPaymentMethod == 'card'
-                              ? AppColors.primary
-                              : Colors.grey.shade600,
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          'payment.add_card'.tr(),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        const Spacer(),
-                        if (_selectedPaymentMethod == 'card')
-                          const Icon(
-                            Icons.check_circle,
-                            color: AppColors.primary,
-                          ),
-                      ],
                     ),
                   ),
                 ),
