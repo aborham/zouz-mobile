@@ -615,7 +615,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   Text(
                     title,
                     style: const TextStyle(
-                      fontSize: 17,
+                      fontSize: 15,
                       fontWeight: FontWeight.w700,
                       color: Colors.black,
                     ),
@@ -625,7 +625,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     Text(
                       subtitle,
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: 12,
                         height: 1.25,
                         color: Colors.grey.shade700,
                       ),
@@ -1069,7 +1069,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                       Text(
                         'checkout.payment_details'.tr(),
                         style: const TextStyle(
-                          fontSize: 22,
+                          fontSize: 18,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -1080,7 +1080,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                             child: Text(
                               'checkout.pay_now_full'.tr(),
                               style: const TextStyle(
-                                fontSize: 15,
+                                fontSize: 14,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -1116,16 +1116,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                             () => _selectedPaymentMethod = 'apple_pay',
                           ),
                           trailing: SizedBox(
-                            width: 104,
-                            height: 45,
-                            child: TapApplePayFlutter.buildApplePayButton(
-                              applePayButtonType:
-                                  ApplePayButtonType.appleLogoOnly,
-                              applePayButtonStyle:
-                                  ApplePayButtonStyle.whiteoutline,
-                              onPress: () => setState(
-                                () => _selectedPaymentMethod = 'apple_pay',
-                              ),
+                            width: 96,
+                            height: 44,
+                            child: Image.asset(
+                              'assets/images/apple_pay_logo.png',
+                              fit: BoxFit.contain,
+                              filterQuality: FilterQuality.high,
                             ),
                           ),
                         ),
@@ -1205,20 +1201,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                       _selectedSavedCardToken = null;
                     }),
                     trailing: SizedBox(
-                      width: 142,
+                      width: 138,
                       height: 38,
-                      child: ClipRect(
-                        child: OverflowBox(
-                          alignment: AlignmentDirectional.centerStart,
-                          minWidth: 185,
-                          maxWidth: 185,
-                          child: Image.asset(
-                            'assets/images/payment_methods.png',
-                            width: 185,
-                            height: 38,
-                            fit: BoxFit.contain,
-                          ),
-                        ),
+                      child: Image.asset(
+                        'assets/images/payment_methods.png',
+                        fit: BoxFit.contain,
+                        filterQuality: FilterQuality.high,
                       ),
                     ),
                   ),
