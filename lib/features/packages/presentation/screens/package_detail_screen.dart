@@ -317,12 +317,16 @@ class PackageDetailScreen extends ConsumerWidget {
                         quantity: 1,
                         tenantId: package['tenantId'],
                         type: package['type'] ?? 'QUANTITY',
-                        tenantName: package['tenantName'] is Map
-                            ? (package['tenantName'][locale] ??
-                                  package['tenantName']['en'] ??
-                                  '')
-                            : package['tenantName']?.toString(),
-                        tenantLogoUrl: package['tenantLogoUrl'],
+                        tenantName: _getLocalizedValue(
+                          package['tenantName'] ??
+                              package['businessName'] ??
+                              package['providerName'],
+                          locale,
+                        ),
+                        tenantLogoUrl:
+                            package['tenantLogoUrl'] ??
+                            package['businessLogo'] ??
+                            package['providerLogo'],
                         standId: package['standId'],
                       );
 

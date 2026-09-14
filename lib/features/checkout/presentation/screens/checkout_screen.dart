@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:saudi_riyal_symbol/saudi_riyal_symbol.dart';
 import 'package:zouz_mobile/core/theme/colors.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:tap_apple_pay_flutter/tap_apple_pay_flutter.dart';
@@ -81,7 +80,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         productionKey: AppConfig.tapPublishableProductionKey,
         sdkMode: AppConfig.isProduction ? SdkMode.production : SdkMode.sandbox,
         merchantId: null,
-        applePayButtonRadius: 28,
+        applePayButtonRadius: 8,
       );
       final result = await TapApplePayFlutter.setupApplePay.timeout(
         const Duration(seconds: 12),
@@ -682,18 +681,50 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             ),
           ),
         ),
-        SaudiCurrencySymbol(
-          price: amount,
-          priceStyle: TextStyle(
+        _sarAmount(
+          amount,
+          style: TextStyle(
             fontSize: total ? 17 : 14,
             fontWeight: total ? FontWeight.w800 : FontWeight.w600,
             color: Colors.black,
           ),
-          symbolFontColor: Colors.black,
-          isOldPrice: false,
         ),
       ],
     );
+  }
+
+  Widget _sarAmount(
+    double amount, {
+    required TextStyle style,
+    bool isOldPrice = false,
+  }) {
+    final decoration = isOldPrice
+        ? TextDecoration.lineThrough
+        : TextDecoration.none;
+    return Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(
+            text: '${amount.toStringAsFixed(2)} ',
+            style: style.copyWith(decoration: decoration),
+          ),
+          TextSpan(
+            text: '',
+            style: style.copyWith(fontFamily: 'SAR', decoration: decoration),
+          ),
+        ],
+      ),
+      maxLines: 1,
+    );
+  }
+
+  String? _localizedValue(dynamic value, String locale) {
+    if (value is String && value.trim().isNotEmpty) return value;
+    if (value is Map) {
+      final localized = value[locale] ?? value['en'] ?? value['ar'];
+      if (localized is String && localized.trim().isNotEmpty) return localized;
+    }
+    return null;
   }
 
   Widget _buildCheckoutContent(BuildContext context, UserProfile profile) {
@@ -705,8 +736,17 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     String? tenantLogoUrl;
 
     if (widget.fromCart && widget.items != null && widget.items!.isNotEmpty) {
-      tenantName = widget.items!.first['tenantName'];
-      tenantLogoUrl = widget.items!.first['tenantLogoUrl'];
+      final firstItem = widget.items!.first;
+      tenantName = _localizedValue(
+        firstItem['tenantName'] ??
+            firstItem['businessName'] ??
+            firstItem['providerName'],
+        locale,
+      );
+      tenantLogoUrl =
+          firstItem['tenantLogoUrl']?.toString() ??
+          firstItem['businessLogo']?.toString() ??
+          firstItem['providerLogo']?.toString();
 
       for (var item in widget.items!) {
         final price = double.tryParse(item['price']?.toString() ?? '0') ?? 0.0;
@@ -747,31 +787,25 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    SaudiCurrencySymbol(
-                      price: price * qty,
-                      priceStyle: const TextStyle(
+                    _sarAmount(
+                      price * qty,
+                      style: const TextStyle(
                         color: Colors.black87,
                         fontWeight: FontWeight.w600,
                         fontSize: 15,
                       ),
-                      symbolFontColor: Colors.black87,
-                      isOldPrice: false,
                     ),
                     if (item['originalPrice'] != null) ...[
                       const SizedBox(height: 2),
-                      SaudiCurrencySymbol(
-                        price:
-                            (double.tryParse(
-                                  item['originalPrice'].toString(),
-                                ) ??
+                      _sarAmount(
+                        (double.tryParse(item['originalPrice'].toString()) ??
                                 0.0) *
                             qty,
-                        priceStyle: TextStyle(
+                        style: TextStyle(
                           color: Colors.grey.shade400,
                           fontWeight: FontWeight.w500,
                           fontSize: 12,
                         ),
-                        symbolFontColor: Colors.grey.shade400,
                         isOldPrice: true,
                       ),
                     ],
@@ -789,17 +823,17 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 ''
           : widget.package!['name']?.toString() ?? '';
 
-      tenantName = widget.package!['tenantName'] is Map
-          ? (widget.package!['tenantName'][locale] ??
-                widget.package!['tenantName']['en'])
-          : widget.package!['tenantName']?.toString();
-
-      if (tenantName == null && widget.package!['providerName'] != null) {
-        tenantName = widget.package!['providerName'];
-      }
+      tenantName = _localizedValue(
+        widget.package!['tenantName'] ??
+            widget.package!['businessName'] ??
+            widget.package!['providerName'],
+        locale,
+      );
 
       tenantLogoUrl =
-          widget.package!['tenantLogoUrl'] ?? widget.package!['imageUrl'];
+          widget.package!['tenantLogoUrl']?.toString() ??
+          widget.package!['businessLogo']?.toString() ??
+          widget.package!['providerLogo']?.toString();
 
       final price =
           double.tryParse(widget.package!['price']?.toString() ?? '0') ?? 0.0;
@@ -839,30 +873,26 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  SaudiCurrencySymbol(
-                    price: price,
-                    priceStyle: const TextStyle(
+                  _sarAmount(
+                    price,
+                    style: const TextStyle(
                       color: Colors.black87,
                       fontWeight: FontWeight.w600,
                       fontSize: 15,
                     ),
-                    symbolFontColor: Colors.black87,
-                    isOldPrice: false,
                   ),
                   if (widget.package!['originalPrice'] != null) ...[
                     const SizedBox(height: 2),
-                    SaudiCurrencySymbol(
-                      price:
-                          double.tryParse(
+                    _sarAmount(
+                      double.tryParse(
                             widget.package!['originalPrice'].toString(),
                           ) ??
                           0.0,
-                      priceStyle: TextStyle(
+                      style: TextStyle(
                         color: Colors.grey.shade400,
                         fontWeight: FontWeight.w500,
                         fontSize: 12,
                       ),
-                      symbolFontColor: Colors.grey.shade400,
                       isOldPrice: true,
                     ),
                   ],
@@ -1163,15 +1193,13 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                               ),
                             ),
                           ),
-                          SaudiCurrencySymbol(
-                            price: total,
-                            priceStyle: const TextStyle(
+                          _sarAmount(
+                            total,
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w800,
                               color: Colors.black,
                             ),
-                            symbolFontColor: Colors.black,
-                            isOldPrice: false,
                           ),
                         ],
                       ),
@@ -1326,15 +1354,13 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                           color: Colors.black87,
                         ),
                       ),
-                      SaudiCurrencySymbol(
-                        price: total,
-                        priceStyle: const TextStyle(
+                      _sarAmount(
+                        total,
+                        style: const TextStyle(
                           fontWeight: FontWeight.w900,
                           fontSize: 20,
                           color: Color(0xFF2C3E50),
                         ),
-                        symbolFontColor: const Color(0xFF2C3E50),
-                        isOldPrice: false,
                       ),
                     ],
                   ),
@@ -1345,7 +1371,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                           child: _applePayReady
                               ? TapApplePayFlutter.buildApplePayButton(
                                   applePayButtonType:
-                                      ApplePayButtonType.buyWithApplePay,
+                                      ApplePayButtonType.payWithApplePay,
                                   applePayButtonStyle:
                                       ApplePayButtonStyle.black,
                                   onPress: () =>
