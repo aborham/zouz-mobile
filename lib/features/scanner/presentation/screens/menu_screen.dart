@@ -298,6 +298,8 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
           '/package',
           extra: {
             ...pkg,
+            'tenantName': tenant['name'],
+            'tenantLogoUrl': tenant['logoUrl'],
             if (widget.standId != null && widget.standId!.isNotEmpty)
               'standId': widget.standId,
           },
@@ -491,6 +493,8 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
             quantity: 1,
             type: pkg['type'] ?? 'QUANTITY',
             tenantId: tenant['id'],
+            tenantName: _getLocalizedValue(tenant['name'], locale),
+            tenantLogoUrl: tenant['logoUrl'],
             standId: widget.standId,
             imageUrl: pkg['imageUrl'],
           ),

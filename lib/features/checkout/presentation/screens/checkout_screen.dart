@@ -932,7 +932,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             foregroundColor: Colors.black,
           ),
           body: SingleChildScrollView(
-            padding: const EdgeInsets.only(bottom: 120),
+            padding: EdgeInsets.zero,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -1324,47 +1324,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
                 ),
-              ],
-            ),
-          ),
-          bottomSheet: Container(
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, -5),
-                ),
-              ],
-            ),
-            child: SafeArea(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'checkout.total'.tr(),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      _sarAmount(
-                        total,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 20,
-                          color: Color(0xFF2C3E50),
-                        ),
-                      ),
-                    ],
-                  ),
-                  _selectedPaymentMethod == 'apple_pay'
+                const SizedBox(height: 20),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+                  child: _selectedPaymentMethod == 'apple_pay'
                       ? SizedBox(
                           width: double.infinity,
                           height: 54,
@@ -1412,8 +1375,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                                   ),
                           ),
                         ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
