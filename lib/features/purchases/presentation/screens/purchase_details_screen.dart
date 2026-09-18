@@ -30,6 +30,7 @@ class _PurchaseDetailScreenState extends ConsumerState<PurchaseDetailScreen>
   int _secondsRemaining = 0;
   bool _loading = true;
   bool _submitting = false;
+  bool _submittingRefund = false;
   bool _pollingDetails = false;
   String? _error;
 
@@ -238,6 +239,8 @@ class _PurchaseDetailScreenState extends ConsumerState<PurchaseDetailScreen>
                   _packageSummary(),
                   const SizedBox(height: 16),
                   _historyCard(),
+                  const SizedBox(height: 16),
+                  _refundSection(),
                 ],
               ),
             ),
@@ -651,4 +654,232 @@ class _PurchaseDetailScreenState extends ConsumerState<PurchaseDetailScreen>
       ),
     ],
   );
+
+  Widget _refundSection() {
+    final details = _details;
+    if (details == null) return const SizedBox.shrink();
+
+    final status = details['status']?.toString();
+    final disputeStatus = details['disputeStatus']?.toString() ?? 'NONE';
+    final isRefunded = status == 'REFUNDED' || disputeStatus == 'RESOLVED';
+    final isPendingDispute = disputeStatus == 'PENDING';
+    final isExpired = status == 'EXPIRED';
+
+    final purchaseDateStr = details['purchaseDate']?.toString();
+    final purchaseDate = purchaseDateStr != null ? DateTime.tryParse(purchaseDateStr) : null;
+    final ageInDays = purchaseDate != null
+        ? DateTime.now().difference(purchaseDate).inDays
+        : 999;
+    final isWithin7Days = ageInDays <= 7;
+
+    final redemptions = details['redemptions'] as List? ?? [];
+    final hasUsage = redemptions.isNotEmpty || details['firstActivatedAt'] != null;
+    final isEligibleInstant = isWithin7Days && !hasUsage && !isExpired && !isRefunded && !isPendingDispute;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: _cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.security_update_good_outlined, size: 20, color: AppColors.primary),
+              const SizedBox(width: 8),
+              Text(
+                'purchases.refund_title'.tr(),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (isRefunded)
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.green.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.check_circle_outline, color: Colors.green.shade700, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'purchases.refund_status_refunded'.tr(),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: Colors.green.shade800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else if (isPendingDispute)
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.orange.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.hourglass_empty_rounded, color: Colors.orange.shade700, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'purchases.refund_status_dispute'.tr(),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: Colors.orange.shade800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else if (isExpired)
+            Text(
+              'purchases.refund_ineligible_expired'.tr(),
+              style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            )
+          else if (isEligibleInstant) ...[
+            Text(
+              'purchases.refund_instant_desc'.tr(),
+              style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _submittingRefund ? null : () => _showRefundDialog(isInstant: true),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.red.shade700,
+                side: BorderSide(color: Colors.red.shade300),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              icon: _submittingRefund
+                  ? const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.replay_rounded),
+              label: Text('purchases.refund_instant_btn'.tr()),
+            ),
+          ] else ...[
+            Text(
+              'purchases.refund_dispute_desc'.tr(),
+              style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _submittingRefund ? null : () => _showRefundDialog(isInstant: false),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.orange.shade800,
+                side: BorderSide(color: Colors.orange.shade300),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              icon: const Icon(Icons.report_problem_outlined),
+              label: Text('purchases.refund_dispute_btn'.tr()),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showRefundDialog({required bool isInstant}) async {
+    final details = _details;
+    if (details == null) return;
+    final orderId = details['orderId']?.toString();
+    final itemId = details['id']?.toString();
+    if (orderId == null || itemId == null) return;
+
+    String selectedReason = 'purchases.refund_reason_mistake'.tr();
+    final reasons = [
+      'purchases.refund_reason_mistake'.tr(),
+      'purchases.refund_reason_mind'.tr(),
+      'purchases.refund_reason_service'.tr(),
+      'purchases.refund_reason_other'.tr(),
+    ];
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text(isInstant
+                  ? 'purchases.refund_confirm_title'.tr()
+                  : 'purchases.refund_dispute_btn'.tr()),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(isInstant
+                      ? 'purchases.refund_confirm_msg'.tr()
+                      : 'purchases.refund_dispute_desc'.tr()),
+                  const SizedBox(height: 16),
+                  Text(
+                    'purchases.refund_reason_prompt'.tr(),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedReason,
+                    isExpanded: true,
+                    items: reasons
+                        .map((r) => DropdownMenuItem(value: r, child: Text(r, style: const TextStyle(fontSize: 13))))
+                        .toList(),
+                    onChanged: (val) {
+                      if (val != null) setDialogState(() => selectedReason = val);
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                  child: Text('common.cancel'.tr()),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: isInstant ? Colors.red.shade700 : AppColors.primary,
+                  ),
+                  child: Text(isInstant ? 'purchases.refund_instant_btn'.tr() : 'common.done'.tr()),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _submittingRefund = true);
+    try {
+      final res = await ref.read(purchasesRepositoryProvider).submitRefundOrDispute(
+            orderId: orderId,
+            itemId: itemId,
+            reason: selectedReason,
+          );
+      if (!mounted) return;
+      final isAuto = res['autoRefunded'] == true;
+      final msg = isAuto
+          ? 'purchases.refund_success_msg'.tr()
+          : 'purchases.dispute_submitted_msg'.tr();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(msg), backgroundColor: isAuto ? Colors.green : Colors.orange.shade800),
+      );
+      await _loadDetails(showLoading: false);
+      ref.invalidate(homeDataProvider);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', '')), backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) setState(() => _submittingRefund = false);
+    }
+  }
 }

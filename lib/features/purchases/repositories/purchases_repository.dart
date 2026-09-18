@@ -54,6 +54,22 @@ class PurchasesRepository {
     }
   }
 
+  Future<Map<String, dynamic>> submitRefundOrDispute({
+    required String orderId,
+    required String itemId,
+    required String reason,
+  }) async {
+    try {
+      final response = await _dio.post(
+        'orders/$orderId/items/$itemId/dispute',
+        data: {'reason': reason},
+      );
+      return Map<String, dynamic>.from(response.data);
+    } on DioException catch (e) {
+      throw Exception(_errorMessage(e, 'Failed to process refund request'));
+    }
+  }
+
   String _errorMessage(DioException error, String fallback) {
     final data = error.response?.data;
     if (data is Map) {

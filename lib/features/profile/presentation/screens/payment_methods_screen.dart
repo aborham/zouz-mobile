@@ -1,16 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zouz_mobile/core/theme/colors.dart';
-import '../../providers/profile_provider.dart';
-
-
-import 'package:flutter/material.dart';
-import 'package:easy_localization/easy_localization.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:zouz_mobile/core/theme/colors.dart';
-import 'package:zouz_mobile/core/config/app_config.dart';
 import '../../providers/profile_provider.dart';
 
 class PaymentMethodsScreen extends ConsumerStatefulWidget {
