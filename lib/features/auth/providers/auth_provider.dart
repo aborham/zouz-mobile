@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -228,7 +229,9 @@ class AuthNotifier extends Notifier<AuthState> {
       AnalyticsService.instance.login(success: false);
       state = state.copyWith(
         status: AuthStatus.error,
-        errorMessage: e.toString(),
+        errorMessage: e is OtpVerifyException
+            ? e.messageKey.tr()
+            : 'auth.otp_errors.generic'.tr(),
       );
     }
   }

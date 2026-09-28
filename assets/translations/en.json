@@ -1,5 +1,14 @@
 {
   "auth": {
+    "otp_errors": {
+      "INVALID_CODE": "Incorrect code. Please try again.",
+      "NO_OTP": "No code was found for this number. Request a new code.",
+      "OTP_EXPIRED": "The code has expired. Request a new code.",
+      "TOO_MANY_ATTEMPTS": "Too many incorrect attempts. Request a new code.",
+      "CUSTOMER_ACCOUNT_INACTIVE": "This account is deactivated. Please contact support.",
+      "PLATFORM_ACCOUNT_NOT_ALLOWED": "This number belongs to a ZOUZ staff account and can't be used in the customer app.",
+      "generic": "Couldn't verify the code. Please try again."
+    },
     "login_title": "Welcome to Zouz",
     "login_subtitle": "Enter your phone number to continue",
     "phone_number": "Phone Number",
@@ -260,6 +269,27 @@
     "quantity": "Qty"
   },
   "checkout": {
+    "terms": {
+      "checkbox": "I have read and accept the terms of {}",
+      "view": "View terms",
+      "sheet_title": "Merchant terms",
+      "version": "Version {}",
+      "accept_button": "I accept",
+      "accept_required": "Please accept the merchant terms to continue.",
+      "load_failed": "Couldn't load the merchant terms.",
+      "retry": "Try again"
+    },
+    "errors": {
+      "AGREEMENT_REQUIRED": "Please accept the merchant terms to continue.",
+      "TERMS_VERSION_STALE": "The merchant updated their terms. Please review and accept the new version.",
+      "MERCHANT_TRADING_SUSPENDED": "This merchant is not accepting new purchases right now.",
+      "CUSTOMER_ACCOUNT_INACTIVE": "This account is deactivated. Please contact support.",
+      "PLATFORM_ACCOUNT_NOT_ALLOWED": "This number belongs to a ZOUZ staff account and can't be used for purchases.",
+      "RATE_LIMITED": "Too many attempts. Please wait a moment and try again.",
+      "UNAUTHORIZED": "Your session has expired. Please sign in again.",
+      "payment_failed": "The payment couldn't be completed. No amount was charged.",
+      "generic": "Something went wrong. Please try again."
+    },
     "checkout": "Checkout",
     "title": "Checkout",
     "payment_title": "Secure Payment",
