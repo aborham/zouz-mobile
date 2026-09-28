@@ -3,6 +3,29 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import '../../../core/api/api_client.dart';
 
+/// A refused OTP verification. The screen shows a localized message for
+/// [code]; the API's `error` text is never shown.
+class OtpVerifyException implements Exception {
+  final String? code;
+  OtpVerifyException(this.code);
+
+  static const _known = {
+    'INVALID_CODE',
+    'NO_OTP',
+    'OTP_EXPIRED',
+    'TOO_MANY_ATTEMPTS',
+    'CUSTOMER_ACCOUNT_INACTIVE',
+    'PLATFORM_ACCOUNT_NOT_ALLOWED',
+  };
+
+  /// Translation key under `auth.otp_errors`.
+  String get messageKey =>
+      'auth.otp_errors.${_known.contains(code) ? code : 'generic'}';
+
+  @override
+  String toString() => 'OtpVerifyException($code)';
+}
+
 class AuthRepository {
   final ApiClient _apiClient;
 
@@ -55,7 +78,9 @@ class AuthRepository {
 
       return response.data; // Should contain success, token, customer
     } on DioException catch (e) {
-      throw Exception(e.response?.data['error'] ?? 'Invalid OTP code');
+      final data = e.response?.data;
+      final code = data is Map ? data['code'] : null;
+      throw OtpVerifyException(code is String ? code : null);
     }
   }
 

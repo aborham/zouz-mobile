@@ -1,15 +1,82 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import '../../../core/api/api_client.dart';
+import '../../../core/config/app_config.dart';
+
+/// A failed checkout request. [code] is the API's stable error code (the
+/// screen localizes it); the API's `error` text is never shown to users.
+class CheckoutApiException implements Exception {
+  final String? code;
+  final int? status;
+  final Map<String, dynamic>? body;
+
+  CheckoutApiException(this.code, this.status, this.body);
+
+  factory CheckoutApiException.fromDio(DioException e) {
+    final data = e.response?.data;
+    final body = data is Map ? Map<String, dynamic>.from(data) : null;
+    final code = body?['code'];
+    return CheckoutApiException(
+      code is String ? code : null,
+      e.response?.statusCode,
+      body,
+    );
+  }
+
+  @override
+  String toString() => 'CheckoutApiException($status, $code)';
+}
+
+/// The merchant's active terms (see MERCHANT_TERMS_API.md in the platform repo).
+class MerchantTerms {
+  final String id;
+  final int version;
+  final String contentAr;
+  final String contentEn;
+
+  const MerchantTerms({
+    required this.id,
+    required this.version,
+    required this.contentAr,
+    required this.contentEn,
+  });
+
+  String contentFor(String languageCode) =>
+      languageCode == 'ar' ? contentAr : contentEn;
+}
 
 class CheckoutRepository {
   final Dio _dio;
 
   CheckoutRepository(this._dio);
 
+  /// Active terms for [tenantId], or null when the merchant requires none.
+  Future<MerchantTerms?> fetchMerchantTerms(String tenantId) async {
+    try {
+      // Public endpoint, outside the customer API prefix.
+      final response = await _dio.get(
+        '${AppConfig.apiBaseUrl}/public/merchant-terms',
+        queryParameters: {'tenantId': tenantId},
+      );
+      final data = Map<String, dynamic>.from(response.data);
+      final terms = data['terms'];
+      if (data['required'] != true || terms is! Map) return null;
+      return MerchantTerms(
+        id: terms['id'] as String,
+        version: (terms['version'] as num).toInt(),
+        contentAr: (terms['contentAr'] ?? '').toString(),
+        contentEn: (terms['contentEn'] ?? '').toString(),
+      );
+    } on DioException catch (e) {
+      throw CheckoutApiException.fromDio(e);
+    }
+  }
+
   Future<Map<String, dynamic>> createOrder(
-    List<Map<String, dynamic>> items,
-  ) async {
+    List<Map<String, dynamic>> items, {
+    String? acceptedTermsId,
+    String? locale,
+  }) async {
     try {
       final normalizedItems = items.map((item) {
         final normalized = Map<String, dynamic>.from(item);
@@ -22,11 +89,15 @@ class CheckoutRepository {
 
       final response = await _dio.post(
         '/orders/create',
-        data: {'items': normalizedItems},
+        data: {
+          'items': normalizedItems,
+          if (acceptedTermsId != null) 'acceptedTermsId': acceptedTermsId,
+          if (locale != null) 'locale': locale,
+        },
       );
       return Map<String, dynamic>.from(response.data);
     } on DioException catch (e) {
-      throw Exception(e.response?.data['error'] ?? 'Failed to create order');
+      throw CheckoutApiException.fromDio(e);
     }
   }
 
@@ -41,7 +112,7 @@ class CheckoutRepository {
       );
       return Map<String, dynamic>.from(response.data);
     } on DioException catch (e) {
-      throw Exception(e.response?.data['error'] ?? 'Failed to confirm order');
+      throw CheckoutApiException.fromDio(e);
     }
   }
 
@@ -66,7 +137,7 @@ class CheckoutRepository {
       );
       return Map<String, dynamic>.from(response.data);
     } on DioException catch (e) {
-      throw Exception(e.response?.data['error'] ?? 'Failed to process payment');
+      throw CheckoutApiException.fromDio(e);
     }
   }
 }

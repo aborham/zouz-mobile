@@ -53,11 +53,252 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   // silently and remove it only when Wallet cannot make a supported payment.
   bool _applePayReady = Platform.isIOS;
 
+  // Merchant terms (owner feedback #5): when the merchant requires terms, the
+  // customer must tick the active version before paying; the order records it.
+  MerchantTerms? _terms;
+  bool _termsLoading = true;
+  bool _termsLoadFailed = false;
+  bool _termsAccepted = false;
+
   @override
   void initState() {
     super.initState();
     _initWebViewController();
     _initApplePay();
+    _loadTerms();
+  }
+
+  String? get _tenantId {
+    final items = widget.items;
+    final id = (items != null && items.isNotEmpty)
+        ? items.first['tenantId']
+        : widget.package?['tenantId'];
+    return id is String && id.isNotEmpty ? id : null;
+  }
+
+  /// Payment is blocked while terms load, when they could not be loaded, and
+  /// until the required terms are ticked.
+  bool get _termsBlockPayment =>
+      _termsLoading || _termsLoadFailed || (_terms != null && !_termsAccepted);
+
+  Future<void> _loadTerms() async {
+    final tenantId = _tenantId;
+    setState(() {
+      _termsLoading = true;
+      _termsLoadFailed = false;
+      _termsAccepted = false;
+    });
+    if (tenantId == null) {
+      // Nothing to check against; the server still enforces terms.
+      setState(() {
+        _terms = null;
+        _termsLoading = false;
+      });
+      return;
+    }
+    try {
+      final terms = await ref
+          .read(checkoutRepositoryProvider)
+          .fetchMerchantTerms(tenantId);
+      if (!mounted) return;
+      setState(() {
+        _terms = terms;
+        _termsLoading = false;
+      });
+    } catch (e) {
+      debugPrint('Failed to load merchant terms: $e');
+      if (!mounted) return;
+      setState(() {
+        _terms = null;
+        _termsLoading = false;
+        _termsLoadFailed = true;
+      });
+    }
+  }
+
+  /// Returns false (and tells the customer why) when payment can't start yet.
+  bool _ensureTermsReady() {
+    if (!_termsBlockPayment) return true;
+    if (_termsLoadFailed) {
+      _showError('checkout.terms.load_failed'.tr());
+      _loadTerms();
+    } else if (!_termsLoading) {
+      _showError('checkout.terms.accept_required'.tr());
+      _showTermsSheet();
+    }
+    return false;
+  }
+
+  void _showTermsSheet() {
+    final terms = _terms;
+    if (terms == null) return;
+    final content = terms.contentFor(context.locale.languageCode);
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(sheetContext).size.height * 0.8,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'checkout.terms.sheet_title'.tr(),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'checkout.terms.version'.tr(args: ['${terms.version}']),
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                ),
+                const SizedBox(height: 12),
+                Flexible(
+                  child: SingleChildScrollView(
+                    // Merchant-provided plain text: never rendered as markup.
+                    child: SelectableText(
+                      content,
+                      style: const TextStyle(fontSize: 14, height: 1.6),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() => _termsAccepted = true);
+                    Navigator.of(sheetContext).pop();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size.fromHeight(48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text('checkout.terms.accept_button'.tr()),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTermsSection(String? tenantName) {
+    if (_termsLoading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 8),
+        child: Center(
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      );
+    }
+    if (_termsLoadFailed) {
+      return Row(
+        children: [
+          Expanded(
+            child: Text(
+              'checkout.terms.load_failed'.tr(),
+              style: TextStyle(color: AppColors.error, fontSize: 13),
+            ),
+          ),
+          TextButton(
+            onPressed: _loadTerms,
+            child: Text('checkout.terms.retry'.tr()),
+          ),
+        ],
+      );
+    }
+    if (_terms == null) return const SizedBox.shrink();
+    final merchant = tenantName ?? 'checkout.store_label'.tr();
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Checkbox(
+          value: _termsAccepted,
+          activeColor: AppColors.primary,
+          onChanged: _isProcessingPayment
+              ? null
+              : (value) => setState(() => _termsAccepted = value ?? false),
+        ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(
+                  'checkout.terms.checkbox'.tr(args: [merchant]),
+                  style: const TextStyle(fontSize: 13, height: 1.5),
+                ),
+                InkWell(
+                  onTap: _showTermsSheet,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Text(
+                      'checkout.terms.view'.tr(),
+                      style: TextStyle(
+                        fontSize: 13,
+                        height: 1.5,
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Localized message for a failed checkout request (never the API's text).
+  String _checkoutErrorMessage(Object error) {
+    final code = error is CheckoutApiException ? error.code : null;
+    final status = error is CheckoutApiException ? error.status : null;
+    const known = {
+      'AGREEMENT_REQUIRED',
+      'TERMS_VERSION_STALE',
+      'MERCHANT_TRADING_SUSPENDED',
+      'CUSTOMER_ACCOUNT_INACTIVE',
+      'PLATFORM_ACCOUNT_NOT_ALLOWED',
+      'RATE_LIMITED',
+    };
+    if (code != null && known.contains(code)) {
+      return 'checkout.errors.$code'.tr();
+    }
+    if (status == 401) return 'checkout.errors.UNAUTHORIZED'.tr();
+    return 'checkout.errors.generic'.tr();
+  }
+
+  /// Terms changed or were never accepted: show the current version again,
+  /// unticked, instead of a dead-end message.
+  Future<bool> _handleTermsError(Object error) async {
+    final code = error is CheckoutApiException ? error.code : null;
+    if (code != 'AGREEMENT_REQUIRED' && code != 'TERMS_VERSION_STALE') {
+      return false;
+    }
+    _showError(_checkoutErrorMessage(error));
+    await _loadTerms();
+    if (mounted && _terms != null) _showTermsSheet();
+    return true;
   }
 
   void _markApplePayUnavailable() {
@@ -202,6 +443,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   }
 
   Future<void> _processCheckout(double totalAmount) async {
+    if (!_ensureTermsReady()) return;
+    final termsLocale = context.locale.languageCode;
     final analyticsPaymentMethod = _selectedPaymentMethod == 'saved_card'
         ? 'saved_card'
         : 'card';
@@ -249,7 +492,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       }
 
       // 1. Create Order
-      final createResponse = await repository.createOrder(orderItems);
+      final createResponse = await repository.createOrder(
+        orderItems,
+        acceptedTermsId: _terms?.id,
+        locale: termsLocale,
+      );
       final orderId = createResponse['orderId'];
 
       if (!mounted) return;
@@ -296,7 +543,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       );
       if (!mounted) return;
       setState(() => _isProcessingPayment = false);
-      _showError(e.toString());
+      if (await _handleTermsError(e)) return;
+      _showError(_checkoutErrorMessage(e));
     }
   }
 
@@ -305,6 +553,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     if (!_applePayReady || _isApplePaySheetOpen || _isProcessingPayment) {
       return;
     }
+    // Before the Apple Pay sheet opens, so nobody authorizes a payment the
+    // order would then refuse.
+    if (!_ensureTermsReady()) {
+      return;
+    }
+    final termsLocale = context.locale.languageCode;
     setState(() => _isApplePaySheetOpen = true);
     AnalyticsService.instance.checkoutStarted(
       paymentMethod: 'apple_pay',
@@ -399,7 +653,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       }
 
       // Phase 2 (overlay visible): Create Order → Process with token
-      final createResponse = await repository.createOrder(orderItems);
+      final createResponse = await repository.createOrder(
+        orderItems,
+        acceptedTermsId: _terms?.id,
+        locale: termsLocale,
+      );
       final orderId = createResponse['orderId'];
 
       if (!mounted) return;
@@ -428,7 +686,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           queryParameters: {'orderId': orderId},
         );
       } else {
-        _showError('Payment failed to process');
+        _showError('checkout.errors.payment_failed'.tr());
         setState(() => _isProcessingPayment = false);
       }
     } catch (e) {
@@ -442,14 +700,15 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         _isApplePaySheetOpen = false;
         _isProcessingPayment = false;
       });
-      _showError(e.toString());
+      if (await _handleTermsError(e)) return;
+      _showError(_checkoutErrorMessage(e));
     }
   }
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('checkout.error_prefix'.tr(args: [message])),
+        content: Text(message),
         backgroundColor: AppColors.error,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -1318,7 +1577,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: _buildTermsSection(tenantName),
+                ),
+                const SizedBox(height: 16),
                 Text(
                   'checkout.security_hint'.tr(),
                   textAlign: TextAlign.center,
@@ -1327,54 +1591,60 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 const SizedBox(height: 20),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-                  child: _selectedPaymentMethod == 'apple_pay'
-                      ? SizedBox(
-                          width: double.infinity,
-                          height: 54,
-                          child: _applePayReady
-                              ? TapApplePayFlutter.buildApplePayButton(
-                                  applePayButtonType:
-                                      ApplePayButtonType.payWithApplePay,
-                                  applePayButtonStyle:
-                                      ApplePayButtonStyle.black,
-                                  onPress: () =>
-                                      _processApplePayCheckout(total),
-                                )
-                              : const SizedBox.shrink(),
-                        )
-                      : SizedBox(
-                          width: double.infinity,
-                          height: 54,
-                          child: ElevatedButton(
-                            onPressed: _isProcessingPayment
-                                ? null
-                                : () => _processCheckout(total),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              elevation: 0,
-                            ),
-                            child: _isProcessingPayment
-                                ? const SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2.5,
-                                    ),
+                  child: Opacity(
+                    // Still tappable while blocked: a tap explains what's missing.
+                    opacity: _termsBlockPayment ? 0.5 : 1,
+                    child: _selectedPaymentMethod == 'apple_pay'
+                        ? SizedBox(
+                            width: double.infinity,
+                            height: 54,
+                            child: _applePayReady
+                                ? TapApplePayFlutter.buildApplePayButton(
+                                    applePayButtonType:
+                                        ApplePayButtonType.payWithApplePay,
+                                    applePayButtonStyle:
+                                        ApplePayButtonStyle.black,
+                                    onPress: () =>
+                                        _processApplePayCheckout(total),
                                   )
-                                : Text(
-                                    'checkout.pay_button'.tr(args: ['']).trim(),
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
+                                : const SizedBox.shrink(),
+                          )
+                        : SizedBox(
+                            width: double.infinity,
+                            height: 54,
+                            child: ElevatedButton(
+                              onPressed: _isProcessingPayment
+                                  ? null
+                                  : () => _processCheckout(total),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                elevation: 0,
+                              ),
+                              child: _isProcessingPayment
+                                  ? const SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2.5,
+                                      ),
+                                    )
+                                  : Text(
+                                      'checkout.pay_button'
+                                          .tr(args: [''])
+                                          .trim(),
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
-                                  ),
+                            ),
                           ),
-                        ),
+                  ),
                 ),
               ],
             ),
